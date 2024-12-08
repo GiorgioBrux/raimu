@@ -1,6 +1,12 @@
 import { Peer } from 'peerjs';
 
+/**
+ * Manages WebRTC peer connections and media streams.
+ */
 export class WebRTCService {
+  /**
+   * Creates a new WebRTCService instance.
+   */
   constructor() {
     this.peer = null;
     this.localStream = null;
@@ -11,6 +17,12 @@ export class WebRTCService {
     this.onTrackStateChange = null;
   }
 
+  /**
+   * Initializes the WebRTC peer connection.
+   * @param {string} userId - Unique identifier for the local peer
+   * @returns {Promise<Peer>} The initialized peer object
+   * @throws {Error} If peer initialization fails
+   */
   async initialize(userId) {
     try {
       // Clean up any existing connections
@@ -25,6 +37,13 @@ export class WebRTCService {
     }
   }
 
+  /**
+   * Creates a new peer connection with retry mechanism.
+   * @param {string} userId - Unique identifier for the local peer
+   * @param {number} [retries=3] - Maximum number of connection attempts
+   * @returns {Promise<Peer>} The created peer object
+   * @private
+   */
   async _createPeer(userId, retries = 3) {
     return new Promise((resolve, reject) => {
       let attemptCount = 0;
@@ -79,6 +98,10 @@ export class WebRTCService {
     });
   }
 
+  /**
+   * Sets up event handlers for the peer connection.
+   * @private
+   */
   _setupPeerEvents() {
     this.peer.on('open', (id) => {
       console.log('Connected with ID:', id);
@@ -93,6 +116,11 @@ export class WebRTCService {
     });
   }
 
+  /**
+   * Initializes local media stream with audio and video.
+   * @returns {Promise<MediaStream>} The local media stream
+   * @throws {Error} If media access fails
+   */
   async initializeMedia() {
     try {
       this.localStream = await navigator.mediaDevices.getUserMedia({
@@ -106,6 +134,11 @@ export class WebRTCService {
     }
   }
 
+  /**
+   * Establishes a connection with a remote participant.
+   * @param {string} participantId - ID of the remote participant
+   * @returns {Promise<void>}
+   */
   async connectToParticipant(participantId) {
     if (!this.localStream) {
       await this.initializeMedia();
@@ -115,11 +148,23 @@ export class WebRTCService {
     await this._handleConnection(call);
   }
 
+  /**
+   * Handles incoming call from a remote participant.
+   * @param {MediaConnection} call - The incoming call object
+   * @returns {Promise<void>}
+   * @private
+   */
   _handleIncomingCall(call) {
     call.answer(this.localStream);
     return this._handleConnection(call);
   }
 
+  /**
+   * Sets up media connection with a participant.
+   * @param {MediaConnection} call - The media connection object
+   * @returns {Promise<void>}
+   * @private
+   */
   _handleConnection(call) {
     const participantId = call.peer;
     this.connections.set(participantId, call);
@@ -140,6 +185,10 @@ export class WebRTCService {
     });
   }
 
+  /**
+   * Toggles the local audio track state.
+   * @param {boolean} forceMute - Whether to force mute the audio
+   */
   async toggleAudio(forceMute) {
     if (this.localStream) {
       this.localStream.getAudioTracks().forEach(track => {
@@ -148,6 +197,10 @@ export class WebRTCService {
     }
   }
 
+  /**
+   * Toggles the local video track state.
+   * @param {boolean} forceDisable - Whether to force disable the video
+   */
   async toggleVideo(forceDisable) {
     if (this.localStream) {
       this.localStream.getVideoTracks().forEach(track => {
@@ -156,6 +209,10 @@ export class WebRTCService {
     }
   }
 
+  /**
+   * Initiates screen sharing.
+   * @returns {Promise<void>}
+   */
   async shareScreen() {
     try {
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
@@ -188,6 +245,9 @@ export class WebRTCService {
     }
   }
 
+  /**
+   * Disconnects from all peers and cleans up resources.
+   */
   disconnect() {
     if (this.peer) {
       this.connections.forEach(connection => {

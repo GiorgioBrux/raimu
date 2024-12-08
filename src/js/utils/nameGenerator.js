@@ -1,3 +1,7 @@
+/**
+ * Collection of adjectives for room name generation.
+ * @type {string[]}
+ */
 const adjectives = [
   // Colors
   'azure', 'crimson', 'emerald', 'golden', 'silver',
@@ -9,6 +13,10 @@ const adjectives = [
   'swift', 'bright', 'clever', 'mystic', 'radiant'
 ];
 
+/**
+ * Collection of nouns for room name generation.
+ * @type {string[]}
+ */
 const nouns = [
   // Celestial
   'star', 'moon', 'sun', 'comet', 'aurora',
@@ -20,8 +28,12 @@ const nouns = [
   'falcon', 'dolphin', 'panther', 'tiger', 'wolf'
 ];
 
+/**
+ * Generates a random room name by combining an adjective and a noun.
+ * @returns {string} A randomly generated room name
+ */
 export function generateRoomName() {
   const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
   const noun = nouns[Math.floor(Math.random() * nouns.length)];
-  return `${adjective}-${noun}-${Math.floor(Math.random() * 1000)}`;
+  return `${adjective}${noun}`;
 } 

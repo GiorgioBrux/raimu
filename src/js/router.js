@@ -1,4 +1,10 @@
+/**
+ * Simple client-side router for handling page navigation.
+ */
 class Router {
+  /**
+   * Creates a new Router instance with predefined routes.
+   */
   constructor() {
     this.routes = {
       '/': '/src/pages/home.html',
@@ -7,11 +13,19 @@ class Router {
     };
   }
 
+  /**
+   * Initializes the router and sets up popstate event listener.
+   * @returns {Promise<void>}
+   */
   async init() {
     window.addEventListener('popstate', () => this.handleRoute());
     await this.handleRoute();
   }
 
+  /**
+   * Handles the current route and loads the appropriate page.
+   * @returns {Promise<void>}
+   */
   async handleRoute() {
     const path = window.location.pathname;
     let route = this.routes[path];
@@ -51,6 +65,11 @@ class Router {
     }
   }
 
+  /**
+   * Navigates to a new route.
+   * @param {string} path - The path to navigate to
+   * @returns {Promise<void>}
+   */
   navigate(path) {
     window.history.pushState({}, '', path);
     return this.handleRoute();

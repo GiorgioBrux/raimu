@@ -1,3 +1,7 @@
+/**
+ * Main application entry point.
+ * Sets up routing and initializes core services.
+ */
 import { router } from './router.js';
 import { RoomManager } from './services/RoomManager.js';
 import { RoomUI } from './ui/RoomUI.js';
@@ -15,7 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
   router.init();
 });
 
-// Handle route changes
+/**
+ * Handles route changes and manages page-specific initialization.
+ * @param {string} path - The current route path
+ */
 router.onRouteChange = async (path) => {
   if (path === '/') {
     // Clean up any existing room
