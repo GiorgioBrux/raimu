@@ -1,4 +1,4 @@
-import { WebRTCService } from './webrtc';
+import { WebRTCService } from './WebRTC.js';
 
 /**
  * Manages room state and coordinates WebRTC connections between participants

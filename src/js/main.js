@@ -1,7 +1,7 @@
 import { router } from './router.js';
-import { RoomManager } from './services/room-manager';
-import { RoomUI } from './ui/room-ui';
-import { ModalManager } from './ui/modal';
+import { RoomManager } from './services/RoomManager.js';
+import { RoomUI } from './ui/RoomUI.js';
+import { ModalManager } from './ui/Modal.js';
 
 const roomManager = new RoomManager();
 let modalManager;

@@ -140,18 +140,18 @@ export class WebRTCService {
     });
   }
 
-  toggleAudio(enabled) {
+  async toggleAudio(forceMute) {
     if (this.localStream) {
       this.localStream.getAudioTracks().forEach(track => {
-        track.enabled = enabled;
+        track.enabled = !forceMute;
       });
     }
   }
 
-  toggleVideo(enabled) {
+  async toggleVideo(forceDisable) {
     if (this.localStream) {
       this.localStream.getVideoTracks().forEach(track => {
-        track.enabled = enabled;
+        track.enabled = !forceDisable;
       });
     }
   }
