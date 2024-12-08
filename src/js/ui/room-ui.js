@@ -1,10 +1,11 @@
+import { MicVAD } from "@ricky0123/vad-web";
+
 export class RoomUI {
   constructor(roomManager) {
     this.roomManager = roomManager;
     this.elements = {};
     this.initialized = false;
-    this.audioContext = null;
-    this.audioAnalysers = new Map();
+    this.vadInstances = new Map();
   }
 
   async initialize() {
@@ -265,16 +266,16 @@ export class RoomUI {
     if (!this.initialized) return;
     const container = document.getElementById(`participant-${participantId}`);
     if (container) {
-      this.cleanupAudioAnalyser(participantId);
+      this.cleanupVAD(participantId);
       container.remove();
     }
   }
 
-  cleanupAudioAnalyser(participantId) {
-    const analyser = this.audioAnalysers.get(participantId);
-    if (analyser) {
-      analyser.disconnect();
-      this.audioAnalysers.delete(participantId);
+  cleanupVAD(participantId) {
+    const vad = this.vadInstances.get(participantId);
+    if (vad) {
+      vad.destroy();
+      this.vadInstances.delete(participantId);
     }
   }
 
@@ -333,94 +334,40 @@ export class RoomUI {
     localContainer.classList.toggle('peer-video-off', !isVideoEnabled);
   }
 
-  setupSpeakingDetection(stream, container) {
+  async setupSpeakingDetection(stream, container) {
     if (!stream || !container) return;
     
     try {
-      if (!this.audioContext) {
-        this.audioContext = new AudioContext();
-      }
-      
-      const analyser = this.audioContext.createAnalyser();
-      const microphone = this.audioContext.createMediaStreamSource(stream);
-      const scriptProcessor = this.audioContext.createScriptProcessor(2048, 1, 1);
-      
-      this.setupAudioAnalysis(analyser, microphone, scriptProcessor);
-      this.setupSpeakingIndicator(stream, container, analyser, scriptProcessor);
-      
-      this.audioAnalysers.set(container.id, {
-        analyser,
-        scriptProcessor,
-        microphone
+      const vad = await MicVAD.new({
+        stream: stream,
+        onSpeechStart: () => {
+          this.updateSpeakingIndicators(container, true);
+        },
+        onSpeechEnd: () => {
+          this.updateSpeakingIndicators(container, false);
+        },
+        modelURL: "v5",
+        baseAssetPath: "/",
+        onnxWASMBasePath: "/",
+        minSpeechFrames: 0,
       });
+
+      await vad.start();
+      this.vadInstances.set(container.id, vad);
+
     } catch (error) {
-      console.error('Error setting up audio analysis:', error);
+      console.error('Error setting up VAD:', error);
     }
-  }
-
-  setupAudioAnalysis(analyser, microphone, scriptProcessor) {
-    analyser.smoothingTimeConstant = 0.8;
-    analyser.fftSize = 1024;
-    
-    microphone.connect(analyser);
-    analyser.connect(scriptProcessor);
-    scriptProcessor.connect(this.audioContext.destination);
-  }
-
-  setupSpeakingIndicator(stream, container, analyser, scriptProcessor) {
-    let speakingTimeout = null;
-    const volumeHistory = new Array(5).fill(0);
-    
-    scriptProcessor.onaudioprocess = () => {
-      const audioTrack = stream.getAudioTracks()[0];
-      if (!audioTrack?.enabled) {
-        this.updateSpeakingIndicators(container, false);
-        return;
-      }
-
-      const speaking = this.isSpeaking(analyser, volumeHistory);
-      
-      if (speakingTimeout) {
-        clearTimeout(speakingTimeout);
-      }
-      
-      if (speaking) {
-        this.updateSpeakingIndicators(container, true);
-      }
-      
-      speakingTimeout = setTimeout(() => {
-        this.updateSpeakingIndicators(container, false);
-      }, 500);
-    };
-  }
-
-  isSpeaking(analyser, volumeHistory) {
-    const array = new Uint8Array(analyser.frequencyBinCount);
-    analyser.getByteFrequencyData(array);
-    const average = array.reduce((a, b) => a + b) / array.length;
-    
-    volumeHistory.shift();
-    volumeHistory.push(average);
-    
-    const recentAverage = volumeHistory.reduce((a, b) => a + b) / volumeHistory.length;
-    return recentAverage > 15;
   }
 
   cleanup() {
-    this.audioAnalysers.forEach(({ analyser, scriptProcessor, microphone }) => {
+    this.vadInstances.forEach(async (vad) => {
       try {
-        scriptProcessor.disconnect();
-        analyser.disconnect();
-        microphone.disconnect();
+        await vad.destroy();
       } catch (e) {
-        console.warn('Error cleaning up audio analysis:', e);
+        console.warn('Error cleaning up VAD instance:', e);
       }
     });
-    this.audioAnalysers.clear();
-    
-    if (this.audioContext) {
-      this.audioContext.close();
-      this.audioContext = null;
-    }
+    this.vadInstances.clear();
   }
 } 
