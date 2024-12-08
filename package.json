@@ -6,7 +6,8 @@
   "scripts": {
     "dev:vite": "vite",
     "dev:peer": "node server.js",
-    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:peer\"",
+    "dev:signaling": "node websocket-server.js",
+    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:peer\" \"npm run dev:signaling\"",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -19,6 +20,8 @@
   },
   "dependencies": {
     "@ricky0123/vad-web": "^0.0.21",
-    "onnxruntime-web": "^1.20.1"
+    "onnxruntime-web": "^1.20.1",
+    "pino": "^9.5.0",
+    "pino-pretty": "^13.0.0"
   }
 }

@@ -1,3 +1,5 @@
+import { uiLogger as log } from '../../utils/logger.js';
+
 /**
  * Manages the video and audio states for participant containers in the video grid.
  */
@@ -11,19 +13,43 @@ export class ParticipantVideo {
     const videoTrack = stream.getVideoTracks()[0];
     const audioTrack = stream.getAudioTracks()[0];
     
+    log.debug({
+      containerId: container.id,
+      hasVideo: !!videoTrack?.enabled,
+      hasAudio: !!audioTrack?.enabled
+    }, 'Setting up media states');
+    
     container.classList.toggle('peer-video-off', !videoTrack?.enabled);
     container.classList.toggle('peer-muted', !audioTrack?.enabled);
     
     if (videoTrack) {
-      videoTrack.onmute = () => container.classList.add('peer-video-off');
-      videoTrack.onunmute = () => container.classList.remove('peer-video-off');
-      videoTrack.onended = () => container.classList.add('peer-video-off');
+      videoTrack.onmute = () => {
+        log.debug({ containerId: container.id }, 'Video track muted');
+        container.classList.add('peer-video-off');
+      };
+      videoTrack.onunmute = () => {
+        log.debug({ containerId: container.id }, 'Video track unmuted');
+        container.classList.remove('peer-video-off');
+      };
+      videoTrack.onended = () => {
+        log.debug({ containerId: container.id }, 'Video track ended');
+        container.classList.add('peer-video-off');
+      };
     }
     
     if (audioTrack) {
-      audioTrack.onmute = () => container.classList.add('peer-muted');
-      audioTrack.onunmute = () => container.classList.remove('peer-muted');
-      audioTrack.onended = () => container.classList.add('peer-muted');
+      audioTrack.onmute = () => {
+        log.debug({ containerId: container.id }, 'Audio track muted');
+        container.classList.add('peer-muted');
+      };
+      audioTrack.onunmute = () => {
+        log.debug({ containerId: container.id }, 'Audio track unmuted');
+        container.classList.remove('peer-muted');
+      };
+      audioTrack.onended = () => {
+        log.debug({ containerId: container.id }, 'Audio track ended');
+        container.classList.add('peer-muted');
+      };
     }
   }
 
@@ -33,6 +59,16 @@ export class ParticipantVideo {
    * @param {boolean} speaking - Whether the participant is currently speaking
    */
   static updateSpeakingIndicators(container, speaking) {
+    if (!container) {
+      log.warn('No container provided for speaking indicators');
+      return;
+    }
+
+    log.debug({
+      containerId: container.id,
+      speaking
+    }, 'Updating speaking indicators');
+
     const speakingIndicator = container.querySelector('.peer-speaking');
     const statusDot = container.querySelector('.bg-emerald-500');
 
@@ -53,24 +89,30 @@ export class ParticipantVideo {
    */
   static updateLocalVideoContainer(container, isVideoEnabled, isAudioEnabled) {
     if (!container) {
-        console.warn('No container provided to updateLocalVideoContainer');
-        return;
+      log.warn('No container provided to updateLocalVideoContainer');
+      return;
     }
+
+    log.debug({
+      containerId: container.id,
+      isVideoEnabled,
+      isAudioEnabled
+    }, 'Updating local container state');
 
     const audioIndicator = container.querySelector('[data-tooltip="Audio status"]');
     const videoIndicator = container.querySelector('[data-tooltip="Video status"]');
     
     if (!audioIndicator) {
-        console.warn('Could not find audio indicator');
-        return;
+      log.warn({ containerId: container.id }, 'Could not find audio indicator');
+      return;
     }
 
     const micIcon = audioIndicator.querySelector('.mic-icon');
     const slashIcon = audioIndicator.querySelector('.slash');
     
     if (!micIcon || !slashIcon) {
-        console.warn('Missing mic or slash icon', { micIcon, slashIcon });
-        return;
+      log.warn({ containerId: container.id }, 'Missing mic or slash icon');
+      return;
     }
 
     const shouldShow = !isAudioEnabled;
@@ -99,7 +141,17 @@ export class ParticipantVideo {
         }
     }
     
+    log.debug({ 
+      containerId: container.id, 
+      classes: container.classList.toString() 
+    }, 'Container classes before update');
+    
     container.classList.toggle('peer-video-off', !isVideoEnabled);
     container.classList.toggle('peer-muted', !isAudioEnabled);
+    
+    log.debug({ 
+      containerId: container.id, 
+      classes: container.classList.toString() 
+    }, 'Container classes after update');
   }
 } 

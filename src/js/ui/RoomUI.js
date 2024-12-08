@@ -4,10 +4,15 @@ import { VADManager } from './components/VADManager';
 import { UIElements } from './components/UIElements';
 import { ParticipantVideo } from './components/ParticipantVideo';
 import { PanelManager } from './components/PanelManager';
+import { uiLogger as log } from '../utils/logger.js';
 
 export class RoomUI {
   constructor(roomManager) {
     this.roomManager = roomManager;
+    this.roomManager.onParticipantLeft = (participantId) => {
+      log.debug({ participantId }, 'Participant left, removing video');
+      this.removeParticipantVideo(participantId);
+    };
     this.initialized = false;
     this.uiElements = new UIElements();
   }
@@ -15,7 +20,9 @@ export class RoomUI {
   async initialize() {
     try {
       if (!await this.uiElements.initialize()) {
-        throw new Error('Failed to initialize UI elements');
+        const error = new Error('Failed to initialize UI elements');
+        log.error({ error }, 'UI initialization failed');
+        throw error;
       }
 
       const elements = this.uiElements.getElements();
@@ -26,8 +33,9 @@ export class RoomUI {
 
       this.setupEventListeners();
       this.initialized = true;
+      log.debug('Room UI initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize room UI:', error);
+      log.error({ error }, 'Failed to initialize room UI');
       throw error;
     }
   }
@@ -64,7 +72,16 @@ export class RoomUI {
   }
 
   addParticipantVideo(participantId, stream) {
-    if (!this.initialized) return;
+    if (!this.initialized) {
+      log.warn({ participantId }, 'Attempted to add participant video before initialization');
+      return;
+    }
+
+    log.debug({ 
+      participantId,
+      hasVideo: stream.getVideoTracks().length > 0,
+      hasAudio: stream.getAudioTracks().length > 0
+    }, 'Adding participant video');
 
     const setupCallbacks = (container, stream) => {
       ParticipantVideo.setupStates(container, stream);
@@ -79,13 +96,19 @@ export class RoomUI {
   }
 
   removeParticipantVideo(participantId) {
-    if (!this.initialized) return;
-    this.vadManager.cleanup(participantId);
+    if (!this.initialized) {
+      log.warn({ participantId }, 'Attempted to remove participant video before initialization');
+      return;
+    }
+    log.debug({ participantId }, 'Removing participant video');
     this.videoGrid.removeVideo(participantId);
   }
 
   setLocalStream(stream) {
-    if (!this.initialized) return;
+    if (!this.initialized) {
+      log.warn('Attempted to set local stream before initialization');
+      return;
+    }
     
     const videoTrack = stream.getVideoTracks()[0];
     const audioTrack = stream.getAudioTracks()[0];
@@ -93,10 +116,19 @@ export class RoomUI {
     const isVideoEnabled = videoTrack?.enabled ?? false;
     const isAudioEnabled = audioTrack?.enabled ?? false;
     
+    log.debug({
+      hasVideo: isVideoEnabled,
+      hasAudio: isAudioEnabled
+    }, 'Setting up local stream');
+    
     this.mediaControls.updateInitialStates(isVideoEnabled, isAudioEnabled);
     
     const elements = this.uiElements.getElements();
     elements.localVideo.srcObject = stream;
+    
+    elements.localVideo.play().catch(error => {
+      log.error({ error }, 'Failed to play local video');
+    });
     
     const localContainer = elements.localVideo.parentElement;
     ParticipantVideo.updateLocalVideoContainer(
@@ -117,6 +149,7 @@ export class RoomUI {
   }
 
   cleanup() {
+    log.debug('Cleaning up Room UI');
     this.vadManager.cleanup();
   }
 } 

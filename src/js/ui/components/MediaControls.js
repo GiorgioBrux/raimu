@@ -1,3 +1,5 @@
+import { uiLogger as log } from '../../utils/logger.js';
+
 /**
  * Manages media control buttons and their states.
  */
@@ -8,6 +10,7 @@ export class MediaControls {
    */
   constructor(controlElements) {
     this.elements = controlElements;
+    log.debug('Media controls initialized');
   }
 
   /**
@@ -15,6 +18,7 @@ export class MediaControls {
    * @param {boolean} muted - Whether audio is muted
    */
   updateAudioState(muted) {
+    log.debug({ muted }, 'Updating audio state');
     const button = this.elements.audio;
     button.dataset.muted = muted;
     button.querySelectorAll('[data-muted]').forEach(el => {
@@ -27,6 +31,7 @@ export class MediaControls {
    * @param {boolean} disabled - Whether video is disabled
    */
   updateVideoState(disabled) {
+    log.debug({ disabled }, 'Updating video state');
     const button = this.elements.video;
     button.dataset.disabled = disabled;
     button.querySelectorAll('[data-disabled]').forEach(el => {
@@ -40,6 +45,11 @@ export class MediaControls {
    * @param {boolean} isAudioEnabled - Whether audio is initially enabled
    */
   updateInitialStates(isVideoEnabled, isAudioEnabled) {
+    log.debug({ 
+      isVideoEnabled, 
+      isAudioEnabled 
+    }, 'Setting initial media states');
+    
     this.updateVideoState(!isVideoEnabled);
     this.updateAudioState(!isAudioEnabled);
   }
@@ -54,21 +64,43 @@ export class MediaControls {
    * @param {Function} callbacks.onPanelToggle - Callback for toggling panels
    */
   setupEventListeners(callbacks) {
+    if (!this.elements.audio || !this.elements.video) {
+      log.warn('Missing required control elements');
+      return;
+    }
+
     this.elements.audio?.addEventListener('click', () => {
       const isMuted = this.elements.audio.dataset.muted === 'true';
+      log.debug({ newState: !isMuted }, 'Audio toggle clicked');
       callbacks.onAudioToggle(!isMuted);
       this.updateAudioState(!isMuted);
     });
 
     this.elements.video?.addEventListener('click', () => {
       const isDisabled = this.elements.video.dataset.disabled === 'true';
+      log.debug({ newState: !isDisabled }, 'Video toggle clicked');
       callbacks.onVideoToggle(!isDisabled);
       this.updateVideoState(!isDisabled);
     });
 
-    this.elements.screen?.addEventListener('click', callbacks.onScreenShare);
-    this.elements.leave?.addEventListener('click', callbacks.onLeave);
-    this.elements.transcribe?.addEventListener('click', () => callbacks.onPanelToggle('transcriptionText'));
-    this.elements.chat?.addEventListener('click', () => callbacks.onPanelToggle('chatMessages'));
+    this.elements.screen?.addEventListener('click', () => {
+      log.debug('Screen share clicked');
+      callbacks.onScreenShare();
+    });
+
+    this.elements.leave?.addEventListener('click', () => {
+      log.debug('Leave call clicked');
+      callbacks.onLeave();
+    });
+
+    this.elements.transcribe?.addEventListener('click', () => {
+      log.debug('Transcription panel toggle clicked');
+      callbacks.onPanelToggle('transcriptionText');
+    });
+
+    this.elements.chat?.addEventListener('click', () => {
+      log.debug('Chat panel toggle clicked');
+      callbacks.onPanelToggle('chatMessages');
+    });
   }
 } 

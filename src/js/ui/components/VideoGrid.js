@@ -1,3 +1,5 @@
+import { uiLogger as log } from '../../utils/logger.js';
+
 /**
  * Manages the grid of video elements in the room.
  */
@@ -10,6 +12,7 @@ export class VideoGrid {
   constructor(gridElement, remoteTemplate) {
     this.gridElement = gridElement;
     this.remoteTemplate = remoteTemplate;
+    log.debug('Video grid initialized');
   }
 
   /**
@@ -20,6 +23,17 @@ export class VideoGrid {
    * @returns {HTMLElement} The created video container element
    */
   addVideo(participantId, stream, setupCallbacks) {
+    if (!this.gridElement || !this.remoteTemplate) {
+      log.error({ participantId }, 'Missing grid element or template');
+      return;
+    }
+
+    log.debug({ 
+      participantId,
+      hasVideo: stream.getVideoTracks().length > 0,
+      hasAudio: stream.getAudioTracks().length > 0
+    }, 'Adding video to grid');
+
     const clone = this.remoteTemplate.content.cloneNode(true);
     const container = clone.querySelector('div');
     container.id = `participant-${participantId}`;
@@ -30,6 +44,7 @@ export class VideoGrid {
     setupCallbacks(container, stream);
     this.gridElement.appendChild(clone);
     
+    log.debug({ participantId, containerId: container.id }, 'Video added to grid');
     return container;
   }
 
@@ -40,7 +55,10 @@ export class VideoGrid {
   removeVideo(participantId) {
     const container = document.getElementById(`participant-${participantId}`);
     if (container) {
+      log.debug({ participantId }, 'Removing video from grid');
       container.remove();
+    } else {
+      log.warn({ participantId }, 'Video container not found for removal');
     }
   }
 } 

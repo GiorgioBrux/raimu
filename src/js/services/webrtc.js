@@ -1,4 +1,5 @@
 import { Peer } from 'peerjs';
+import { webrtcLogger as log } from '../utils/logger.js';
 
 /**
  * Manages WebRTC peer connections and media streams.
@@ -25,14 +26,12 @@ export class WebRTCService {
    */
   async initialize(userId) {
     try {
-      // Clean up any existing connections
       await this.disconnect();
-      
       await this._createPeer(userId);
       await this.initializeMedia();
       return this.peer;
     } catch (error) {
-      console.error('Failed to initialize peer:', error);
+      log.error({ error }, 'Failed to initialize peer');
       throw error;
     }
   }
@@ -55,20 +54,20 @@ export class WebRTCService {
         }
 
         attemptCount++;
-        console.log(`Connection attempt ${attemptCount}...`);
+        log.debug({ attempt: attemptCount, retries }, 'Connection attempt');
 
         this.peer = new Peer(userId, {
           host: 'localhost',
           port: 9000,
-          path: '/myapp',
-          debug: 1,
+          path: '/peerjs',
+          debug: 2,
           config: {
             iceServers: [
+              { urls: 'stun:localhost:9000' },
               { urls: 'stun:stun.l.google.com:19302' },
               { urls: 'stun:global.stun.twilio.com:3478' }
             ]
-          },
-          retries: 0
+          }
         });
 
         const timeout = setTimeout(() => {
@@ -77,14 +76,14 @@ export class WebRTCService {
         }, 5000);
 
         this.peer.on('open', (id) => {
-          console.log('Connected with ID:', id);
+          log.info({ id }, 'Connected to PeerJS server');
           clearTimeout(timeout);
           this._setupPeerEvents();
           resolve(this.peer);
         });
 
         this.peer.on('error', (error) => {
-          console.error('PeerJS error:', error);
+          log.error({ error }, 'PeerJS connection error');
           clearTimeout(timeout);
           if (error.type === 'network' || error.type === 'server-error') {
             attempt();
@@ -103,16 +102,20 @@ export class WebRTCService {
    * @private
    */
   _setupPeerEvents() {
-    this.peer.on('open', (id) => {
-      console.log('Connected with ID:', id);
+    this.peer.on('connection', (conn) => {
+      // Handle new peer connections
+      const participantId = conn.peer;
+      this.onParticipantJoined?.(participantId);
     });
 
     this.peer.on('call', async (call) => {
+      // Auto-answer all incoming calls with our stream
       await this._handleIncomingCall(call);
     });
 
     this.peer.on('error', (error) => {
-      console.error('PeerJS error:', error);
+      console.error('[WebRTC] Connection error:', error);
+      // Handle reconnection if needed
     });
   }
 
@@ -123,13 +126,19 @@ export class WebRTCService {
    */
   async initializeMedia() {
     try {
-      this.localStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true
-      });
+      if (!this.localStream) {  // Only initialize if we don't have a stream
+        log.debug('Initializing media devices');
+        this.localStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+        log.info({
+          tracks: this.localStream.getTracks().map(t => t.kind)
+        }, 'Media initialized');
+      }
       return this.localStream;
     } catch (error) {
-      console.error('Error accessing media devices:', error);
+      log.error({ error }, 'Failed to access media devices');
       throw error;
     }
   }
@@ -140,12 +149,25 @@ export class WebRTCService {
    * @returns {Promise<void>}
    */
   async connectToParticipant(participantId) {
-    if (!this.localStream) {
-      await this.initializeMedia();
-    }
+    try {
+      log.debug({ participantId }, 'Attempting to connect to participant');
+      
+      if (!this.localStream) {
+        await this.initializeMedia();
+      }
 
-    const call = this.peer.call(participantId, this.localStream);
-    await this._handleConnection(call);
+      const call = this.peer.call(participantId, this.localStream);
+      
+      if (!call) {
+        throw new Error(`Failed to create call to ${participantId}`);
+      }
+
+      await this._handleConnection(call);
+      log.info({ participantId }, 'Successfully connected to participant');
+    } catch (error) {
+      log.error({ error, participantId }, 'Failed to connect to participant');
+      throw error;
+    }
   }
 
   /**
@@ -155,8 +177,13 @@ export class WebRTCService {
    * @private
    */
   _handleIncomingCall(call) {
-    call.answer(this.localStream);
-    return this._handleConnection(call);
+    log.debug({ peerId: call.peer }, 'Handling incoming call');
+    if (!this.connections.has(call.peer)) {
+      call.answer(this.localStream);
+      return this._handleConnection(call);
+    } else {
+      log.debug({ peerId: call.peer }, 'Ignoring duplicate call');
+    }
   }
 
   /**
@@ -166,22 +193,49 @@ export class WebRTCService {
    * @private
    */
   _handleConnection(call) {
-    const participantId = call.peer;
-    this.connections.set(participantId, call);
-
-    call.on('stream', (remoteStream) => {
-      // Listen for track state changes
-      remoteStream.getTracks().forEach(track => {
-        track.onmute = () => this.onTrackStateChange?.(participantId, track.kind, false);
-        track.onunmute = () => this.onTrackStateChange?.(participantId, track.kind, true);
-      });
+    return new Promise((resolve) => {
+      const participantId = call.peer;
+      log.debug({ participantId }, 'Setting up connection');
       
-      this.onStreamUpdate?.(participantId, remoteStream);
-    });
+      this.connections.set(participantId, call);
 
-    call.on('close', () => {
-      this.connections.delete(participantId);
-      this.onParticipantLeft?.(participantId);
+      let streamHandled = false;
+      call.on('stream', (remoteStream) => {
+        // Only handle the stream once
+        if (streamHandled) {
+          log.debug({ participantId }, 'Stream already handled');
+          return;
+        }
+        streamHandled = true;
+
+        log.debug({ participantId }, 'Received stream');
+        
+        remoteStream.getTracks().forEach(track => {
+          track.onmute = () => {
+            log.debug({ participantId, track: track.kind }, 'Track muted');
+            this.onTrackStateChange?.(participantId, track.kind, false);
+          };
+          track.onunmute = () => {
+            log.debug({ participantId, track: track.kind }, 'Track unmuted');
+            this.onTrackStateChange?.(participantId, track.kind, true);
+          };
+        });
+        
+        this.onStreamUpdate?.(participantId, remoteStream);
+        resolve();
+      });
+
+      call.on('close', () => {
+        log.info({ participantId }, 'Connection closed');
+        this.connections.delete(participantId);
+        this.onParticipantLeft?.(participantId);
+      });
+
+      call.on('error', (error) => {
+        log.error({ error, participantId }, 'Call error');
+        this.connections.delete(participantId);
+        this.onParticipantLeft?.(participantId);
+      });
     });
   }
 
@@ -241,7 +295,7 @@ export class WebRTCService {
         });
       };
     } catch (error) {
-      console.error('Error sharing screen:', error);
+      log.error({ error }, 'Failed to share screen');
     }
   }
 
@@ -254,7 +308,7 @@ export class WebRTCService {
         try {
           connection.close();
         } catch (e) {
-          console.warn('Error closing connection:', e);
+          log.warn('Error closing connection:', e);
         }
       });
       this.connections.clear();
@@ -267,9 +321,23 @@ export class WebRTCService {
       try {
         this.peer.destroy();
       } catch (e) {
-        console.warn('Error destroying peer:', e);
+        log.warn('Error destroying peer:', e);
       }
       this.peer = null;
+    }
+  }
+
+  /**
+   * Removes a connection with a remote participant.
+   * @param {string} participantId - ID of the remote participant
+   */
+  removeConnection(participantId) {
+    log.debug({ participantId }, 'Removing connection');
+    const connection = this.connections.get(participantId);
+    if (connection) {
+      connection.close();
+      this.connections.delete(participantId);
+      this.onParticipantLeft?.(participantId);
     }
   }
 } 

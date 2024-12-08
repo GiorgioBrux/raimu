@@ -6,7 +6,7 @@ import { router } from './router.js';
 import { RoomManager } from './services/RoomManager.js';
 import { RoomUI } from './ui/RoomUI.js';
 import { ModalManager } from './ui/Modal.js';
-
+import { logger as log } from './utils/logger.js';
 const roomManager = new RoomManager();
 let modalManager;
 let roomUI;
@@ -27,6 +27,7 @@ router.onRouteChange = async (path) => {
   if (path === '/') {
     // Clean up any existing room
     if (roomUI) {
+      log.info('Cleaning up existing room');
       roomManager.leaveRoom();
       roomUI = null;
     }
@@ -39,10 +40,16 @@ router.onRouteChange = async (path) => {
       createRoomBtn.addEventListener('click', () => {
         modalManager.onSubmit = async (userName, roomName) => {
           try {
-            const { roomId } = await roomManager.createRoom(userName, roomName);
+            const { roomId, localStream } = await roomManager.createRoom(userName, roomName);
+            log.info({
+              roomId,
+              hasVideo: localStream?.getVideoTracks().length > 0,
+              hasAudio: localStream?.getAudioTracks().length > 0
+            }, 'Room created');
+            
             await window.appRouter.navigate(`/room/${roomId}`);
           } catch (error) {
-            console.error('Failed to create room:', error);
+            log.error({ error }, 'Failed to create room');
             alert('Failed to create room. Please try again.');
           }
         };
@@ -54,18 +61,19 @@ router.onRouteChange = async (path) => {
     try {
       const roomId = path.split('/').pop();
       
-      // Clean up any existing room
+      // Clean up any existing room UI
       if (roomUI) {
-        roomManager.leaveRoom();
+        log.debug('Cleaning up existing room UI');
         roomUI = null;
       }
 
-      // Initialize room UI first
+      // Initialize room UI
       roomUI = new RoomUI(roomManager);
       
-      // Wait a bit longer for the DOM to be ready
       await new Promise(resolve => setTimeout(resolve, 200));
       await roomUI.initialize();
+      
+      log.debug('Room UI initialized');
       
       // Set up room manager callbacks
       roomManager.onParticipantListUpdate = () => {
@@ -73,14 +81,26 @@ router.onRouteChange = async (path) => {
       };
       
       roomManager.onStreamUpdate = (participantId, stream) => {
+        log.info({
+          participantId,
+          hasVideo: stream.getVideoTracks().length > 0,
+          hasAudio: stream.getAudioTracks().length > 0
+        }, 'Stream received from participant');
         roomUI.addParticipantVideo(participantId, stream);
       };
       
-      // Join room and set up local video
-      const { localStream } = await roomManager.joinRoom(roomId);
-      roomUI.setLocalStream(localStream);
+      // Only join room if we're not already connected
+      if (!roomManager.isConnected) {
+        log.info({ roomId }, 'Joining room');
+        const { localStream } = await roomManager.joinRoom(roomId);
+        log.debug('Setting up local stream');
+        roomUI.setLocalStream(localStream);
+      } else {
+        log.debug('Using existing stream');
+        roomUI.setLocalStream(roomManager.webrtc.localStream);
+      }
     } catch (error) {
-      console.error('Failed to join room:', error);
+      log.error({ error }, 'Failed to join room');
       alert('Failed to join room. Returning to home page.');
       await window.appRouter.navigate('/');
     }

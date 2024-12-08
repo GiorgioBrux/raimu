@@ -1,4 +1,5 @@
 import { MicVAD } from "@ricky0123/vad-web";
+import { uiLogger as log } from '../../utils/logger.js';
 
 /**
  * Manages Voice Activity Detection (VAD) for participants in the room.
@@ -19,18 +20,26 @@ export class VADManager {
    * @param {Function} onSpeakingChange - Callback function when speaking state changes
    */
   async setupVAD(stream, container, onSpeakingChange) {
-    if (!stream || !container) return;
+    if (!stream || !container) {
+      log.warn('Missing stream or container for VAD setup');
+      return;
+    }
     
     try {
+      log.debug({ containerId: container.id }, 'Setting up VAD');
       const vad = await MicVAD.new({
         stream: stream,
         onSpeechStart: () => {
           // Only trigger speaking if not muted
           if (!this.muted.get(container.id)) {
+            log.debug({ containerId: container.id }, 'Speech started');
             onSpeakingChange(container, true);
           }
         },
-        onSpeechEnd: () => onSpeakingChange(container, false),
+        onSpeechEnd: () => {
+          log.debug({ containerId: container.id }, 'Speech ended');
+          onSpeakingChange(container, false);
+        },
         modelURL: "v5",
         baseAssetPath: "/",
         onnxWASMBasePath: "/",
@@ -40,8 +49,9 @@ export class VADManager {
       await vad.start();
       this.instances.set(container.id, vad);
       this.muted.set(container.id, false);  // Initialize as unmuted
+      log.debug({ containerId: container.id }, 'VAD initialized');
     } catch (error) {
-      console.error('Error setting up VAD:', error);
+      log.error({ error, containerId: container.id }, 'Failed to setup VAD');
     }
   }
 
@@ -51,6 +61,7 @@ export class VADManager {
    * @param {boolean} isMuted - Whether the participant is muted
    */
   updateMuteState(containerId, isMuted) {
+    log.debug({ containerId, isMuted }, 'Updating mute state');
     this.muted.set(containerId, isMuted);
     if (isMuted) {
       // Force speaking state to false when muted
@@ -67,6 +78,7 @@ export class VADManager {
    */
   cleanup(participantId = null) {
     if (participantId) {
+      log.debug({ participantId }, 'Cleaning up VAD instance');
       const vad = this.instances.get(participantId);
       if (vad) {
         vad.destroy();
@@ -74,11 +86,13 @@ export class VADManager {
         this.muted.delete(participantId);
       }
     } else {
-      this.instances.forEach(async (vad) => {
+      log.debug('Cleaning up all VAD instances');
+      this.instances.forEach(async (vad, id) => {
         try {
           await vad.destroy();
+          log.debug({ participantId: id }, 'VAD instance destroyed');
         } catch (e) {
-          console.warn('Error cleaning up VAD instance:', e);
+          log.warn({ error: e, participantId: id }, 'Error cleaning up VAD instance');
         }
       });
       this.instances.clear();
