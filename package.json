@@ -1,0 +1,19 @@
+{
+  "name": "tsubasa",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev:vite": "vite",
+    "dev:peer": "node server.js",
+    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:peer\"",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "peerjs": "^1.5.4",
+    "peer": "^1.0.0",
+    "concurrently": "^8.0.0"
+  }
+}
