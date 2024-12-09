@@ -49,7 +49,7 @@ export class RoomUI {
         if (localContainer) {
           this.vadManager.updateMuteState(localContainer.id, mute);
           const videoTrack = elements.localVideo.srcObject?.getVideoTracks()[0];
-          ParticipantVideo.updateLocalVideoContainer(
+          ParticipantVideo.updateMediaState(
             localContainer,
             videoTrack?.enabled ?? false,
             !mute
@@ -131,7 +131,7 @@ export class RoomUI {
     });
     
     const localContainer = elements.localVideo.parentElement;
-    ParticipantVideo.updateLocalVideoContainer(
+    ParticipantVideo.updateMediaState(
       localContainer,
       isVideoEnabled,
       isAudioEnabled

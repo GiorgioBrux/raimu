@@ -90,6 +90,17 @@ wss.on('connection', (ws) => {
             }));
           }
           break;
+
+        case 'trackStateChange':
+          console.log('Broadcasting track state change:', data);
+          broadcastToRoom(data.roomId, {
+            type: 'trackStateChange',
+            userId: data.userId,
+            roomId: data.roomId,
+            trackKind: data.trackKind,
+            enabled: data.enabled
+          }, ws);
+          break;
       }
     } catch (error) {
       console.error('Error handling message:', error);

@@ -19,36 +19,36 @@ export class ParticipantVideo {
       hasAudio: !!audioTrack?.enabled
     }, 'Setting up media states');
     
-    container.classList.toggle('peer-video-off', !videoTrack?.enabled);
-    container.classList.toggle('peer-muted', !audioTrack?.enabled);
+    // Initial state setup
+    this.updateMediaState(container, videoTrack?.enabled ?? false, audioTrack?.enabled ?? false);
     
     if (videoTrack) {
       videoTrack.onmute = () => {
         log.debug({ containerId: container.id }, 'Video track muted');
-        container.classList.add('peer-video-off');
+        this.updateMediaState(container, false, audioTrack?.enabled ?? false);
       };
       videoTrack.onunmute = () => {
         log.debug({ containerId: container.id }, 'Video track unmuted');
-        container.classList.remove('peer-video-off');
+        this.updateMediaState(container, true, audioTrack?.enabled ?? false);
       };
       videoTrack.onended = () => {
         log.debug({ containerId: container.id }, 'Video track ended');
-        container.classList.add('peer-video-off');
+        this.updateMediaState(container, false, audioTrack?.enabled ?? false);
       };
     }
     
     if (audioTrack) {
       audioTrack.onmute = () => {
         log.debug({ containerId: container.id }, 'Audio track muted');
-        container.classList.add('peer-muted');
+        this.updateMediaState(container, videoTrack?.enabled ?? false, false);
       };
       audioTrack.onunmute = () => {
         log.debug({ containerId: container.id }, 'Audio track unmuted');
-        container.classList.remove('peer-muted');
+        this.updateMediaState(container, videoTrack?.enabled ?? false, true);
       };
       audioTrack.onended = () => {
         log.debug({ containerId: container.id }, 'Audio track ended');
-        container.classList.add('peer-muted');
+        this.updateMediaState(container, videoTrack?.enabled ?? false, false);
       };
     }
   }
@@ -82,14 +82,14 @@ export class ParticipantVideo {
   }
 
   /**
-   * Updates the local video container's visual state based on media states.
-   * @param {HTMLElement} container - The local video container element
+   * Updates any video container's visual state based on media states.
+   * @param {HTMLElement} container - The video container element
    * @param {boolean} isVideoEnabled - Whether video is currently enabled
    * @param {boolean} isAudioEnabled - Whether audio is currently enabled
    */
-  static updateLocalVideoContainer(container, isVideoEnabled, isAudioEnabled) {
+  static updateMediaState(container, isVideoEnabled, isAudioEnabled) {
     if (!container) {
-      log.warn('No container provided to updateLocalVideoContainer');
+      log.warn('No container provided for media state update');
       return;
     }
 
@@ -97,7 +97,7 @@ export class ParticipantVideo {
       containerId: container.id,
       isVideoEnabled,
       isAudioEnabled
-    }, 'Updating local container state');
+    }, 'Updating container state');
 
     const audioIndicator = container.querySelector('[data-tooltip="Audio status"]');
     const videoIndicator = container.querySelector('[data-tooltip="Video status"]');
@@ -115,30 +115,27 @@ export class ParticipantVideo {
       return;
     }
 
-    const shouldShow = !isAudioEnabled;
-    
-    // Remove any existing transition classes
+    // Handle audio state
     audioIndicator.classList.remove('mute-transition');
-    
-    // Add transition class to trigger animation
     void audioIndicator.offsetWidth; // Force reflow
     audioIndicator.classList.add('mute-transition');
     
-    if (shouldShow) {
-        micIcon.classList.remove('hidden');
-        slashIcon.classList.remove('hidden');
-        audioIndicator.classList.add('muted');
+    if (!isAudioEnabled) {
+      micIcon.classList.remove('hidden');
+      slashIcon.classList.remove('hidden');
+      audioIndicator.classList.add('muted');
     } else {
-        micIcon.classList.add('hidden');
-        slashIcon.classList.add('hidden');
-        audioIndicator.classList.remove('muted');
+      micIcon.classList.add('hidden');
+      slashIcon.classList.add('hidden');
+      audioIndicator.classList.remove('muted');
     }
     
+    // Handle video state
     if (videoIndicator) {
-        const videoSlash = videoIndicator.querySelector('.slash');
-        if (videoSlash) {
-            videoSlash.classList.toggle('hidden', isVideoEnabled);
-        }
+      const videoSlash = videoIndicator.querySelector('.slash');
+      if (videoSlash) {
+        videoSlash.classList.toggle('hidden', isVideoEnabled);
+      }
     }
     
     log.debug({ 

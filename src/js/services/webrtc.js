@@ -248,6 +248,8 @@ export class WebRTCService {
       this.localStream.getAudioTracks().forEach(track => {
         track.enabled = !forceMute;
       });
+      // Notify about track state change
+      this.onTrackStateChange?.(this.peer.id, 'audio', !forceMute);
     }
   }
 
@@ -260,6 +262,8 @@ export class WebRTCService {
       this.localStream.getVideoTracks().forEach(track => {
         track.enabled = !forceDisable;
       });
+      // Notify about track state change
+      this.onTrackStateChange?.(this.peer.id, 'video', !forceDisable);
     }
   }
 

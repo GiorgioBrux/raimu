@@ -1,6 +1,7 @@
 import { WebRTCService } from './WebRTC.js';
 import { WebSocketService } from './WebSocket.js';
 import { roomLogger as log } from '../utils/logger.js';
+import { ParticipantVideo } from '../ui/components/ParticipantVideo.js';
 
 /**
  * Manages room state and coordinates WebRTC connections between participants
@@ -28,6 +29,17 @@ export class RoomManager {
         this.participants.delete(participantId);
         // Notify UI
         this.onParticipantLeft?.(participantId);
+      };
+
+      this.webrtc.onTrackStateChange = (participantId, trackKind, enabled) => {
+        // Send track state update via WebSocket
+        this.ws.send({
+          type: 'trackStateChange',
+          userId: participantId,
+          roomId: this.roomId,
+          trackKind,
+          enabled
+        });
       };
     }
   
@@ -308,6 +320,30 @@ export class RoomManager {
             }
           }
           this.onParticipantListUpdate?.();
+          break;
+
+        case 'trackStateChange':
+          if (data.roomId === this.roomId && data.userId !== this.userId) {
+            log.debug({ 
+              userId: data.userId, 
+              trackKind: data.trackKind, 
+              enabled: data.enabled 
+            }, 'Received track state change');
+            
+            const container = document.getElementById(`participant-${data.userId}`);
+            if (container) {
+              // Get current states
+              const isVideoEnabled = !container.classList.contains('peer-video-off');
+              const isAudioEnabled = !container.classList.contains('peer-muted');
+              
+              // Update only the changed track's state
+              if (data.trackKind === 'video') {
+                ParticipantVideo.updateMediaState(container, data.enabled, isAudioEnabled);
+              } else if (data.trackKind === 'audio') {
+                ParticipantVideo.updateMediaState(container, isVideoEnabled, data.enabled);
+              }
+            }
+          }
           break;
       }
     }

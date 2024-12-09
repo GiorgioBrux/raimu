@@ -45,7 +45,7 @@
       <!-- Video Grid -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr gap-4 mb-4" id="videoGrid">
         <!-- Local Video -->
-        <div class="relative aspect-video bg-slate-900 rounded-2xl overflow-hidden group">
+        <div class="relative aspect-video bg-slate-900 overflow-hidden group">
           <video id="localVideo" autoplay muted playsinline 
                  class="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"></video>
           
@@ -61,17 +61,13 @@
             <span class="text-sm text-gray-400">Camera Off</span>
           </div>
           
-          <!-- Speaking indicator (moved before gradient overlay) -->
+          <!-- Speaking indicator  -->
           <div class="peer-speaking"></div>
-          
-          <!-- Gradient overlay -->
-          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
           
           <!-- Controls overlay -->
           <div class="absolute inset-x-0 bottom-0 p-4">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
                 <p class="text-sm font-medium">You</p>
               </div>
               <div class="flex items-center gap-2">
@@ -126,8 +122,24 @@
             <div class="absolute inset-x-0 bottom-0 p-4">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-                  <p class="text-sm font-medium peer-name">Anonymous</p>
+                  <p class="text-sm font-medium">Anonymous</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="p-1.5 rounded-lg" data-tooltip="Audio status">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path class="mic-icon hidden" 
+                            stroke-linecap="round" 
+                            stroke-linejoin="round" 
+                            stroke-width="2" 
+                            d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                      <line class="slash hidden" 
+                            x1="3" y1="3" 
+                            x2="21" y2="21" 
+                            stroke="currentColor" 
+                            stroke-width="2" 
+                            stroke-linecap="round" />
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>
