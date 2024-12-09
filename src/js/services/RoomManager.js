@@ -296,6 +296,49 @@ export class RoomManager {
               name: data.userName
             });
             this.onParticipantListUpdate?.();
+
+            // Send current track states to the new participant
+            const videoTrack = this.webrtc.localStream?.getVideoTracks()[0];
+            const audioTrack = this.webrtc.localStream?.getAudioTracks()[0];
+
+            if (videoTrack) {
+              log.debug({ 
+                userId: data.userId, 
+                trackKind: 'video', 
+                enabled: videoTrack.enabled 
+              }, 'Sending video state to new participant');
+              
+              this.ws.send({
+                type: 'trackStateChange',
+                userId: this.userId,
+                roomId: this.roomId,
+                trackKind: 'video',
+                enabled: videoTrack.enabled,
+                targetUserId: data.userId  // Add target user
+              });
+            } else {
+              log.warn('Skipping video track update because no video track found');
+            }
+
+            if (audioTrack) {
+              log.debug({ 
+                userId: data.userId, 
+                trackKind: 'audio', 
+                enabled: audioTrack.enabled 
+              }, 'Sending audio state to new participant');
+              
+              this.ws.send({
+                type: 'trackStateChange',
+                userId: this.userId,
+                roomId: this.roomId,
+                trackKind: 'audio',
+                enabled: audioTrack.enabled,
+                targetUserId: data.userId  // Add target user
+              });
+            }
+            else {
+              log.warn('Skipping audio track update because no audio track found');
+            }
           }
           break;
 
@@ -342,6 +385,13 @@ export class RoomManager {
               } else if (data.trackKind === 'audio') {
                 ParticipantVideo.updateMediaState(container, isVideoEnabled, data.enabled);
               }
+            }
+            else {
+              log.debug('Trying to update track state for a participant that is not in the DOM');
+              // The page could still be loading, so let's try again in 100ms
+              setTimeout(() => {
+                this._handleWsMessage(msg);
+              }, 100);
             }
           }
           break;

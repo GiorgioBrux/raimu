@@ -93,13 +93,31 @@ wss.on('connection', (ws) => {
 
         case 'trackStateChange':
           console.log('Broadcasting track state change:', data);
-          broadcastToRoom(data.roomId, {
-            type: 'trackStateChange',
-            userId: data.userId,
-            roomId: data.roomId,
-            trackKind: data.trackKind,
-            enabled: data.enabled
-          }, ws);
+          if (data.targetUserId) {
+            // Send to specific user
+            const room = rooms.get(data.roomId);
+            if (room) {
+              const targetParticipant = room.get(data.targetUserId);
+              if (targetParticipant) {
+                targetParticipant.ws.send(JSON.stringify({
+                  type: 'trackStateChange',
+                  userId: data.userId,
+                  roomId: data.roomId,
+                  trackKind: data.trackKind,
+                  enabled: data.enabled
+                }));
+              }
+            }
+          } else {
+            // Broadcast to room as before
+            broadcastToRoom(data.roomId, {
+              type: 'trackStateChange',
+              userId: data.userId,
+              roomId: data.roomId,
+              trackKind: data.trackKind,
+              enabled: data.enabled
+            }, ws);
+          }
           break;
       }
     } catch (error) {
