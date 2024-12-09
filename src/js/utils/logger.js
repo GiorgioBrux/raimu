@@ -6,6 +6,23 @@ const formatters = {
   }
 };
 
+/**
+ * Formats an error object to include more details
+ * @param {Error} error - The error object to format
+ * @returns {Object} Formatted error details
+ */
+const formatError = (error) => {
+  if (error instanceof Error) {
+    return {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+      ...error  // Include any additional properties
+    };
+  }
+  return error;
+};
+
 const prettyPrint = {
   colorize: true,
   translateTime: false,
@@ -14,9 +31,16 @@ const prettyPrint = {
     const time = new Date().toLocaleTimeString();
     const module = log.module ? `[${log.module}]` : '';
     const message = log[messageKey];
-    const data = Object.keys(log)
+
+    // Format any error objects in the log
+    const formattedLog = { ...log };
+    if (formattedLog.error) {
+      formattedLog.error = formatError(formattedLog.error);
+    }
+
+    const data = Object.keys(formattedLog)
       .filter(key => !['module', 'time', 'level', 'msg'].includes(key))
-      .map(key => `${key}=${JSON.stringify(log[key])}`)
+      .map(key => `${key}=${JSON.stringify(formattedLog[key])}`)
       .join(' ');
 
     return `[${time}] [${levelLabel}] ${module} ${message} ${data}`;

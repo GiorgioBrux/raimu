@@ -33,8 +33,7 @@ export class UIElements {
     try {
       this.elements = {
         videoGrid: document.getElementById('videoGrid'),
-        localVideo: document.getElementById('localVideo'),
-        remoteTemplate: document.getElementById('remoteVideoTemplate'),
+        remoteTemplate: document.getElementById('videoTemplate'),
         roomName: document.getElementById('roomName'),
         controls: this.initializeControls()
       };
@@ -76,5 +75,13 @@ export class UIElements {
    */
   getElements() {
     return this.elements;
+  }
+
+  /**
+   * Adds a local video element reference
+   * @param {HTMLElement} container - The video container element to add
+   */
+  addLocalVideoElement(container){
+    this.elements.localVideo = container;
   }
 } 

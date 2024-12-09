@@ -1,5 +1,6 @@
 import { MicVAD } from "@ricky0123/vad-web";
 import { uiLogger as log } from '../../utils/logger.js';
+import { ParticipantVideo } from './ParticipantVideo.js';
 
 /**
  * Manages Voice Activity Detection (VAD) for participants in the room.

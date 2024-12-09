@@ -45,7 +45,7 @@ export class RoomUI {
       onAudioToggle: (mute) => {
         this.roomManager.webrtc.toggleAudio(mute);
         const elements = this.uiElements.getElements();
-        const localContainer = elements.localVideo.parentElement;
+        const localContainer = elements.localVideo;
         if (localContainer) {
           this.vadManager.updateMuteState(localContainer.id, mute);
           const videoTrack = elements.localVideo.srcObject?.getVideoTracks()[0];
@@ -54,6 +54,9 @@ export class RoomUI {
             videoTrack?.enabled ?? false,
             !mute
           );
+        }
+        else {
+          log.warn('Could not find local video container for audio toggle');
         }
       },
       onVideoToggle: (disable) => {
@@ -92,7 +95,7 @@ export class RoomUI {
       );
     };
 
-    this.videoGrid.addVideo(participantId, stream, setupCallbacks);
+    return this.videoGrid.addVideo(participantId, stream, setupCallbacks);
   }
 
   removeParticipantVideo(participantId) {
@@ -123,29 +126,38 @@ export class RoomUI {
     
     this.mediaControls.updateInitialStates(isVideoEnabled, isAudioEnabled);
     
-    const elements = this.uiElements.getElements();
-    elements.localVideo.srcObject = stream;
+    // Add local video using the template
+    const container = this.addParticipantVideo('local', stream);
+
+    // Update UI elements
+    this.uiElements.addLocalVideoElement(container);
     
-    elements.localVideo.play().catch(error => {
+    // Ensure video plays
+    const video = container.querySelector('video');
+    if(!video) {
+      log.error('No video element found, container: ', container);
+      return;
+    }
+    
+    video.play().catch(error => {
       log.error({ error }, 'Failed to play local video');
     });
-    
-    const localContainer = elements.localVideo.parentElement;
+
+    // Update states and setup VAD
     ParticipantVideo.updateMediaState(
-      localContainer,
+      container,
       isVideoEnabled,
       isAudioEnabled
     );
     
-    if (localContainer) {
-      this.vadManager.updateMuteState(localContainer.id, !isAudioEnabled);
+    if (container) {
+      this.vadManager.updateMuteState(container.id, !isAudioEnabled);
+      this.vadManager.setupVAD(
+        stream, 
+        container,
+        ParticipantVideo.updateSpeakingIndicators
+      );
     }
-    
-    this.vadManager.setupVAD(
-      stream, 
-      localContainer,
-      ParticipantVideo.updateSpeakingIndicators
-    );
   }
 
   cleanup() {

@@ -18,7 +18,7 @@ export class MediaControls {
    * @param {boolean} muted - Whether audio is muted
    */
   updateAudioState(muted) {
-    log.debug({ muted }, 'Updating audio state');
+    log.debug({ muted }, 'Updating audio button state');
     const button = this.elements.audio;
     button.dataset.muted = muted;
     button.querySelectorAll('[data-muted]').forEach(el => {
@@ -31,7 +31,7 @@ export class MediaControls {
    * @param {boolean} disabled - Whether video is disabled
    */
   updateVideoState(disabled) {
-    log.debug({ disabled }, 'Updating video state');
+    log.debug({ disabled }, 'Updating video buttonstate');
     const button = this.elements.video;
     button.dataset.disabled = disabled;
     button.querySelectorAll('[data-disabled]').forEach(el => {

@@ -43,57 +43,10 @@
   <main class="pt-16 pb-24 px-4 min-h-screen">
     <div class="container mx-auto">
       <!-- Video Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr gap-4 mb-4" id="videoGrid">
-        <!-- Local Video -->
-        <div class="relative aspect-video bg-slate-900 overflow-hidden group">
-          <video id="localVideo" autoplay muted playsinline 
-                 class="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"></video>
-          
-          <!-- Placeholder for when camera is off -->
-          <div class="video-placeholder hidden peer-video-off:flex">
-            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/10 to-purple-500/10 
-                        border border-white/5 flex items-center justify-center mb-3">
-              <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" 
-                      d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <span class="text-sm text-gray-400">Camera Off</span>
-          </div>
-          
-          <!-- Speaking indicator  -->
-          <div class="peer-speaking"></div>
-          
-          <!-- Controls overlay -->
-          <div class="absolute inset-x-0 bottom-0 p-4">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <p class="text-sm font-medium">You</p>
-              </div>
-              <div class="flex items-center gap-2">
-                <div class="p-1.5 rounded-lg" data-tooltip="Audio status">
-                  <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path class="mic-icon hidden" 
-                          stroke-linecap="round" 
-                          stroke-linejoin="round" 
-                          stroke-width="2" 
-                          d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                    <line class="slash hidden" 
-                          x1="3" y1="3" 
-                          x2="21" y2="21" 
-                          stroke="currentColor" 
-                          stroke-width="2" 
-                          stroke-linecap="round" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Template for remote videos -->
-        <template id="remoteVideoTemplate">
-          <div class="relative aspect-video bg-slate-900 rounded-2xl overflow-hidden group">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr gap-4 mb-4" id="videoGrid">      
+        <!-- Template for videos -->
+        <template id="videoTemplate">
+          <div class="relative aspect-video bg-slate-900 overflow-hidden group">
             <video autoplay playsinline class="absolute inset-0 w-full h-full object-cover"></video>
             
             <!-- Speaking indicator -->
@@ -114,9 +67,6 @@
               </div>
               <p class="text-sm text-gray-400">Camera is turned off</p>
             </div>
-            
-            <!-- Gradient overlay -->
-            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
             
             <!-- Controls overlay -->
             <div class="absolute inset-x-0 bottom-0 p-4">
@@ -386,18 +336,11 @@
         transition: transform 0.2s ease;
     }
 
-    [data-tooltip="Audio status"].muted {
-        background-color: rgba(239, 68, 68, 0.1); /* red-500 with low opacity */
-    }
-
     [data-tooltip="Audio status"].muted .slash {
         stroke: rgb(239, 68, 68); /* red-500 */
         stroke-width: 2.5;
     }
 
-    [data-tooltip="Audio status"].mute-transition {
-        animation: popScale 0.2s ease;
-    }
 
     @keyframes popScale {
         0% { transform: scale(1); }

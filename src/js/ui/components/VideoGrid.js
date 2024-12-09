@@ -41,8 +41,22 @@ export class VideoGrid {
     const video = clone.querySelector('video');
     video.srcObject = stream;
     
+    // Find the name element and update it safely
+    const nameElement = container.querySelector('.participant-name');
+    if (nameElement) {
+      nameElement.textContent = participantId === 'local' ? 'You' : 'Participant';
+    } else {
+      log.warn({ participantId }, 'Could not find name element in video container');
+    }
+    
     setupCallbacks(container, stream);
-    this.gridElement.appendChild(clone);
+    
+    // For local video, insert at the beginning of the grid
+    if (participantId === 'local') {
+      this.gridElement.insertBefore(clone, this.gridElement.firstChild);
+    } else {
+      this.gridElement.appendChild(clone);
+    }
     
     log.debug({ participantId, containerId: container.id }, 'Video added to grid');
     return container;

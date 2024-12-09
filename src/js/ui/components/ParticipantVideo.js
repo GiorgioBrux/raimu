@@ -70,14 +70,9 @@ export class ParticipantVideo {
     }, 'Updating speaking indicators');
 
     const speakingIndicator = container.querySelector('.peer-speaking');
-    const statusDot = container.querySelector('.bg-emerald-500');
 
     if (speakingIndicator) {
       speakingIndicator.classList.toggle('active', speaking);
-    }
-
-    if (statusDot) {
-      statusDot.classList.toggle('animate-pulse', speaking);
     }
   }
 
