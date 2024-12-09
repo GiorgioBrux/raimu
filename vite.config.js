@@ -4,9 +4,10 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 export default defineConfig({
   server: {
     port: 3000,
+    historyApiFallback: true,
     hmr: {
-      protocol: "ws",
-    },
+      protocol: 'ws',
+    }
   },
   plugins: [
     viteStaticCopy({
@@ -34,4 +35,5 @@ export default defineConfig({
       ],
     }),
   ],
+
 });

@@ -6,11 +6,16 @@ class Router {
    * Creates a new Router instance with predefined routes.
    */
   constructor() {
+    // All routes point to files in src/pages
     this.routes = {
-      '/': '/src/pages/home.html',
+      '/': '/src/pages/home.html',        // Root path shows home.html
+      '/home': '/src/pages/home.html',    // Explicit home path
       '/room/:id': '/src/pages/room.html',
       '/join': '/src/pages/join.html'
     };
+
+    // Base path for all routes
+    this.basePath = '/src/pages/';
   }
 
   /**
@@ -35,27 +40,23 @@ class Router {
       route = this.routes['/room/:id'];
     }
 
-    route = route || this.routes['/'];  // Fallback to home
-    
+    // Always fallback to home
+    route = route || this.routes['/'];
+
     try {
       const response = await fetch(route);
       let html = await response.text();
       
-      // Create a temporary container to parse the HTML
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
-      
-      // Get the content from the parsed document
       const content = doc.body.firstElementChild;
       
-      // Clear and update the app container
       const appContainer = document.getElementById('app');
       appContainer.innerHTML = '';
+      
       if (content) {
         appContainer.appendChild(content);
-        // Wait for next tick to ensure DOM is updated
-        await new Promise(resolve => setTimeout(resolve, 100)); // Increased timeout
-        // Call the route change callback
+        await new Promise(resolve => setTimeout(resolve, 100));
         await this.onRouteChange?.(path);
       } else {
         console.error('No content found in the HTML');

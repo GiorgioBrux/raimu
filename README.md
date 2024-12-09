@@ -1,39 +1,34 @@
-# Tsubasa
+# Raimu (ライム)
 
-A web-based video chat application that enables real-time communication between multiple users with automatic speech-to-text translation capabilities. Built with WebRTC, WebSocket, and OpenAI's Whisper model for local speech recognition.
+*Pronounced "rye-moo"*
 
-## Features
+Raimu is a sleek, browser-based video chat platform that brings a fresh twist to online communication. Like its namesake - the Japanese word for lime - it's refreshingly simple, yet full of zest.
 
-- 🎥 Real-time video and audio communication
-- 💬 Live speech-to-text transcription using Whisper AI
-- 🌐 Multi-user video rooms
-- 🔊 Voice Activity Detection (VAD)
-- 💭 Text chat functionality
-- 🎙️ Audio/video controls
-- 🔄 Recording capabilities
-- 🌍 Configurable transcription language
+## What Makes Raimu Special
 
-## Tech Stack
+### 🚀 Instant Connection
+No downloads, no accounts, no hassle. Create a room and start chatting in seconds. Share the link, and you're connected.
 
-### Frontend
-- Native WebRTC API
-- JavaScript MediaRecorder API
-- TailwindCSS for styling
-- Voice Activity Detection (VAD)
+### 🎯 Focused Design
+We believe in doing one thing exceptionally well. Raimu offers crystal-clear video chat without unnecessary complications. It's clean, fast, and just works.
 
-### Backend
-- WebSocket server for signaling
-- Local STUN server
-- Whisper AI model for speech recognition
-- Node.js
+### 🧠 Smart Features
+- **Voice Activity Detection** - Automatically highlights who's speaking
+- **Live Transcription** - Real-time speech-to-text powered by local AI
+- **Screen Sharing** - Share your screen with a single click
+- **Text Chat** - For when you need to share links or type quietly
+- **Multi-Language Support** - Transcribe conversations in multiple languages
 
-## Getting Started
+### 🔒 Privacy First
+Your conversations stay private. All processing happens locally in your browser - no cloud servers, no data collection, no surprises.
 
-### Prerequisites
+### ⚡ Technically Beautiful
+Built with modern web technologies:
+- WebRTC for peer-to-peer communication
+- Local AI for voice detection and transcription
+- Real-time WebSocket signaling
+- Tailwind CSS for a responsive, clean interface
 
-- Node.js (v14 or higher)
-- npm or yarn
+---
 
-### Installation
-
-1. Clone the repository 
+*Raimu is currently in active development. We're constantly adding features and improvements to make your communication experience even better.*

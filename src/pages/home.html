@@ -1,172 +1,222 @@
-<div class="relative min-h-screen">
-    <!-- Enhanced animated background -->
+<div class="relative min-h-screen flex flex-col">
+    <script>
+        window.onload = function() {
+            const logo = document.querySelector('#mainLogo');
+            if (!logo) {
+                console.error('Logo not found!');
+                return;
+            }
+
+            function rotateLogo() {
+                const logoImage = document.getElementById('logoImage');
+                if (!logoImage) return;
+                
+                console.log('Rotating logo!');
+                logoImage.style.transition = 'transform 1s ease';
+                logoImage.style.transform = 'rotate(360deg)';
+                
+                setTimeout(() => {
+                    logoImage.style.transition = 'none';
+                    logoImage.style.transform = 'rotate(0deg)';
+                }, 1000);
+            }
+
+            logo.addEventListener('click', rotateLogo);
+            console.log('Easter egg added!');
+        };
+    </script>
+    <!-- Background gradients -->
     <div class="fixed inset-0 overflow-hidden -z-10">
         <!-- Base gradient -->
-        <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-purple-950/40 to-slate-950"></div>
+        <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950"></div>
 
-        <!-- Animated gradients -->
-        <div class="floating-bg-1 absolute inset-0 bg-[radial-gradient(circle_1200px_at_20%_20%,#3b82f660,transparent)]">
-        </div>
-        <div class="floating-bg-2 absolute inset-0 bg-[radial-gradient(circle_1000px_at_80%_50%,#8b5cf660,transparent)]">
-        </div>
+        <!-- Lime accents - removed middle one and adjusted sizes -->
+        <div class="absolute inset-0 bg-[radial-gradient(circle_1000px_at_20%_20%,#84cc1660,transparent)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(circle_800px_at_80%_50%,#84cc1660,transparent)]"></div>
 
-        <!-- Additional ambient gradients -->
-        <div class="absolute inset-0 bg-[radial-gradient(circle_1400px_at_50%_-100%,#3b82f615,transparent)]"></div>
-        <div class="absolute inset-0 bg-[radial-gradient(circle_1100px_at_-10%_60%,#8b5cf615,transparent)]"></div>
+        <!-- Subtle noise texture -->
+        <div class="absolute inset-0 opacity-[0.015] [background-image:url('data:image/svg+xml,...')]"></div>
+    </div>
 
-        <!-- Enhanced noise texture -->
-        <div
-            class="pulse-bg absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiIGZpbHRlcj0idXJsKCNhKSIgb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')]">
+    <!-- Main content -->
+    <div class="relative min-h-screen flex flex-col">
+
+        <!-- Hero Section - better spacing -->
+        <main class="flex-1 flex items-center justify-center px-6">
+            <div class="w-full max-w-4xl mx-auto flex flex-col items-center">
+                <!-- Logo and Title -->
+                <div class="flex flex-col items-center space-y-12 mb-20">
+                    <!-- Logo with enhanced glow -->
+                    <div class="relative cursor-pointer" id="mainLogo">
+                        <img src="/logo.svg" alt="Raimu Logo" 
+                             class="relative h-36 w-36"
+                             id="logoImage"/>
+                    </div>
+                    
+                    <!-- Title section -->
+                    <div class="text-center space-y-6">
+                        <h1 class="text-7xl md:text-8xl lg:text-9xl font-bold bg-gradient-to-r from-lime-300 via-lime-400 to-lime-300 
+                                   bg-clip-text text-transparent drop-shadow-sm">
+                            Raimu
+                        </h1>
+                        <p class="text-xl text-slate-400/80">
+                            Connect instantly. No downloads needed.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Action Buttons - larger and more spaced -->
+                <div class="flex flex-col sm:flex-row gap-5 w-full max-w-lg">
+                    <button class="flex-1 bg-lime-500 hover:bg-lime-600 
+                                 text-white font-medium py-5 px-10 rounded-xl 
+                                 shadow-lg shadow-lime-500/20 
+                                 transform transition-all duration-300 
+                                 hover:scale-[1.02] hover:shadow-lime-500/30 
+                                 active:scale-[0.98]" 
+                        id="createRoomBtn">
+                        Create Room
+                    </button>
+                    <button class="flex-1 bg-white/5 hover:bg-white/10 
+                                 backdrop-blur-sm border border-lime-400/20 
+                                 text-white font-medium py-5 px-10 rounded-xl
+                                 transform transition-all duration-300 
+                                 hover:scale-[1.02] hover:border-lime-400/40 
+                                 active:scale-[0.98]" 
+                        onclick="window.location.href='/join'">
+                        Join Room
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Scroll Indicator - slower animation -->
+        <div class="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center text-lime-400/30">
+            <span class="text-sm font-medium mb-3">Scroll to learn more</span>
+            <svg class="w-6 h-6 animate-[bounce_3s_ease-in-out_infinite]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
         </div>
     </div>
 
-    <header class="absolute w-full top-0 bg-slate-950/40 backdrop-blur-md border-b border-white/5 z-50">
-        <nav class="container mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row justify-between items-center gap-2">
-            <div class="flex items-center gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-400" viewBox="0 0 24 24"
-                    fill="currentColor">
-                    <path
-                        d="M8 16.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm7 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm7 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z" />
-                </svg>
-                <span
-                    class="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Tsubasa</span>
-            </div>
-            <div class="flex items-center gap-6">
-                <a href="#" class="text-sm text-gray-400 hover:text-white transition-colors duration-300">About</a>
-                <a href="#" class="text-sm text-gray-400 hover:text-white transition-colors duration-300">Features</a>
-                <a href="#" class="text-sm text-gray-400 hover:text-white transition-colors duration-300">Contact</a>
-            </div>
-        </nav>
-    </header>
-
-    <main class="min-h-screen flex flex-col items-center justify-center px-6 sm:px-8 py-8 mt-16 sm:mt-0">
-        <div class="flex flex-col items-center text-center mb-12">
-            <div class="relative">
-                <div class="absolute -inset-x-20 -inset-y-10 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-blue-500/10 
-                        blur-3xl -z-10 animate-pulse"></div>
-                <h1 class="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-300 via-purple-400 to-blue-500 
-                       bg-clip-text text-transparent drop-shadow-sm">
-                    Connect Instantly
-                </h1>
-            </div>
-            <p class="text-base text-gray-400 max-w-xl mb-10 leading-relaxed">
-                Experience crystal-clear video chat with unparalleled simplicity.
-                No downloads, no hassle – just seamless communication.
-            </p>
-
-            <div class="flex flex-col sm:flex-row gap-4 w-full max-w-md mb-16">
-                <button class="flex-1 bg-blue-500 hover:bg-blue-600 
-                         text-white font-medium py-3 px-6 rounded-xl shadow-lg shadow-blue-500/20 
-                         transform transition-all duration-300 hover:scale-[1.02] hover:shadow-blue-500/30 
-                         active:scale-[0.98] active:shadow-blue-500/10" id="createRoomBtn">
-                    Create Room
-                </button>
-                <button class="flex-1 bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 
-                         text-white font-medium py-3 px-6 rounded-xl
-                         transform transition-all duration-300 hover:scale-[1.02] hover:border-white/20 
-                         active:scale-[0.98] active:bg-white/5" onclick="window.appRouter.navigate('/join')">
-                    Join Room
+    <!-- Create Room Modal -->
+    <div id="createRoomModal" class="fixed inset-0 bg-slate-950/95 flex items-center justify-center z-50 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-slate-900 border border-lime-400/10 rounded-2xl w-full max-w-lg mx-4 
+                    transform transition-all duration-300 scale-95">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-lime-400/10 flex items-center justify-between">
+                <h2 class="text-2xl font-bold bg-gradient-to-r from-lime-300 to-lime-500 bg-clip-text text-transparent">
+                    Create Your Room
+                </h2>
+                <button id="cancelCreateRoom" class="text-slate-400 hover:text-lime-400 transition-colors">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                 </button>
             </div>
-        </div>
-
-        <!-- Features Section -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 w-full max-w-4xl mx-auto mb-8">
-            <!-- First card -->
-            <div class="group bg-white/[0.02] backdrop-blur-sm border border-white/[0.05] rounded-2xl p-4 sm:p-6 
-                        transform transition-all duration-300 hover:scale-[1.02] hover:bg-white/[0.04]
-                        hover:border-white/10 hover:shadow-xl hover:shadow-blue-500/5">
-                <div class="bg-blue-500/10 rounded-xl p-2.5 w-fit mb-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                </div>
-                <h3 class="text-lg font-semibold mb-1.5 text-gray-100">Secure Rooms</h3>
-                <p class="text-sm text-gray-400">End-to-end encrypted video calls for your privacy and security.</p>
-            </div>
-
-            <!-- Second card -->
-            <div class="group bg-white/[0.02] backdrop-blur-sm border border-white/[0.05] rounded-2xl p-4 sm:p-6 
-                        transform transition-all duration-300 hover:scale-[1.02] hover:bg-white/[0.04]
-                        hover:border-white/10 hover:shadow-xl hover:shadow-purple-500/5">
-                <div class="bg-purple-500/10 rounded-xl p-2.5 w-fit mb-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
-                    </svg>
-                </div>
-                <h3 class="text-lg font-semibold mb-1.5 text-gray-100">HD Quality</h3>
-                <p class="text-sm text-gray-400">Crystal clear video and audio for the best experience.</p>
-            </div>
-
-            <!-- Third card -->
-            <div class="group bg-white/[0.02] backdrop-blur-sm border border-white/[0.05] rounded-2xl p-4 sm:p-6 
-                        transform transition-all duration-300 hover:scale-[1.02] hover:bg-white/[0.04]
-                        hover:border-white/10 hover:shadow-xl hover:shadow-blue-500/5">
-                <div class="bg-blue-500/10 rounded-xl p-2.5 w-fit mb-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-                <h3 class="text-lg font-semibold mb-1.5 text-gray-100">Instant Connect</h3>
-                <p class="text-sm text-gray-400">No downloads needed. Connect instantly through your browser.</p>
-            </div>
-        </div>
-    </main>
-
-    <!-- Add modal at the end of the page -->
-    <div id="createRoomModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 opacity-0 pointer-events-none transition-opacity duration-300">
-        <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-md mx-4 transform transition-all duration-300 scale-95">
-            <h2 class="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-300 via-purple-400 to-blue-500 bg-clip-text text-transparent">
-                Create Room
-            </h2>
             
-            <form id="createRoomForm" class="space-y-4">
-                <div>
-                    <label for="userName" class="block text-sm font-medium text-gray-400 mb-1">Your Name</label>
+            <form id="createRoomForm" class="p-6 space-y-6">
+                <!-- Name Input -->
+                <div class="space-y-2">
+                    <label for="userName" class="block text-sm font-medium text-lime-300">
+                        What should we call you?
+                    </label>
                     <input type="text" id="userName" 
-                           class="w-full px-4 py-2 bg-slate-800/50 border border-white/10 rounded-xl 
-                                  focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50
-                                  text-white placeholder-gray-500"
-                           placeholder="How should others call you?"
+                           class="w-full px-4 py-3 bg-slate-800 border border-lime-400/10 rounded-xl 
+                                  focus:outline-none focus:ring-2 focus:ring-lime-400/50 focus:border-lime-400/30
+                                  text-white placeholder-slate-500 transition-colors"
+                           placeholder="Your display name"
                            autocomplete="name"
                            maxlength="30"
                            required>
-                    <p class="mt-1 text-xs text-gray-500">This is how other participants will see you</p>
                 </div>
-                
-                <div class="relative">
-                    <label for="roomName" class="block text-sm font-medium text-gray-400 mb-1">Room Name (optional)</label>
-                    <div class="flex gap-2">
-                        <input type="text" id="roomName" 
-                               class="flex-1 px-4 py-2 bg-slate-800/50 border border-white/10 rounded-xl 
-                                      focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50
-                                      text-white placeholder-gray-500"
-                               placeholder="Enter room name">
-                        <button type="button" id="generateRoomName"
-                                class="p-2 bg-slate-800/50 hover:bg-slate-700/50 border border-white/10 rounded-xl
-                                       transition-colors group">
-                            <svg class="w-6 h-6 text-gray-400 group-hover:text-white transition-colors" 
-                                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                        </button>
+
+                <!-- Room Settings -->
+                <div class="space-y-4">
+                    <label class="block text-sm font-medium text-lime-300">
+                        Room Settings
+                    </label>
+
+                    <!-- Quick Settings -->
+                    <div class="space-y-3">
+                        <!-- Room Name (Optional) -->
+                        <div class="p-3 bg-slate-800 rounded-xl space-y-2">
+                            <label class="block text-sm text-white">Custom room name (optional)</label>
+                            <div class="flex gap-2">
+                                <input type="text" name="roomName" 
+                                       class="flex-1 px-3 py-2 bg-slate-900 border border-lime-400/10 rounded-lg
+                                              focus:outline-none focus:ring-2 focus:ring-lime-400/50 focus:border-lime-400/30
+                                              text-white placeholder-slate-500 text-sm transition-colors"
+                                       placeholder="e.g., daily-standup">
+                                <button type="button" class="p-2 bg-slate-900 hover:bg-slate-800 border border-lime-400/10 
+                                                           rounded-lg transition-colors group"
+                                        id="generateRoomName">
+                                    <svg class="w-5 h-5 text-lime-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <p class="text-xs text-slate-400">Partecipants will see this name before joining</p>
+                        </div>
+
+                        <!-- Max Participants -->
+                        <div class="p-3 bg-slate-800 rounded-xl space-y-2">
+                            <label class="block text-sm text-white">Maximum participants</label>
+                            <select name="maxParticipants" 
+                                    class="w-full px-3 py-2 bg-slate-900 border border-lime-400/10 rounded-lg
+                                           focus:outline-none focus:ring-2 focus:ring-lime-400/50 focus:border-lime-400/30
+                                           text-white text-sm">
+                                <option value="2">2 participants</option>
+                                <option value="4">4 participants</option>
+                                <option value="8">8 participants</option>
+                                <option value="16">16 participants</option>
+                                <option value="32">32 participants</option>
+                                <option value="64">64 participants</option>
+                            </select>
+                            <p class="text-xs text-slate-400">Helps maintain call quality</p>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="flex gap-3 pt-4">
-                    <button type="button" id="cancelCreateRoom"
-                            class="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 
-                                   border border-white/10 rounded-xl transition-colors">
-                        Cancel
-                    </button>
-                    <button type="submit"
-                            class="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 
-                                   rounded-xl transition-colors">
-                        Create Room
-                    </button>
-                </div>
+
+                <!-- Create Button -->
+                <button type="submit"
+                        class="w-full px-4 py-3 bg-lime-500 hover:bg-lime-600 
+                               text-white font-medium rounded-xl
+                               transform transition-all duration-300 
+                               hover:shadow-lg hover:shadow-lime-500/25
+                               active:scale-[0.98]">
+                    Create Room
+                </button>
             </form>
         </div>
     </div>
+    <style>
+        #mainLogo {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #mainLogo:hover {
+            cursor: pointer;
+        }
+        .rotating {
+            pointer-events: none;
+        }
+
+        @keyframes flash-lime {
+            0% {
+                background-color: rgb(15 23 42); /* slate-900 */
+                border-color: rgb(132 204 22 / 0.5);
+                box-shadow: 0 0 10px rgb(132 204 22 / 0.2);
+            }
+            100% {
+                background-color: rgb(15 23 42); /* slate-900 */
+                border-color: rgb(132 204 22 / 0.1);
+                box-shadow: none;
+            }
+        }
+
+        .flash-once {
+            animation: flash-lime 0.3s ease-out forwards;
+        }
+    </style>
 </div>
