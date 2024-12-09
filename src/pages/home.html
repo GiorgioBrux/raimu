@@ -1,30 +1,4 @@
 <div class="relative min-h-screen flex flex-col">
-    <script>
-        window.onload = function() {
-            const logo = document.querySelector('#mainLogo');
-            if (!logo) {
-                console.error('Logo not found!');
-                return;
-            }
-
-            function rotateLogo() {
-                const logoImage = document.getElementById('logoImage');
-                if (!logoImage) return;
-                
-                console.log('Rotating logo!');
-                logoImage.style.transition = 'transform 1s ease';
-                logoImage.style.transform = 'rotate(360deg)';
-                
-                setTimeout(() => {
-                    logoImage.style.transition = 'none';
-                    logoImage.style.transform = 'rotate(0deg)';
-                }, 1000);
-            }
-
-            logo.addEventListener('click', rotateLogo);
-            console.log('Easter egg added!');
-        };
-    </script>
     <!-- Background gradients -->
     <div class="fixed inset-0 overflow-hidden -z-10">
         <!-- Base gradient -->
@@ -47,10 +21,18 @@
                 <!-- Logo and Title -->
                 <div class="flex flex-col items-center space-y-12 mb-20">
                     <!-- Logo with enhanced glow -->
-                    <div class="relative cursor-pointer" id="mainLogo">
-                        <img src="/logo.svg" alt="Raimu Logo" 
-                             class="relative h-36 w-36"
-                             id="logoImage"/>
+                    <div class="relative cursor-pointer group" id="mainLogo">
+                        <!-- Shot glass container -->
+                        <div class="relative w-56 h-48 flex items-center justify-center">
+                            <!-- Glass outline -->
+
+                            <!-- Lime slice garnish -->
+                            <img src="/glass.png" 
+                                 alt="Raimu Logo" 
+                                 id="logoImage"
+                                 class="absolute top-4
+                                        transform-gpu transition-all"/>
+                        </div>
                     </div>
                     
                     <!-- Title section -->
@@ -217,6 +199,21 @@
 
         .flash-once {
             animation: flash-lime 0.3s ease-out forwards;
+        }
+
+        @keyframes wave1 {
+            0%, 100% { transform: translateX(-10%) translateY(5%) rotate(0deg); }
+            50% { transform: translateX(10%) translateY(-5%) rotate(1deg); }
+        }
+        
+        @keyframes wave2 {
+            0%, 100% { transform: translateX(10%) translateY(-5%) rotate(1deg); }
+            50% { transform: translateX(-10%) translateY(5%) rotate(0deg); }
+        }
+
+        #logoImage {
+            transform-origin: center;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
         }
     </style>
 </div>
