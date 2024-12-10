@@ -11,8 +11,8 @@ export class MediaSettings {
 
     // Initialize managers
     this.deviceManager = new DeviceManager(this.elements);
-    this.streamManager = new StreamManager(this.elements);
     this.audioMeter = new AudioMeter(this.elements);
+    this.streamManager = new StreamManager(this.elements, this.audioMeter);
     this.audioTest = new AudioTest(this.elements);
 
     this.init();

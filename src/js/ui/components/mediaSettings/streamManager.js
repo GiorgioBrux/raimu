@@ -1,11 +1,10 @@
 import { uiLogger as log } from '../../../utils/logger.js';
 
 export class StreamManager {
-  constructor(elements) {
+  constructor(elements, audioMeter) {
     this.elements = elements;
+    this.audioMeter = audioMeter;
     this.stream = null;
-    this.audioContext = null;
-    this.audioSource = null;
     this.loopbackNode = null;
     this.loopbackAudio = null;
   }
@@ -63,10 +62,10 @@ export class StreamManager {
       this.stream.removeTrack(oldTrack);
       this.stream.addTrack(audioTrack);
 
-      if (this.audioContext && this.audioSource) {
-        this.audioSource.disconnect();
-        this.audioSource = this.audioContext.createMediaStreamSource(this.stream);
-        this.audioSource.connect(this.audioAnalyser);
+      if (this.audioMeter && this.audioMeter.audioContext && this.audioMeter.audioSource) {
+        this.audioMeter.audioSource.disconnect();
+        this.audioMeter.audioSource = this.audioMeter.audioContext.createMediaStreamSource(this.stream);
+        this.audioMeter.audioSource.connect(this.audioMeter.audioAnalyser);
       }
 
       log.debug({ deviceId }, 'Audio device updated successfully');
@@ -128,8 +127,13 @@ export class StreamManager {
           this.loopbackAudio = null;
         }
       } else {
-        this.loopbackNode = this.audioContext.createMediaStreamDestination();
-        this.audioSource.connect(this.loopbackNode);
+        if (!this.audioMeter || !this.audioMeter.audioContext || !this.audioMeter.audioSource) {
+          log.error('Audio context not initialized. Try clicking somewhere first.');
+          return;
+        }
+
+        this.loopbackNode = this.audioMeter.audioContext.createMediaStreamDestination();
+        this.audioMeter.audioSource.connect(this.loopbackNode);
         
         this.loopbackAudio = new Audio();
         this.loopbackAudio.srcObject = this.loopbackNode.stream;
@@ -174,8 +178,8 @@ export class StreamManager {
       if (this.stream) {
         this.stream.getTracks().forEach(track => track.stop());
       }
-      if (this.audioContext) {
-        this.audioContext.close();
+      if (this.audioMeter && this.audioMeter.audioContext) {
+        this.audioMeter.audioContext.close();
       }
       if (this.loopbackAudio) {
         this.loopbackAudio.pause();
