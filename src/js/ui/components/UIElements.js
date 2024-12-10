@@ -35,6 +35,7 @@ export class UIElements {
         videoGrid: document.getElementById('videoGrid'),
         remoteTemplate: document.getElementById('videoTemplate'),
         roomName: document.getElementById('roomName'),
+        PIN: document.getElementById('pinDisplay'),
         controls: this.initializeControls()
       };
 

@@ -71,9 +71,21 @@ export class WebSocketService {
       };
       
       this.ws.onmessage = (event) => {
-        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-        log.debug({ data }, 'Message received');
-        this.onMessage?.(event.data);
+        try {
+            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+            log.debug({ 
+                messageType: data.type,
+                hasMessageHandler: !!this.onMessage
+            }, 'WebSocket message received');
+            
+            if (this.onMessage) {
+                this.onMessage(event.data);
+            } else {
+                log.warn('No message handler registered for WebSocket');
+            }
+        } catch (error) {
+            log.error({ error, rawData: event.data }, 'Error processing WebSocket message');
+        }
       };
       
       this.ws.onerror = (error) => {

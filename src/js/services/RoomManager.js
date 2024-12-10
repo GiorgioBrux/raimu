@@ -3,7 +3,6 @@ import { WebSocketService } from './WebSocket.js';
 import { RoomEventHandler } from './RoomEventHandler.js';
 import { roomLogger as log } from '../utils/logger.js';
 import { 
-    generateRoomId, 
     generateUserId, 
     getConnectionInfo, 
     handleConnectionError 
@@ -14,53 +13,46 @@ import {
  * Acts as a coordinator between WebRTC, WebSocket and UI events.
  */
 export class RoomManager {
-    constructor() {
+    constructor(websocketService) {
         // Services
         this.webrtc = new WebRTCService();
-        this.ws = new WebSocketService('ws://localhost:8080/ws');
+        this.ws = websocketService;
         this.eventHandler = new RoomEventHandler(this);
 
+        // Explicitly bind the message handler
+        this.ws.onMessage = this._handleWsMessage.bind(this);
+        log.debug('WebSocket message handler bound');
+
         // State
-        this.roomId = null;
         this.userId = null;
+        this.PIN = null;
         this.userName = null;
+        this.roomName = null;
         this.participants = new Map();
         this.isConnected = false;
 
-        // UI Callbacks - These are set by RoomUI to handle UI updates
-        this.onParticipantListUpdate = null;  // Called when participant list changes
-        this.onStreamUpdate = null;           // Called when a new media stream is received
-        this.onParticipantLeft = null;        // Called when a participant leaves
+        // Initialize roomId from sessionStorage if available
+        this.roomId = sessionStorage.getItem('roomId');
+        if (this.roomId) {
+            this.webrtc.setRoomId(this.roomId);
+            log.debug({ roomId: this.roomId }, 'Initialized room ID from session storage');
+        }
+
+        // UI Callbacks
+        this.onParticipantListUpdate = null;
+        this.onStreamUpdate = null;
+        this.onParticipantLeft = null;
 
         this._setupEventHandlers();
     }
 
     /**
      * Sets up event handlers for both WebSocket and WebRTC events.
-     * - WebSocket events handle room-level communication (join/leave/participants)
-     * - WebRTC events handle peer-to-peer media connections
      * @private
      */
     _setupEventHandlers() {
         // WebSocket message handler - routes to appropriate event handler
         this.ws.onMessage = this._handleWsMessage.bind(this);
-
-        // WebRTC event handlers - handle peer connection events
-        this.webrtc.onParticipantLeft = (participantId) => {
-            this.participants.delete(participantId);
-            this.onParticipantLeft?.(participantId);
-        };
-
-        this.webrtc.onTrackStateChange = (participantId, trackKind, enabled) => {
-            // Broadcast track state changes to all participants via WebSocket
-            this.ws.send({
-                type: 'trackStateChange',
-                userId: participantId,
-                roomId: this.roomId,
-                trackKind,
-                enabled
-            });
-        };
     }
 
     /**
@@ -70,7 +62,6 @@ export class RoomManager {
      */
     async getParticipantsInRoom(roomId) {
         return new Promise((resolve) => {
-            // Set up one-time handler for participant list
             const handler = (msg) => {
                 try {
                     const data = typeof msg === 'string' ? JSON.parse(msg) : msg;
@@ -78,11 +69,15 @@ export class RoomManager {
                     
                     if (data.type === 'participants' && data.roomId === roomId) {
                         this.ws.onMessage = this._handleWsMessage.bind(this);  // Restore normal handler
-                        resolve(data.participants);
+                        // Extract just the IDs if participants are objects
+                        const participantIds = data.participants.map(p => 
+                            typeof p === 'object' ? p.id : p
+                        );
+                        resolve(participantIds);
                     }
                 } catch (error) {
                     log.error({ error }, 'Failed to handle participants message');
-                    resolve([]);  // Return empty array on error
+                    resolve([]);
                 }
             };
             
@@ -98,38 +93,35 @@ export class RoomManager {
      * Creates a new room with the given user name
      * @param {string} userName - Name of the user creating the room
      * @param {string} [roomName=null] - Optional custom room name
-     * @returns {Promise<{roomId: string, localStream: MediaStream}>}
+     * @returns {Promise<{localStream: MediaStream}>}
      * @throws {Error} If room creation fails
      */
-    async createRoom(userName, roomName = null) {
+    async createRoom(userName, maxParticipants, roomName = null) {
         try {
             await this.disconnectIfNeeded();
 
             this.userName = userName;
             this.userId = generateUserId();
-            this.roomId = roomName || generateRoomId();
             this.roomName = roomName;
 
             // Initialize WebRTC and get local stream first
             if (!this.isConnected) {
                 await this.initializeConnection(this.userId);
-                // Add this line to ensure we get the stream
-                const localStream = await this.webrtc.initializeMedia();
             }
 
-            log.info({ roomId: this.roomId, userId: this.userId }, 'Creating room');
+            log.info({ roomName: this.roomName, maxParticipants: maxParticipants, userId: this.userId }, 'Creating room');
             
             // Notify WebSocket server about new room
             this.ws.send({
                 type: 'createRoom',
-                roomId: this.roomId,
+                roomName: this.roomName,
                 userId: this.userId,
-                userName: this.userName
+                userName: this.userName,
+                maxParticipants: maxParticipants
             });
             
             // Make sure we return the local stream
             return {
-                roomId: this.roomId,
                 localStream: this.webrtc.localStream  // Make sure this is set
             };
         } catch (error) {
@@ -146,23 +138,57 @@ export class RoomManager {
      */
     async joinRoom(roomId) {
         try {
+            log.debug({ 
+                joiningRoomId: roomId,
+                currentRoomId: this.roomId,
+                storedRoomId: sessionStorage.getItem('roomId')
+            }, 'Joining room - initial state');
+
             await this.disconnectIfNeeded();
 
+            log.debug({ 
+                beforeSet: { 
+                    roomId: this.roomId, 
+                    webrtcRoomId: this.webrtc.roomId 
+                }
+            }, 'Room IDs before setting');
+
+            // Store roomId in both RoomManager and sessionStorage
             this.roomId = roomId;
-            
-            // Only generate new userId if we don't have one
+            sessionStorage.setItem('roomId', roomId);
+            this.webrtc.setRoomId(roomId);
+
+            log.debug({ 
+                afterSet: { 
+                    managerRoomId: this.roomId,
+                    webrtcRoomId: this.webrtc.roomId,
+                    sessionStorageRoomId: sessionStorage.getItem('roomId')
+                }
+            }, 'Room IDs after setting');
+
             if (!this.userId) {
-                this.userId = this.generateUserId();
+                this.userId = generateUserId();
             }
 
-            log.info({ roomId, userId: this.userId }, 'Joining room');
+            log.info({ 
+                roomId, 
+                userId: this.userId,
+                connectionState: this.isConnected ? 'connected' : 'disconnected'
+            }, 'Joining room');
 
-            // Initialize WebRTC only once
             if (!this.isConnected) {
                 await this.initializeConnection(this.userId);
             }
 
-            // Then join the room via WebSocket to discover other participants
+            // Get existing participants before joining
+            const existingParticipants = await this.getParticipantsInRoom(roomId);
+            log.debug({ 
+                participants: existingParticipants,
+                participantCount: existingParticipants.length,
+                ourId: this.userId
+            }, 'Found existing participants');
+
+            // Join room via WebSocket
             this.ws.send({
                 type: 'joinRoom',
                 roomId: this.roomId,
@@ -170,26 +196,52 @@ export class RoomManager {
                 userName: this.userName
             });
 
-            // Get and connect to existing participants
-            const existingParticipants = await this.getParticipantsInRoom(roomId);
-            log.debug({ participants: existingParticipants }, 'Found existing participants');
-
-            // Connect to each participant except ourselves
-            for (const participantId of existingParticipants) {
-                if (participantId !== this.userId) {
+            // Connect to each participant with better error handling
+            const connectionPromises = existingParticipants
+                .filter(participantId => {
+                    // Make sure we're working with the ID string
+                    const id = typeof participantId === 'object' ? participantId.id : participantId;
+                    return id !== this.userId;
+                })
+                .map(async participantId => {
                     try {
-                        await this.webrtc.connectToParticipant(participantId);
+                        // Extract ID if it's an object
+                        const id = typeof participantId === 'object' ? participantId.id : participantId;
+                        log.debug({ participantId: id }, 'Attempting to connect to participant');
+                        await this.webrtc.connectToParticipant(id);
+                        log.debug({ participantId: id }, 'Successfully connected to participant');
                     } catch (error) {
-                        log.error({ error, participantId }, 'Failed to connect to participant');
+                        log.error({ 
+                            error,
+                            participantId: typeof participantId === 'object' ? participantId.id : participantId,
+                            errorType: error.type,
+                            errorMessage: error.message,
+                            stack: error.stack
+                        }, 'Failed to connect to participant');
                     }
-                }
-            }
+                });
+
+            await Promise.allSettled(connectionPromises);
 
             return this.getConnectionInfo();
         } catch (error) {
-            log.error({ error }, 'Failed to join room');
+            log.error({ 
+                error,
+                roomId,
+                userId: this.userId,
+                connectionState: this.isConnected,
+                webrtcState: this.webrtc?.peer?.disconnected ? 'disconnected' : 'connected'
+            }, 'Failed to join room');
             throw error;
         }
+    }
+
+    /**
+     * Updates the PIN of the room
+     * @param {string} PIN - PIN of the room
+     */
+    async updatePIN(PIN) {
+        this.PIN = PIN;
     }
 
     /**
@@ -218,17 +270,30 @@ export class RoomManager {
             }
         };
 
-        this.webrtc.onParticipantLeft = (participantId) => {
-            if (this.participants.has(participantId)) {
-                this.participants.delete(participantId);
-                this.onParticipantListUpdate?.();
-            }
-        };
-
         this.webrtc.onStreamUpdate = (participantId, stream) => {
             this.onStreamUpdate?.(participantId, stream);
         };
+
+        this.webrtc.onTrackStateChange = (participantId, trackKind, enabled, roomId) => {
+            log.debug({ 
+                participantId,
+                trackKind,
+                enabled,
+                callbackRoomId: roomId,
+                managerRoomId: this.roomId,
+                webrtcRoomId: this.webrtc.roomId
+            }, 'Track state change triggered');
+
+            this.ws.send({
+                type: 'trackStateChange',
+                userId: participantId,
+                roomId: roomId || this.roomId,
+                trackKind,
+                enabled
+            });
+        };
     }
+    
 
     /**
      * Disconnects from current room if connected
@@ -245,6 +310,8 @@ export class RoomManager {
      */
     leaveRoom() {
         if (this.isConnected) {
+            log.debug({ roomId: this.roomId }, 'Leaving room');
+            sessionStorage.removeItem('roomId');  // Clear the roomId from sessionStorage
             this.webrtc.disconnect();
             this.cleanup();
         }
@@ -255,16 +322,29 @@ export class RoomManager {
      * @private
      */
     cleanup() {
+        log.debug({ 
+            beforeCleanup: { 
+                roomId: this.roomId, 
+                webrtcRoomId: this.webrtc.roomId 
+            }
+        }, 'Room IDs before cleanup');
+
         this.participants.clear();
-        this.roomId = null;
+        // Don't clear roomId during cleanup anymore
         this.userName = null;
         this.isConnected = false;
+
+        log.debug({ 
+            afterCleanup: { 
+                roomId: this.roomId, 
+                webrtcRoomId: this.webrtc.roomId 
+            }
+        }, 'Room IDs after cleanup');
     }
 
     /**
      * Gets current connection information
      * @returns {{roomId: string, localStream: MediaStream}}
-     * @private
      */
     getConnectionInfo() {
         return getConnectionInfo(this.roomId, this.webrtc.localStream);
@@ -275,15 +355,43 @@ export class RoomManager {
      * @private
      */
     _handleWsMessage(msg) {
-        const data = JSON.parse(msg);
-        const handlers = {
-            userJoined: this.eventHandler.handleUserJoined.bind(this.eventHandler),
-            userLeft: this.eventHandler.handleUserLeft.bind(this.eventHandler),
-            participants: this.eventHandler.handleParticipantsList.bind(this.eventHandler),
-            trackStateChange: this.eventHandler.handleTrackStateChange.bind(this.eventHandler)
-        };
+        try {
+            const data = typeof msg === 'string' ? JSON.parse(msg) : msg;
+            log.debug({ 
+                messageType: data.type,
+                messageData: data,
+                hasEventHandler: !!this.eventHandler
+            }, 'Handling WebSocket message');
+            
+            const handlers = {
+                userJoined: this.eventHandler.handleUserJoined.bind(this.eventHandler),
+                userLeft: this.eventHandler.handleUserLeft.bind(this.eventHandler),
+                participants: this.eventHandler.handleParticipantsList.bind(this.eventHandler),
+                trackStateChange: this.eventHandler.handleTrackStateChange.bind(this.eventHandler)
+            };
 
-        const handler = handlers[data.type];
-        if (handler) handler(data);
+            const handler = handlers[data.type];
+            if (handler) {
+                log.debug({ messageType: data.type }, 'Found handler, executing');
+                handler(data);
+            } else {
+                log.warn({ messageType: data.type }, 'No handler found for message type');
+            }
+        } catch (error) {
+            log.error({ error, rawMessage: msg }, 'Error handling WebSocket message');
+        }
+    }
+
+    set roomId(id) {
+        this._roomId = id;
+        this.webrtc.setRoomId(id);
+        log.debug({ 
+            newRoomId: id, 
+            webrtcRoomId: this.webrtc.roomId 
+        }, 'RoomManager roomId updated');
+    }
+
+    get roomId() {
+        return this._roomId;
     }
 }

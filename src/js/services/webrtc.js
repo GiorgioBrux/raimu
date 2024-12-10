@@ -16,6 +16,7 @@ export class WebRTCService {
     this.onParticipantLeft = null;
     this.onStreamUpdate = null;
     this.onTrackStateChange = null;
+    this.roomId = null;
   }
 
   /**
@@ -150,22 +151,101 @@ export class WebRTCService {
    */
   async connectToParticipant(participantId) {
     try {
-      log.debug({ participantId }, 'Attempting to connect to participant');
-      
-      if (!this.localStream) {
-        await this.initializeMedia();
+      log.debug({ 
+        localId: this.peer?.id, 
+        remoteId: participantId,
+        peerState: this.peer?.disconnected ? 'disconnected' : 'connected'
+      }, 'Attempting to connect to participant');
+
+      if (!this.peer || this.peer.disconnected) {
+        throw new Error('Local peer is not initialized or disconnected');
       }
 
-      const call = this.peer.call(participantId, this.localStream);
-      
-      if (!call) {
-        throw new Error(`Failed to create call to ${participantId}`);
+      // Check if we already have a connection to this participant
+      if (this.connections.has(participantId)) {
+        log.warn({ participantId }, 'Connection already exists, skipping');
+        return;
       }
 
-      await this._handleConnection(call);
-      log.info({ participantId }, 'Successfully connected to participant');
+      // Create the connection with detailed logging
+      log.debug({ participantId }, 'Creating new peer connection');
+      const connection = this.peer.connect(participantId, {
+        reliable: true,
+        metadata: { type: 'data' }
+      });
+
+      if (!connection) {
+        throw new Error(`Failed to create connection to ${participantId}`);
+      }
+
+      // Set up connection event handlers with improved logging
+      connection.on('open', async () => {
+        log.info({ participantId }, 'Peer connection opened successfully');
+        this.connections.set(participantId, connection);
+        
+        // Set up media connection after data connection is established
+        try {
+          if (!this.localStream) {
+            await this.initializeMedia();
+          }
+          
+          log.debug({ participantId }, 'Setting up media connection');
+          const call = this.peer.call(participantId, this.localStream);
+          
+          if (!call) {
+            throw new Error('Failed to create media call');
+          }
+          
+          await this._handleConnection(call);
+          log.debug({ participantId }, 'Media connection established');
+        } catch (error) {
+          log.error({ error, participantId }, 'Failed to setup media connection');
+        }
+      });
+
+      connection.on('error', (error) => {
+        log.error({ 
+          error,
+          participantId,
+          errorType: error.type,
+          errorMessage: error.message
+        }, 'Peer connection error occurred');
+      });
+
+      connection.on('close', () => {
+        log.info({ participantId }, 'Peer connection closed');
+        this.connections.delete(participantId);
+        this.onParticipantLeft?.(participantId);
+      });
+
+      // Add timeout to detect connection failures
+      const timeout = setTimeout(() => {
+        if (!this.connections.has(participantId)) {
+          log.error({ participantId }, 'Connection attempt timed out');
+          connection.close();
+        }
+      }, 10000); // 10 second timeout
+
+      return new Promise((resolve, reject) => {
+        connection.on('open', () => {
+          clearTimeout(timeout);
+          resolve();
+        });
+        connection.on('error', (error) => {
+          clearTimeout(timeout);
+          reject(error);
+        });
+      });
+
     } catch (error) {
-      log.error({ error, participantId }, 'Failed to connect to participant');
+      log.error({
+        error,
+        participantId,
+        localPeerId: this.peer?.id,
+        connectionCount: this.connections.size,
+        activeConnections: Array.from(this.connections.keys()),
+        peerState: this.peer?.disconnected ? 'disconnected' : 'connected'
+      }, 'Failed to connect to participant');
       throw error;
     }
   }
@@ -248,8 +328,12 @@ export class WebRTCService {
       this.localStream.getAudioTracks().forEach(track => {
         track.enabled = !forceMute;
       });
-      // Notify about track state change
-      this.onTrackStateChange?.(this.peer.id, 'audio', !forceMute);
+      log.debug({ 
+        currentRoomId: this.roomId,
+        action: 'toggleAudio',
+        muted: forceMute
+      }, 'Toggling audio');
+      this.onTrackStateChange?.(this.peer.id, 'audio', !forceMute, this.roomId);
     }
   }
 
@@ -262,8 +346,12 @@ export class WebRTCService {
       this.localStream.getVideoTracks().forEach(track => {
         track.enabled = !forceDisable;
       });
-      // Notify about track state change
-      this.onTrackStateChange?.(this.peer.id, 'video', !forceDisable);
+      log.debug({ 
+        currentRoomId: this.roomId,
+        action: 'toggleVideo',
+        disabled: forceDisable
+      }, 'Toggling video');
+      this.onTrackStateChange?.(this.peer.id, 'video', !forceDisable, this.roomId);
     }
   }
 
@@ -336,12 +424,28 @@ export class WebRTCService {
    * @param {string} participantId - ID of the remote participant
    */
   removeConnection(participantId) {
-    log.debug({ participantId }, 'Removing connection');
+    log.debug({ participantId }, 'Removing WebRTC connection');
     const connection = this.connections.get(participantId);
     if (connection) {
-      connection.close();
-      this.connections.delete(participantId);
-      this.onParticipantLeft?.(participantId);
+        try {
+            connection.close();
+            this.connections.delete(participantId);
+            log.debug({ participantId }, 'WebRTC connection removed');
+        } catch (error) {
+            log.error({ error, participantId }, 'Error removing WebRTC connection');
+        }
     }
+  }
+
+  /**
+   * Sets the room ID.
+   * @param {string} roomId - The room ID
+   */
+  setRoomId(roomId) {
+    log.debug({ 
+      oldRoomId: this.roomId, 
+      newRoomId: roomId 
+    }, 'Setting WebRTC roomId');
+    this.roomId = roomId;
   }
 } 

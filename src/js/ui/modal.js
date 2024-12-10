@@ -32,9 +32,7 @@ export class ModalManager {
                 await this.onSubmit?.(
                     this.userNameInput.value,
                     this.roomNameInput.value || null,
-                    {
-                        maxParticipants: parseInt(this.maxParticipantsSelect.value)
-                    }
+                    parseInt(this.maxParticipantsSelect.value)
                 );
                 
                 this.hide();

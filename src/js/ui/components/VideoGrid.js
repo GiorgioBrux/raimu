@@ -41,6 +41,12 @@ export class VideoGrid {
     const video = clone.querySelector('video');
     video.srcObject = stream;
     
+    // Mute local video to prevent echo
+    if (participantId === 'local') {
+        video.muted = true;
+        log.debug('Muted local video to prevent echo');
+    }
+    
     // Find the name element and update it safely
     const nameElement = container.querySelector('.participant-name');
     if (nameElement) {
@@ -67,12 +73,32 @@ export class VideoGrid {
    * @param {string} participantId - Unique identifier for the participant to remove
    */
   removeVideo(participantId) {
-    const container = document.getElementById(`participant-${participantId}`);
+    const containerId = `participant-${participantId}`;
+    log.debug({ participantId, containerId }, 'VideoGrid.removeVideo called');
+    
+    const container = document.getElementById(containerId);
     if (container) {
-      log.debug({ participantId }, 'Removing video from grid');
-      container.remove();
+        log.debug({ participantId }, 'Found container, removing video');
+        
+        // Clean up media tracks
+        const video = container.querySelector('video');
+        if (video) {
+            log.debug({ participantId }, 'Found video element');
+            if (video.srcObject) {
+                log.debug({ participantId }, 'Stopping video tracks');
+                video.srcObject.getTracks().forEach(track => {
+                    track.stop();
+                    log.debug({ participantId, trackKind: track.kind }, 'Track stopped');
+                });
+                video.srcObject = null;
+            }
+        }
+        
+        // Remove the container
+        container.remove();
+        log.debug({ participantId }, 'Container removed from DOM');
     } else {
-      log.warn({ participantId }, 'Video container not found for removal');
+        log.warn({ participantId, containerId }, 'Video container not found for removal');
     }
   }
 } 

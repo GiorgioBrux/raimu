@@ -32,131 +32,177 @@
           Join Room
         </h1>
         <p class="text-slate-400">
-          Enter the room code and set up your preferences before joining.
+          Enter your name and the room code to join the meeting.
         </p>
       </div>
 
       <!-- Main Content Grid -->
       <div class="grid md:grid-cols-2 gap-6">
-        <!-- Left Column: Room Info -->
-        <div class="space-y-6">
-          <!-- Room Code Section -->
-          <div class="bg-slate-900/50 backdrop-blur-sm border border-lime-400/10 rounded-2xl p-6">
-            <h2 class="text-xl font-semibold text-lime-300 mb-4">Room Code</h2>
-            <div class="flex gap-4 justify-center">
-              <input type="text" maxlength="4"
-                     class="w-20 px-3 py-2.5 bg-slate-800/50 border border-lime-400/10 rounded-xl 
-                            focus:outline-none focus:ring-2 focus:ring-lime-400/50 focus:border-lime-400/30
-                            text-white text-center text-lg font-mono tracking-wider"
-                     placeholder="0000"
-                     data-room-code-part>
-              <span class="text-xl text-slate-600 select-none">-</span>
-              <input type="text" maxlength="4"
-                     class="w-20 px-3 py-2.5 bg-slate-800/50 border border-lime-400/10 rounded-xl 
-                            focus:outline-none focus:ring-2 focus:ring-lime-400/50 focus:border-lime-400/30
-                            text-white text-center text-lg font-mono tracking-wider"
-                     placeholder="0000"
-                     data-room-code-part>
-              <span class="text-xl text-slate-600 select-none">-</span>
-              <input type="text" maxlength="4"
-                     class="w-20 px-3 py-2.5 bg-slate-800/50 border border-lime-400/10 rounded-xl 
-                            focus:outline-none focus:ring-2 focus:ring-lime-400/50 focus:border-lime-400/30
-                            text-white text-center text-lg font-mono tracking-wider"
-                     placeholder="0000"
-                     data-room-code-part>
-            </div>
-          </div>
-
-          <!-- Room Status -->
-          <div class="hidden" data-room-status>
-            <!-- Loading State -->
-            <div class="flex items-center justify-center gap-3 text-slate-400" data-status="loading">
-              <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span>Checking room...</span>
-            </div>
-
-            <!-- Error State -->
-            <div class="hidden p-4 bg-red-500/10 border border-red-500/20 rounded-xl" data-status="error">
-              <div class="flex items-center gap-3 text-red-500">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Room not found or no longer active</span>
-              </div>
-            </div>
-
-            <!-- Success State -->
-            <div class="hidden p-4 bg-lime-500/10 border border-lime-500/20 rounded-xl" data-status="success">
-              <div class="flex items-center gap-3 text-lime-500 mb-2">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Room found!</span>
-              </div>
-              <div class="pl-8">
-                <p class="text-slate-300 text-sm mb-1">
-                  Room Name: <span data-room-name class="text-lime-400">Daily Standup</span>
-                </p>
-                <p class="text-slate-300 text-sm">
-                  Participants: <span data-participant-count class="text-lime-400">3</span>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- User Info Section -->
+        <!-- Left Column: User Info & Room Code -->
+        <div class="flex flex-col gap-6">
+          <!-- Step 1: Name Input -->
           <div class="bg-slate-900/50 backdrop-blur-sm border border-lime-400/10 rounded-2xl p-6">
             <h2 class="text-xl font-semibold text-lime-300 mb-4">Your Info</h2>
-            <div class="space-y-4">
-              <div>
-                <label for="displayName" class="block text-sm font-medium text-slate-400 mb-2">
-                  Display Name
-                </label>
-                <input type="text" id="displayName" 
-                       class="w-full px-4 py-3 bg-slate-800/50 border border-lime-400/10 rounded-xl 
+            <div>
+              <label for="displayName" class="block text-sm font-medium text-slate-400 mb-2">
+                Display Name
+              </label>
+              <input type="text" id="displayName" 
+                     class="w-full px-4 py-3 bg-slate-800/50 border border-lime-400/10 rounded-xl 
+                            focus:outline-none focus:ring-2 focus:ring-lime-400/50 focus:border-lime-400/30
+                            text-white placeholder-slate-500"
+                     placeholder="Enter your display name"
+                     required>
+            </div>
+          </div>
+
+          <!-- Step 2: Room Code & Info -->
+          <div class="flex-1 flex flex-col gap-4 h-full" data-room-status>
+            <!-- Room Code Input -->
+            <div class="bg-slate-900/50 backdrop-blur-sm border border-lime-400/10 rounded-2xl p-6 h-full">
+              <h2 class="text-xl font-semibold text-lime-300 mb-4">Room Code</h2>
+              <p class="text-slate-400 text-sm mb-6">
+                Enter the 12-digit room code that was shared with you to join the meeting.
+              </p>
+              <div class="flex gap-4 justify-center mb-6">
+                <input type="text" maxlength="4"
+                       class="w-20 px-3 py-2.5 bg-slate-800/50 border border-lime-400/10 rounded-xl 
                               focus:outline-none focus:ring-2 focus:ring-lime-400/50 focus:border-lime-400/30
-                              text-white placeholder-slate-500"
-                       placeholder="Enter your display name"
-                       required>
+                              text-white text-center text-lg font-mono tracking-wider
+                              transition-all duration-300
+                              data-[loading=true]:border-lime-400/30
+                              data-[loading=true]:bg-slate-800/70"
+                       placeholder="0000"
+                       data-room-code-part>
+                <span class="text-xl text-slate-600 select-none self-center">-</span>
+                <input type="text" maxlength="4"
+                       class="w-20 px-3 py-2.5 bg-slate-800/50 border border-lime-400/10 rounded-xl 
+                              focus:outline-none focus:ring-2 focus:ring-lime-400/50 focus:border-lime-400/30
+                              text-white text-center text-lg font-mono tracking-wider
+                              transition-all duration-300
+                              data-[loading=true]:border-lime-400/30
+                              data-[loading=true]:bg-slate-800/70"
+                       placeholder="0000"
+                       data-room-code-part>
+                <span class="text-xl text-slate-600 select-none self-center">-</span>
+                <input type="text" maxlength="4"
+                       class="w-20 px-3 py-2.5 bg-slate-800/50 border border-lime-400/10 rounded-xl 
+                              focus:outline-none focus:ring-2 focus:ring-lime-400/50 focus:border-lime-400/30
+                              text-white text-center text-lg font-mono tracking-wider
+                              transition-all duration-300
+                              data-[loading=true]:border-lime-400/30
+                              data-[loading=true]:bg-slate-800/70"
+                       placeholder="0000"
+                       data-room-code-part>
+              </div>
+
+              <!-- Room Status Section -->
+              <div class="border-t border-lime-400/10 pt-6" data-room-status>
+                <!-- Loading State -->
+                <div class="hidden flex items-center justify-center gap-3 text-slate-400 py-4" data-status="loading">
+                  <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Checking room...</span>
+                </div>
+
+                <!-- Error State -->
+                <div class="hidden" data-status="error">
+                  <div class="flex items-center gap-3 text-red-500">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span data-error-message>Room not found or no longer active</span>
+                  </div>
+                </div>
+
+                <!-- Success State -->
+                <div class="hidden space-y-4" data-status="success">
+                  <div class="flex items-center gap-3 text-lime-500">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Room found!</span>
+                  </div>
+                  
+                  <div class="space-y-2">
+                    <p class="text-slate-300">
+                      Room Name: <span data-room-name class="text-lime-400">Daily Standup</span>
+                    </p>
+                    <div class="space-y-2">
+                      <p class="text-slate-300">Current Participants:</p>
+                      <div data-participant-list class="pl-4 space-y-1">
+                        <!-- Participant items will be inserted here -->
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Action Buttons -->
+                  <div class="flex gap-4 justify-end pt-6 mt-4 border-t border-lime-400/10">
+                    <button type="submit" 
+                            data-join-button
+                            disabled
+                            class="px-6 py-3 bg-lime-500 hover:bg-lime-600 
+                                   text-white font-medium rounded-xl
+                                   transform transition-all duration-300 
+                                   hover:scale-[1.02] hover:shadow-lg hover:shadow-lime-500/25
+                                   active:scale-[0.98]
+                                   disabled:opacity-50 disabled:cursor-not-allowed">
+                      Join Room
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Skeleton Loading State (shown by default) -->
+                <div class="space-y-4" data-status="skeleton">
+                  <!-- Room Status Skeleton -->
+                  <div class="flex items-center gap-3">
+                    <div class="w-5 h-5 rounded-full bg-slate-800/50"></div>
+                    <div class="h-4 w-24 bg-slate-800/50 rounded"></div>
+                  </div>
+                  
+                  <!-- Room Info Skeleton -->
+                  <div class="space-y-4">
+                    <div class="space-y-2">
+                      <div class="flex items-center gap-2">
+                        <div class="h-4 w-20 bg-slate-800/50 rounded"></div>
+                        <div class="h-4 w-32 bg-slate-800/50 rounded"></div>
+                      </div>
+                    </div>
+                    
+                    <!-- Participants Skeleton -->
+                    <div class="space-y-2">
+                      <div class="h-4 w-36 bg-slate-800/50 rounded"></div>
+                      <div class="pl-4 space-y-2">
+                        <div class="flex items-center gap-2">
+                          <div class="w-2 h-2 rounded-full bg-slate-800/50"></div>
+                          <div class="h-4 w-24 bg-slate-800/50 rounded"></div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <div class="w-2 h-2 rounded-full bg-slate-800/50"></div>
+                          <div class="h-4 w-28 bg-slate-800/50 rounded"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Action Buttons Skeleton -->
+                  <div class="flex gap-4 justify-end pt-6 mt-4 border-t border-lime-400/10">
+                    <div class="h-12 w-24 bg-slate-800/50 rounded-xl"></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Right Column: Media Settings -->
-        <div class="space-y-6">
-          <div class="bg-slate-900/50 backdrop-blur-sm border border-lime-400/10 rounded-2xl p-6">
-            <!-- Media Settings Component -->
-            <div id="mediaSettings"></div>
-          </div>
+        <div class="bg-slate-900/50 backdrop-blur-sm border border-lime-400/10 rounded-2xl p-6"
+             data-media-settings-wrapper>
+          <div id="mediaSettings"></div>
         </div>
-      </div>
-
-      <!-- Footer Actions -->
-      <div class="mt-8 flex gap-4 justify-end">
-        <button type="button" 
-                onclick="window.location.href='/'" 
-                class="px-6 py-3 bg-white/5 hover:bg-white/10 
-                       backdrop-blur-sm border border-lime-400/20 
-                       text-white font-medium rounded-xl
-                       transform transition-all duration-300 
-                       hover:scale-[1.02] hover:border-lime-400/40 
-                       active:scale-[0.98]">
-          Cancel
-        </button>
-        <button type="submit" 
-                class="px-6 py-3 bg-lime-500 hover:bg-lime-600 
-                       text-white font-medium rounded-xl
-                       transform transition-all duration-300 
-                       hover:scale-[1.02] hover:shadow-lg hover:shadow-lime-500/25
-                       active:scale-[0.98]">
-          Join Room
-        </button>
       </div>
     </div>
   </main>
 </div>
-

@@ -7,9 +7,17 @@ import { RoomManager } from './services/RoomManager.js';
 import { RoomUI } from './ui/RoomUI.js';
 import { ModalManager } from './ui/Modal.js';
 import { MediaSettings } from './ui/components/mediaSettings/index.js';
+import { RoomCodeInput } from './ui/components/RoomCodeInput.js';
 import { logger as log } from './utils/logger.js';
+import { RoomStatusManager } from './ui/components/JoinRoomStatusManager.js';
+import { WebSocketService } from './services/WebSocket.js';
+import { ErrorModal } from './ui/components/ErrorModal.js';
+// Create shared WebSocket service
+const ws = new WebSocketService('ws://localhost:8080/ws');
+log.debug('WebSocket service created');
 
-const roomManager = new RoomManager();
+const roomManager = new RoomManager(ws);
+log.debug('RoomManager created with WebSocket service');
 let modalManager;
 let roomUI;
 let mediaSettings;
@@ -46,16 +54,14 @@ router.onRouteChange = async (path) => {
     const createRoomBtn = document.getElementById('createRoomBtn');
     if (createRoomBtn) {
       createRoomBtn.addEventListener('click', () => {
-        modalManager.onSubmit = async (userName, roomName) => {
+        modalManager.onSubmit = async (userName, roomName, maxParticipants) => {
           try {
-            const { roomId, localStream } = await roomManager.createRoom(userName, roomName);
+            const { localStream } = await roomManager.createRoom(userName, maxParticipants, roomName);
             log.info({
-              roomId,
               hasVideo: localStream?.getVideoTracks().length > 0,
               hasAudio: localStream?.getAudioTracks().length > 0
             }, 'Room created');
-            
-            await window.appRouter.navigate(`/room/${roomId}`);
+            sessionStorage.setItem('userName', userName);
           } catch (error) {
             log.error({ error }, 'Failed to create room');
             alert('Failed to create room. Please try again.');
@@ -64,6 +70,34 @@ router.onRouteChange = async (path) => {
         modalManager.show();
       });
     }
+
+    // Store the original message handler
+    const originalHandler = roomManager.ws.onMessage;
+
+    // Wait for roomCreated message on websocket
+    ws.onMessage = (message) => {
+      const data = JSON.parse(message);
+      if (data.type === 'roomCreated') {
+        log.info({ room: data.room }, 'Got info about created room');
+        sessionStorage.setItem('PIN', data.room.PIN);
+        sessionStorage.setItem('roomName', data.room.name);
+        sessionStorage.setItem('roomId', data.room.id);
+        
+        log.debug({ 
+            newRoomId: data.room.id,
+            storedRoomId: sessionStorage.getItem('roomId'),
+            currentRoomManagerId: roomManager.roomId
+        }, 'Room ID set in sessionStorage');
+        
+        // Restore the original handler before navigating
+        ws.onMessage = originalHandler;
+        
+        window.appRouter.navigate(`/room/${data.room.id}`);
+      } else {
+        // Pass other messages to the original handler
+        originalHandler?.(message);
+      }
+    };
   } 
   else if (path === '/join') {
     // Clean up any existing instances
@@ -78,6 +112,21 @@ router.onRouteChange = async (path) => {
       log.debug('Initializing media settings for join page');
       mediaSettings = new MediaSettings(mediaSettingsContainer);
     }
+
+    // Initialize room status manager with shared WebSocket service
+    const statusContainer = document.querySelector('[data-room-status]');
+    const roomStatus = new RoomStatusManager(statusContainer, ws);
+
+    // Initialize room code input with status check callback
+    const roomCodeInput = new RoomCodeInput((roomCode) => {
+      roomStatus.checkRoom(roomCode);
+    });
+
+    // Clean up on route change
+    router.cleanupHandlers['/join'] = () => {
+      if (roomStatus) roomStatus.destroy();
+      if (mediaSettings) mediaSettings.destroy();
+    };
 
     // Handle form submission
     const joinForm = document.querySelector('form');
@@ -129,6 +178,22 @@ router.onRouteChange = async (path) => {
         roomUI = null;
       }
 
+      if(sessionStorage.getItem('PIN') == null) {
+        new ErrorModal(document.getElementById('errorModal')).show();
+        return;
+      }
+
+      // Update RoomManager's roomId to match the current room
+      roomManager.roomId = roomId;
+      roomManager.webrtc.setRoomId(roomId);
+      
+      log.debug({ 
+          updatedRoomId: roomId,
+          managerRoomId: roomManager.roomId,
+          webrtcRoomId: roomManager.webrtc.roomId,
+          sessionStorageRoomId: sessionStorage.getItem('roomId')
+      }, 'Updated room IDs before UI initialization');
+
       // Initialize room UI
       roomUI = new RoomUI(roomManager);
       
@@ -168,3 +233,29 @@ router.onRouteChange = async (path) => {
     }
   }
 }; 
+
+// Replace the beforeunload handler with this
+let isRefreshing = false;
+
+window.addEventListener('beforeunload', (event) => {
+  // Check if it's a refresh (Ctrl+R, F5, or refresh button)
+  if (event.clientY < 0 || // Refresh button or F5
+      (event.clientX < 0 && !event.clientY) || // Ctrl+R
+      (event.keyCode === 116)) { // F5 key
+    isRefreshing = true;
+    sessionStorage.clear();
+  }
+});
+
+// Add this to handle navigation
+window.addEventListener('unload', () => {
+  // Only clear if it was a refresh
+  if (isRefreshing) {
+    sessionStorage.clear();
+  }
+  
+  // Clean up WebSocket regardless
+  if (ws) {
+    ws.disconnect();
+  }
+});

@@ -13,6 +13,14 @@ export function generateRoomId() {
 }
 
 /**
+ * Generates a unique 12-digit room PIN
+ * @returns {string} PIN for room identification
+ */
+export function generateRoomPIN() {
+    return Array.from({ length: 12 }, () => Math.floor(Math.random() * 10)).join('');
+}
+
+/**
  * Generates a unique user ID
  * @returns {string} UUID for user identification
  */

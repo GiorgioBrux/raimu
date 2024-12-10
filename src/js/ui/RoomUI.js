@@ -9,10 +9,20 @@ import { uiLogger as log } from '../utils/logger.js';
 export class RoomUI {
   constructor(roomManager) {
     this.roomManager = roomManager;
+    
+    // Set up the participant left handler
     this.roomManager.onParticipantLeft = (participantId) => {
-      log.debug({ participantId }, 'Participant left, removing video');
-      this.removeParticipantVideo(participantId);
+        log.debug({ participantId }, 'Participant left, removing video');
+        this.removeParticipantVideo(participantId);
     };
+
+    // Add handler for join errors
+    this.roomManager.onJoinError = () => {
+      log.debug('Join error received, redirecting to home');
+      sessionStorage.clear();
+      window.appRouter.navigate('/');
+    };
+
     this.initialized = false;
     this.uiElements = new UIElements();
   }
@@ -30,6 +40,67 @@ export class RoomUI {
       this.videoGrid = new VideoGrid(elements.videoGrid, elements.remoteTemplate);
       this.mediaControls = new MediaControls(elements.controls);
       this.vadManager = new VADManager();
+
+      // Get values from sessionStorage
+      const roomName = sessionStorage.getItem('roomName');
+      const pin = sessionStorage.getItem('PIN');
+
+      // Update room name display
+      if (elements.roomName) {
+        elements.roomName.textContent = roomName || 'Unnamed Room';
+      }
+
+      // Update PIN display
+      if (elements.PIN && pin) {
+        // Clear existing dots
+        elements.PIN.innerHTML = '';
+        
+        // Create PIN display groups
+        pin.match(/.{1,4}/g).forEach((group, groupIndex) => {
+          const groupDiv = document.createElement('div');
+          groupDiv.className = 'flex gap-1 items-center group';
+          
+          // Create dots display
+          const dotsDisplay = document.createElement('div');
+          dotsDisplay.className = 'flex gap-1 absolute group-hover:opacity-0 transition-opacity';
+          
+          // Create numbers display
+          const numbersDisplay = document.createElement('div');
+          numbersDisplay.className = 'flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity';
+          
+          // Add digits for this group
+          [...group].forEach((digit) => {
+            // Create dot
+            const dot = document.createElement('div');
+            dot.className = 'w-2 h-2 rounded-full bg-lime-500';
+            dotsDisplay.appendChild(dot);
+            
+            // Create number
+            const number = document.createElement('div');
+            number.className = 'w-2 text-xs text-lime-500 font-medium';
+            number.textContent = digit;
+            numbersDisplay.appendChild(number);
+          });
+          
+          groupDiv.appendChild(dotsDisplay);
+          groupDiv.appendChild(numbersDisplay);
+          elements.PIN.appendChild(groupDiv);
+          
+          // Add separator after each group except the last
+          if (groupIndex < pin.match(/.{1,4}/g).length - 1) {
+            const separator = document.createElement('div');
+            separator.className = 'text-lime-400/50';
+            separator.textContent = '-';
+            elements.PIN.appendChild(separator);
+          }
+        });
+      }
+
+      // Add click handler for copying PIN
+      const copyPinBtn = document.getElementById('copyPinBtn');
+      if (copyPinBtn) {
+        copyPinBtn.addEventListener('click', () => this.handlePinCopy(pin));
+      }
 
       this.setupEventListeners();
       this.initialized = true;
@@ -99,11 +170,28 @@ export class RoomUI {
   }
 
   removeParticipantVideo(participantId) {
+    log.debug({ participantId }, 'RoomUI.removeParticipantVideo called');
+    
     if (!this.initialized) {
-      log.warn({ participantId }, 'Attempted to remove participant video before initialization');
-      return;
+        log.warn({ participantId }, 'Attempted to remove participant video before initialization');
+        return;
     }
+
+    if (!this.videoGrid) {
+        log.error({ participantId }, 'VideoGrid not initialized');
+        return;
+    }
+    
     log.debug({ participantId }, 'Removing participant video');
+    
+    // Clean up VAD for this participant
+    if (this.vadManager) {
+        log.debug({ participantId }, 'Cleaning up VAD');
+        this.vadManager.cleanup(participantId);
+    }
+    
+    // Remove the video from the grid
+    log.debug({ participantId }, 'Removing from video grid');
     this.videoGrid.removeVideo(participantId);
   }
 
@@ -128,6 +216,12 @@ export class RoomUI {
     
     // Add local video using the template
     const container = this.addParticipantVideo('local', stream);
+
+    // Update the participant name to show "You (username)"
+    const nameElement = container.querySelector('.participant-name');
+    if (nameElement) {
+      nameElement.textContent = `You (${sessionStorage.getItem('userName')})`;
+    }
 
     // Update UI elements
     this.uiElements.addLocalVideoElement(container);
@@ -163,5 +257,30 @@ export class RoomUI {
   cleanup() {
     log.debug('Cleaning up Room UI');
     this.vadManager.cleanup();
+  }
+
+  async handlePinCopy(pin) {
+    if (!pin) return;
+    
+    try {
+      await navigator.clipboard.writeText(pin);
+      
+      // Show success state
+      const copyIcon = document.querySelector('.copy-icon');
+      const checkIcon = document.querySelector('.check-icon');
+      
+      if (copyIcon && checkIcon) {
+        copyIcon.classList.add('hidden');
+        checkIcon.classList.remove('hidden');
+        
+        // Reset after 2 seconds
+        setTimeout(() => {
+          copyIcon.classList.remove('hidden');
+          checkIcon.classList.add('hidden');
+        }, 2000);
+      }
+    } catch (err) {
+      log.error({ error: err }, 'Failed to copy PIN to clipboard');
+    }
   }
 } 

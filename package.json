@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev:vite": "vite",
-    "dev:peer": "node server.js",
-    "dev:signaling": "node websocket-server.js",
+    "dev:peer": "node src/peerServer/index.js",
+    "dev:signaling": "node src/server/index.js",
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:peer\" \"npm run dev:signaling\"",
     "build": "vite build",
     "preview": "vite preview"

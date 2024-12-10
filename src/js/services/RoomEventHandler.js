@@ -13,27 +13,96 @@ export class RoomEventHandler {
     // WebSocket event handlers
     handleUserJoined(data) {
         if (data.roomId === this.roomManager.roomId && data.userId !== this.roomManager.userId) {
-            log.info({ userId: data.userId }, 'New participant joined');
+            log.info({ userId: data.userId, userName: data.userName }, 'New participant joined');
+            
+            // If we have detailed room data, use it
+            if (data.room?.participants) {
+                const participant = data.room.participants.find(p => p.id === data.userId);
+                if (participant) {
+                    this._addParticipant(participant.id, participant.name);
+                    this._sendCurrentTrackStates(participant.id);
+                    return;
+                }
+            }
+            
+            // Fallback to basic data
             this._addParticipant(data.userId, data.userName);
             this._sendCurrentTrackStates(data.userId);
         }
     }
 
     handleUserLeft(data) {
+        log.debug({ 
+            messageRoomId: data.roomId, 
+            currentRoomId: this.roomManager.roomId,
+            userId: data.userId 
+        }, 'Handling user left event');
+
         if (data.roomId === this.roomManager.roomId) {
             log.info({ userId: data.userId }, 'Participant left');
-            this.roomManager.participants.delete(data.userId);
-            this.roomManager.webrtc.removeConnection(data.userId);
-            this.roomManager.onParticipantListUpdate?.();
+            
+            try {
+                // First stop any track state updates
+                const container = document.getElementById(`participant-${data.userId}`);
+                log.debug({ 
+                    userId: data.userId,
+                    containerFound: !!container 
+                }, 'Looking for participant container');
+
+                if (container) {
+                    log.debug({ userId: data.userId }, 'Found container, stopping tracks');
+                    const video = container.querySelector('video');
+                    if (video && video.srcObject) {
+                        video.srcObject.getTracks().forEach(track => {
+                            track.stop();
+                            track.enabled = false;
+                        });
+                        video.srcObject = null;
+                    }
+                } else {
+                    log.warn({ userId: data.userId }, 'Container not found for participant');
+                }
+                
+                // Remove from participants list
+                log.debug({ userId: data.userId }, 'Removing from participants list');
+                this.roomManager.participants.delete(data.userId);
+                
+                // Trigger UI update directly
+                log.debug({ 
+                    userId: data.userId,
+                    hasCallback: !!this.roomManager.onParticipantLeft 
+                }, 'Checking for participant left callback');
+
+                if (this.roomManager.onParticipantLeft) {
+                    this.roomManager.onParticipantLeft(data.userId);
+                } else {
+                    log.warn({ userId: data.userId }, 'No onParticipantLeft callback registered');
+                }
+                
+                // Clean up WebRTC connection last
+                log.debug({ userId: data.userId }, 'Cleaning up WebRTC connection');
+                this.roomManager.webrtc.removeConnection(data.userId);
+                
+                log.debug({ userId: data.userId }, 'Participant removal completed');
+            } catch (error) {
+                log.error({ error, userId: data.userId }, 'Error during participant removal');
+            }
+        } else {
+            log.debug({ 
+                messageRoomId: data.roomId, 
+                currentRoomId: this.roomManager.roomId 
+            }, 'Ignoring user left event - room ID mismatch');
         }
     }
 
     handleParticipantsList(data) {
         log.debug({ participants: data.participants }, 'Updating participants list');
         this.roomManager.participants.clear();
-        for (const participantId of data.participants) {
-            if (participantId !== this.roomManager.userId) {
-                this._addParticipant(participantId, 'Anonymous');
+        
+        // Handle participants as objects with id and name
+        for (const participant of data.participants) {
+            if (typeof participant === 'object' && participant.id !== this.roomManager.userId) {
+                this._addParticipant(participant.id, participant.name);
             }
         }
         this.roomManager.onParticipantListUpdate?.();
@@ -55,7 +124,7 @@ export class RoomEventHandler {
     _addParticipant(userId, userName) {
         this.roomManager.participants.set(userId, {
             id: userId,
-            name: userName
+            name: userName || 'Anonymous'  // Fallback to 'Anonymous' if name is null
         });
         this.roomManager.onParticipantListUpdate?.();
     }
