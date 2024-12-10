@@ -14,8 +14,60 @@ class Router {
       '/join': '/src/pages/join.html'
     };
 
+    // Define components that need to be loaded for specific routes
+    this.components = {
+      '/join': {
+        'mediaSettings': '/src/components/media-settings/index.html'
+      }
+    };
+
     // Base path for all routes
     this.basePath = '/src/pages/';
+
+    // Add cleanup handlers for specific routes
+    this.cleanupHandlers = {
+      '/join': () => {
+        const mediaSettings = window.currentMediaSettings;
+        if (mediaSettings) {
+          mediaSettings.destroy();
+          window.currentMediaSettings = null;
+        }
+      }
+    };
+  }
+
+  /**
+   * Loads a component and returns its HTML content
+   * @param {string} path - Path to the component
+   * @returns {Promise<string>} Component HTML
+   */
+  async loadComponent(path) {
+    try {
+      const response = await fetch(path);
+      const html = await response.text();
+      return html;
+    } catch (error) {
+      console.error('Error loading component:', error);
+      return '';
+    }
+  }
+
+  /**
+   * Injects components into their placeholders in the page
+   * @param {HTMLElement} content - The page content
+   * @param {string} path - Current route path
+   */
+  async injectComponents(content, path) {
+    const routeComponents = this.components[path];
+    if (!routeComponents) return;
+
+    for (const [id, componentPath] of Object.entries(routeComponents)) {
+      const container = content.querySelector(`#${id}`);
+      if (container) {
+        const componentHtml = await this.loadComponent(componentPath);
+        container.innerHTML = componentHtml;
+      }
+    }
   }
 
   /**
@@ -32,11 +84,20 @@ class Router {
    * @returns {Promise<void>}
    */
   async handleRoute() {
-    const path = window.location.pathname;
-    let route = this.routes[path];
+    const oldPath = this.currentPath;
+    const newPath = window.location.pathname;
+
+    // Run cleanup for old route if exists
+    if (oldPath && this.cleanupHandlers[oldPath]) {
+      this.cleanupHandlers[oldPath]();
+    }
+
+    this.currentPath = newPath;
+    
+    let route = this.routes[newPath];
 
     // Handle dynamic routes
-    if (!route && path.startsWith('/room/')) {
+    if (!route && newPath.startsWith('/room/')) {
       route = this.routes['/room/:id'];
     }
 
@@ -51,13 +112,16 @@ class Router {
       const doc = parser.parseFromString(html, 'text/html');
       const content = doc.body.firstElementChild;
       
-      const appContainer = document.getElementById('app');
-      appContainer.innerHTML = '';
-      
       if (content) {
+        // Inject components before adding to DOM
+        await this.injectComponents(content, newPath);
+        
+        const appContainer = document.getElementById('app');
+        appContainer.innerHTML = '';
         appContainer.appendChild(content);
+        
         await new Promise(resolve => setTimeout(resolve, 100));
-        await this.onRouteChange?.(path);
+        await this.onRouteChange?.(newPath);
       } else {
         console.error('No content found in the HTML');
       }

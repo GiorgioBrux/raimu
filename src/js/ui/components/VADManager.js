@@ -36,6 +36,9 @@ export class VADManager {
             log.debug({ containerId: container.id }, 'Speech started');
             onSpeakingChange(container, true);
           }
+          else {
+            log.debug({ containerId: container.id }, 'Speech started but muted');
+          }
         },
         onSpeechEnd: () => {
           log.debug({ containerId: container.id }, 'Speech ended');

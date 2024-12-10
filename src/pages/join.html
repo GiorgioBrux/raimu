@@ -1,0 +1,165 @@
+<div class="min-h-screen bg-slate-950 text-white">
+  <!-- Background gradients (similar to home) -->
+  <div class="fixed inset-0 overflow-hidden -z-10">
+    <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950"></div>
+    <div class="absolute inset-0 bg-[radial-gradient(circle_1000px_at_20%_20%,#84cc1660,transparent)]"></div>
+    <div class="absolute inset-0 bg-[radial-gradient(circle_800px_at_80%_50%,#84cc1660,transparent)]"></div>
+    <div class="absolute inset-0 mix-blend-overlay opacity-[0.15]" 
+         style="background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj4NCiAgPGZpbHRlciBpZD0ibm9pc2UiIHg9IjAiIHk9IjAiPg0KICAgIDxmZVR1cmJ1bGVuY2UgdHlwZT0iZnJhY3RhbE5vaXNlIiBiYXNlRnJlcXVlbmN5PSIwLjY1IiBudW1PY3RhdmVzPSIzIiBzdGl0Y2hUaWxlcz0ic3RpdGNoIi8+DQogICAgPGZlQmxlbmQgbW9kZT0ic2NyZWVuIi8+DQogIDwvZmlsdGVyPg0KICA8cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsdGVyPSJ1cmwoI25vaXNlKSIgb3BhY2l0eT0iMSIvPg0KPC9zdmc+');
+         background-repeat: repeat;"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="fixed top-0 left-0 right-0 bg-slate-900/50 backdrop-blur-md border-b border-lime-400/10 z-50">
+    <div class="container mx-auto px-4 py-3">
+      <div class="flex items-center gap-2">
+        <a href="/" class="flex items-center gap-2 group">
+          <span class="text-lg font-bold bg-gradient-to-r from-lime-300 to-lime-500 bg-clip-text text-transparent">
+            Raimu
+          </span>
+          <img src="/logo.svg" alt="Raimu" class="w-6 h-6 group-hover:rotate-180 transition-transform duration-500"/>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="pt-20 pb-8 px-4">
+    <div class="container mx-auto max-w-4xl">
+      <!-- Page Header -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold bg-gradient-to-r from-lime-300 to-lime-500 bg-clip-text text-transparent mb-4">
+          Join Room
+        </h1>
+        <p class="text-slate-400">
+          Enter the room code and set up your preferences before joining.
+        </p>
+      </div>
+
+      <!-- Main Content Grid -->
+      <div class="grid md:grid-cols-2 gap-6">
+        <!-- Left Column: Room Info -->
+        <div class="space-y-6">
+          <!-- Room Code Section -->
+          <div class="bg-slate-900/50 backdrop-blur-sm border border-lime-400/10 rounded-2xl p-6">
+            <h2 class="text-xl font-semibold text-lime-300 mb-4">Room Code</h2>
+            <div class="flex gap-4 justify-center">
+              <input type="text" maxlength="4"
+                     class="w-20 px-3 py-2.5 bg-slate-800/50 border border-lime-400/10 rounded-xl 
+                            focus:outline-none focus:ring-2 focus:ring-lime-400/50 focus:border-lime-400/30
+                            text-white text-center text-lg font-mono tracking-wider"
+                     placeholder="0000"
+                     data-room-code-part>
+              <span class="text-xl text-slate-600 select-none">-</span>
+              <input type="text" maxlength="4"
+                     class="w-20 px-3 py-2.5 bg-slate-800/50 border border-lime-400/10 rounded-xl 
+                            focus:outline-none focus:ring-2 focus:ring-lime-400/50 focus:border-lime-400/30
+                            text-white text-center text-lg font-mono tracking-wider"
+                     placeholder="0000"
+                     data-room-code-part>
+              <span class="text-xl text-slate-600 select-none">-</span>
+              <input type="text" maxlength="4"
+                     class="w-20 px-3 py-2.5 bg-slate-800/50 border border-lime-400/10 rounded-xl 
+                            focus:outline-none focus:ring-2 focus:ring-lime-400/50 focus:border-lime-400/30
+                            text-white text-center text-lg font-mono tracking-wider"
+                     placeholder="0000"
+                     data-room-code-part>
+            </div>
+          </div>
+
+          <!-- Room Status -->
+          <div class="hidden" data-room-status>
+            <!-- Loading State -->
+            <div class="flex items-center justify-center gap-3 text-slate-400" data-status="loading">
+              <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>Checking room...</span>
+            </div>
+
+            <!-- Error State -->
+            <div class="hidden p-4 bg-red-500/10 border border-red-500/20 rounded-xl" data-status="error">
+              <div class="flex items-center gap-3 text-red-500">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Room not found or no longer active</span>
+              </div>
+            </div>
+
+            <!-- Success State -->
+            <div class="hidden p-4 bg-lime-500/10 border border-lime-500/20 rounded-xl" data-status="success">
+              <div class="flex items-center gap-3 text-lime-500 mb-2">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Room found!</span>
+              </div>
+              <div class="pl-8">
+                <p class="text-slate-300 text-sm mb-1">
+                  Room Name: <span data-room-name class="text-lime-400">Daily Standup</span>
+                </p>
+                <p class="text-slate-300 text-sm">
+                  Participants: <span data-participant-count class="text-lime-400">3</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Info Section -->
+          <div class="bg-slate-900/50 backdrop-blur-sm border border-lime-400/10 rounded-2xl p-6">
+            <h2 class="text-xl font-semibold text-lime-300 mb-4">Your Info</h2>
+            <div class="space-y-4">
+              <div>
+                <label for="displayName" class="block text-sm font-medium text-slate-400 mb-2">
+                  Display Name
+                </label>
+                <input type="text" id="displayName" 
+                       class="w-full px-4 py-3 bg-slate-800/50 border border-lime-400/10 rounded-xl 
+                              focus:outline-none focus:ring-2 focus:ring-lime-400/50 focus:border-lime-400/30
+                              text-white placeholder-slate-500"
+                       placeholder="Enter your display name"
+                       required>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Media Settings -->
+        <div class="space-y-6">
+          <div class="bg-slate-900/50 backdrop-blur-sm border border-lime-400/10 rounded-2xl p-6">
+            <!-- Media Settings Component -->
+            <div id="mediaSettings"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Actions -->
+      <div class="mt-8 flex gap-4 justify-end">
+        <button type="button" 
+                onclick="window.location.href='/'" 
+                class="px-6 py-3 bg-white/5 hover:bg-white/10 
+                       backdrop-blur-sm border border-lime-400/20 
+                       text-white font-medium rounded-xl
+                       transform transition-all duration-300 
+                       hover:scale-[1.02] hover:border-lime-400/40 
+                       active:scale-[0.98]">
+          Cancel
+        </button>
+        <button type="submit" 
+                class="px-6 py-3 bg-lime-500 hover:bg-lime-600 
+                       text-white font-medium rounded-xl
+                       transform transition-all duration-300 
+                       hover:scale-[1.02] hover:shadow-lg hover:shadow-lime-500/25
+                       active:scale-[0.98]">
+          Join Room
+        </button>
+      </div>
+    </div>
+  </main>
+  <script type="module">
+    import { MediaSettings } from '../js/ui/components/MediaSettings.js';
+  </script> 
+</div>
+
