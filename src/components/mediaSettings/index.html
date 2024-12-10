@@ -52,12 +52,17 @@
           <button id="toggleCamera" 
                   class="p-2.5 rounded-xl transition-all duration-200 bg-white/5 hover:bg-white/10 text-white
                          data-[active=false]:bg-red-500/20 data-[active=false]:text-red-500
-                         sm:w-auto w-full"
+                         sm:w-auto w-full group relative"
                   data-active="true">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
+            <span class="absolute left-1/2 -translate-x-1/2 -top-8 px-2 py-1 bg-black/90 text-xs rounded 
+                         opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              <span data-active-text>Turn Off Camera</span>
+              <span data-inactive-text class="hidden">Turn On Camera</span>
+            </span>
           </button>
         </div>
       </div>
@@ -77,12 +82,17 @@
           <button id="toggleMic" 
                   class="p-2.5 rounded-xl transition-all duration-200 bg-white/5 hover:bg-white/10 text-white
                          data-[active=false]:bg-red-500/20 data-[active=false]:text-red-500
-                         sm:w-auto w-full"
+                         sm:w-auto w-full group relative"
                   data-active="true">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
             </svg>
+            <span class="absolute left-1/2 -translate-x-1/2 -top-8 px-2 py-1 bg-black/90 text-xs rounded 
+                         opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              <span data-active-text>Turn Off Microphone</span>
+              <span data-inactive-text class="hidden">Turn On Microphone</span>
+            </span>
           </button>
         </div>
         <!-- Audio Level Meter -->
@@ -100,10 +110,14 @@
                  style="width: 0%"></div>
           </div>
           <!-- Level indicator text -->
-          <div class="flex justify-between mt-1 text-[10px] text-slate-400">
-            <span>Too quiet</span>
-            <span>Good</span>
-            <span>Too loud</span>
+          <div class="flex justify-between mt-1 text-[10px]">
+            <span class="text-slate-400">Too quiet</span>
+            <span class="text-slate-400">Good</span>
+            <span class="text-slate-400">Too loud</span>
+          </div>
+          <!-- Add interaction hint -->
+          <div class="needs-interaction text-center mt-1 text-xs text-lime-400/60 animate-pulse">
+            Click anywhere to enable audio monitoring
           </div>
         </div>
       </div>
@@ -145,7 +159,8 @@
               </svg>
               <span class="absolute left-1/2 -translate-x-1/2 -top-8 px-2 py-1 bg-black/90 text-xs rounded 
                            opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                Test Speaker
+                <span data-active-text>Stop Test</span>
+                <span data-inactive-text class="hidden">Test Speaker</span>
               </span>
             </button>
             <button id="toggleLoopback" 
@@ -161,7 +176,8 @@
               </svg>
               <span class="absolute left-1/2 -translate-x-1/2 -top-8 px-2 py-1 bg-black/90 text-xs rounded 
                            opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                Audio Loopback
+                <span data-active-text>Disable Audio Loopback</span>
+                <span data-inactive-text class="hidden">Enable Audio Loopback</span>
               </span>
             </button>
           </div>
@@ -170,15 +186,6 @@
     </div>
   </div>
 
-  <!-- Footer Actions -->
-  <div class="flex justify-end">
-    <button id="saveSettings" 
-            class="px-6 py-3 bg-lime-500 hover:bg-lime-600 text-white font-medium rounded-xl
-                   transform transition-all duration-300 hover:scale-[1.02] 
-                   hover:shadow-lg hover:shadow-lime-500/25 active:scale-[0.98]">
-      Save Settings
-    </button>
-  </div>
   <script type="module">
     import { MediaSettings } from '../../js/ui/components/mediaSettings/index.js';
   </script>

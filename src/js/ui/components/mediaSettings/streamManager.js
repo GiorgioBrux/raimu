@@ -42,6 +42,7 @@ export class StreamManager {
       this.stream.addTrack(videoTrack);
       
       this.elements.video.srcObject = this.stream;
+      this.saveSettings();
       log.debug({ deviceId }, 'Video device updated successfully');
     } catch (error) {
       log.error({ error, deviceId }, 'Failed to update video device');
@@ -68,6 +69,7 @@ export class StreamManager {
         this.audioMeter.audioSource.connect(this.audioMeter.audioAnalyser);
       }
 
+      this.saveSettings();
       log.debug({ deviceId }, 'Audio device updated successfully');
     } catch (error) {
       log.error({ error, deviceId }, 'Failed to update audio device');
@@ -78,6 +80,7 @@ export class StreamManager {
     if (this.elements.video.sinkId !== undefined) {
       try {
         await this.elements.video.setSinkId(deviceId);
+        this.saveSettings();
         log.debug({ deviceId }, 'Audio output updated successfully');
       } catch (error) {
         log.error({ error, deviceId }, 'Failed to update audio output');
@@ -92,6 +95,14 @@ export class StreamManager {
         videoTrack.enabled = !videoTrack.enabled;
         this.elements.toggleCamera.dataset.active = videoTrack.enabled;
         this.elements.cameraPlaceholder.classList.toggle('hidden', videoTrack.enabled);
+        
+        // Toggle tooltip text visibility
+        const activeText = this.elements.toggleCamera.querySelector('[data-active-text]');
+        const inactiveText = this.elements.toggleCamera.querySelector('[data-inactive-text]');
+        activeText.classList.toggle('hidden', !videoTrack.enabled);
+        inactiveText.classList.toggle('hidden', videoTrack.enabled);
+        
+        this.saveSettings();
         log.debug({ enabled: videoTrack.enabled }, 'Camera toggled');
       }
     } catch (error) {
@@ -105,6 +116,14 @@ export class StreamManager {
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
         this.elements.toggleMic.dataset.active = audioTrack.enabled;
+        
+        // Toggle tooltip text visibility
+        const activeText = this.elements.toggleMic.querySelector('[data-active-text]');
+        const inactiveText = this.elements.toggleMic.querySelector('[data-inactive-text]');
+        activeText.classList.toggle('hidden', !audioTrack.enabled);
+        inactiveText.classList.toggle('hidden', audioTrack.enabled);
+        
+        this.saveSettings();
         log.debug({ enabled: audioTrack.enabled }, 'Microphone toggled');
       }
     } catch (error) {
@@ -139,6 +158,12 @@ export class StreamManager {
         this.loopbackAudio.srcObject = this.loopbackNode.stream;
         await this.loopbackAudio.play();
       }
+      
+      // Toggle tooltip text visibility
+      const activeText = this.elements.toggleLoopback.querySelector('[data-active-text]');
+      const inactiveText = this.elements.toggleLoopback.querySelector('[data-inactive-text]');
+      activeText.classList.toggle('hidden', isActive);
+      inactiveText.classList.toggle('hidden', !isActive);
       
       this.elements.toggleLoopback.dataset.active = !isActive;
       log.debug({ loopbackEnabled: !isActive }, 'Audio loopback toggled');
@@ -192,5 +217,15 @@ export class StreamManager {
     } catch (error) {
       log.error({ error }, 'Error during stream manager cleanup');
     }
+  }
+
+  saveSettings() {
+    const settings = this.getSettings();
+    sessionStorage.setItem('userSettings', JSON.stringify({
+      ...JSON.parse(sessionStorage.getItem('userSettings') || '{}'),
+      videoEnabled: settings.videoEnabled,
+      audioEnabled: settings.audioEnabled,
+      selectedDevices: settings.selectedDevices
+    }));
   }
 } 

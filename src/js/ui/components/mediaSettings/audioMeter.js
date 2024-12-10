@@ -8,6 +8,9 @@ export class AudioMeter {
     this.audioSource = null;
     this.animationFrame = null;
     this.meterSegments = [];
+
+    // Add interaction hint
+    this.interactionHint = this.elements.meterFill.parentElement.parentElement.querySelector('.needs-interaction');
   }
 
   async initAudioContext(stream) {
@@ -15,6 +18,14 @@ export class AudioMeter {
       this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
       await this.audioContext.resume();
       
+      // Remove interaction hint once initialized
+      if (this.interactionHint) {
+        this.interactionHint.classList.add('fade-out');
+        setTimeout(() => {
+          this.interactionHint.remove();
+        }, 300); // Match this with CSS transition duration
+      }
+
       this.audioAnalyser = this.audioContext.createAnalyser();
       this.audioAnalyser.fftSize = 2048;
       this.audioAnalyser.minDecibels = -60;
