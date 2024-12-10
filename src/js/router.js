@@ -17,7 +17,7 @@ class Router {
     // Define components that need to be loaded for specific routes
     this.components = {
       '/join': {
-        'mediaSettings': '/src/components/media-settings/index.html'
+        'mediaSettings': '/src/components/mediaSettings/index.html'
       }
     };
 

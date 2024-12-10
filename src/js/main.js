@@ -6,7 +6,7 @@ import { router } from './router.js';
 import { RoomManager } from './services/RoomManager.js';
 import { RoomUI } from './ui/RoomUI.js';
 import { ModalManager } from './ui/Modal.js';
-import { MediaSettings } from './ui/components/MediaSettings.js';
+import { MediaSettings } from './ui/components/mediaSettings/index.js';
 import { logger as log } from './utils/logger.js';
 
 const roomManager = new RoomManager();
@@ -72,47 +72,52 @@ router.onRouteChange = async (path) => {
       mediaSettings.destroy();
     }
 
-    // Initialize media settings
-    const mediaSettingsContainer = document.getElementById('mediaSettings');
+    // Initialize media settings with the container element
+    const mediaSettingsContainer = document.querySelector('#mediaSettings');
     if (mediaSettingsContainer) {
       log.debug('Initializing media settings for join page');
       mediaSettings = new MediaSettings(mediaSettingsContainer);
     }
 
     // Handle form submission
-    const joinForm = document.getElementById('joinForm');
-    joinForm?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const displayName = document.getElementById('displayName')?.value;
-      
-      if (!mediaSettings) {
-        log.error('Media settings not initialized');
-        return;
-      }
-
-      try {
-        const settings = await mediaSettings.getSettings();
-        const roomId = window.location.search.split('room=')[1];
+    const joinForm = document.querySelector('form');
+    if (joinForm) {
+      joinForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const displayName = document.querySelector('#displayName')?.value;
         
-        if (!roomId) {
-          log.error('No room ID provided');
+        if (!mediaSettings) {
+          log.error('Media settings not initialized');
           return;
         }
 
-        // Store settings and name in sessionStorage for use in room
-        sessionStorage.setItem('userSettings', JSON.stringify({
-          displayName,
-          videoEnabled: settings.videoEnabled,
-          audioEnabled: settings.audioEnabled,
-          selectedDevices: settings.selectedDevices
-        }));
+        try {
+          const settings = await mediaSettings.getSettings();
+          // Get room code from the three input fields
+          const roomCodeParts = Array.from(document.querySelectorAll('[data-room-code-part]'))
+            .map(input => input.value)
+            .join('-');
+          
+          if (!roomCodeParts) {
+            log.error('No room code provided');
+            return;
+          }
 
-        log.info({ roomId, displayName }, 'Joining room');
-        await router.navigate(`/room/${roomId}`);
-      } catch (error) {
-        log.error({ error }, 'Error joining room');
-      }
-    });
+          // Store settings and name in sessionStorage for use in room
+          sessionStorage.setItem('userSettings', JSON.stringify({
+            displayName,
+            videoEnabled: settings.videoEnabled,
+            audioEnabled: settings.audioEnabled,
+            selectedDevices: settings.selectedDevices
+          }));
+
+          log.info({ roomId: roomCodeParts, displayName }, 'Joining room');
+          await router.navigate(`/room/${roomCodeParts}`);
+        } catch (error) {
+          log.error({ error }, 'Error joining room');
+        }
+      });
+    }
   }
   else if (path.startsWith('/room/')) {
     try {
