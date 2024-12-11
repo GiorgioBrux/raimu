@@ -1,4 +1,4 @@
-import { RoomUI } from '../../ui/RoomUI.js';
+import { RoomUI } from '../../services/RoomUI.js';
 import { ErrorModal } from '../../ui/components/ErrorModal.js';
 import { logger } from '../../utils/logger.js';
 import { router } from '../../router/index.js';

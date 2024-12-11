@@ -1,7 +1,7 @@
 import { WebSocketService } from '../services/WebSocket.js';
 import { RoomManager } from '../services/RoomManager.js';
 import { ModalManager } from '../ui/Modal.js';
-import { RoomUI } from '../ui/RoomUI.js';
+import { RoomUI } from '../services/RoomUI.js';
 import { MediaSettings } from '../ui/components/mediaSettings/index.js';
 
 /**

@@ -11,36 +11,60 @@ import {
 /**
  * Manages room state and coordinates WebRTC connections between participants.
  * Acts as a coordinator between WebRTC, WebSocket and UI events.
+ * @class
  */
 export class RoomManager {
+    /**
+     * Creates a new RoomManager instance
+     * @param {WebSocketService} websocketService - WebSocket service instance for room communication
+     */
     constructor(websocketService) {
-        // Services
+        /** @type {WebRTCService} WebRTC service for peer connections */
         this.webrtc = new WebRTCService();
+
+        /** @type {WebSocketService} WebSocket service for signaling */
         this.ws = websocketService;
+
+        /** @type {RoomEventHandler} Handler for room-related events */
         this.eventHandler = new RoomEventHandler(this);
 
         // Explicitly bind the message handler
         this.ws.onMessage = this._handleWsMessage.bind(this);
         log.debug('WebSocket message handler bound');
 
-        // State
+        /** @type {string|null} Current user's ID */
         this.userId = null;
+
+        /** @type {string|null} Room PIN code */
         this.PIN = null;
+
+        /** @type {string|null} User's display name */
         this.userName = null;
+
+        /** @type {string|null} Room name */
         this.roomName = null;
+
+        /** @type {Map<string, {id: string, name: string}>} Map of participant IDs to participant info */
         this.participants = new Map();
+
+        /** @type {boolean} Whether connected to room */
         this.isConnected = false;
 
         // Initialize roomId from sessionStorage if available
+        /** @type {string|null} Current room ID */
         this.roomId = sessionStorage.getItem('roomId');
         if (this.roomId) {
             this.webrtc.setRoomId(this.roomId);
             log.debug({ roomId: this.roomId }, 'Initialized room ID from session storage');
         }
 
-        // UI Callbacks
+        /** @type {Function|null} Callback when participant list changes */
         this.onParticipantListUpdate = null;
+
+        /** @type {Function|null} Callback when media streams update */
         this.onStreamUpdate = null;
+        
+        /** @type {Function|null} Callback when participant leaves */
         this.onParticipantLeft = null;
 
         this._setupEventHandlers();

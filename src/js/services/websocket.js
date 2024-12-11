@@ -9,11 +9,21 @@ export class WebSocketService {
    * @param {string} url - WebSocket server URL
    */
   constructor(url) {
+    /** @type {string} WebSocket server URL */
     this.url = url;
+
+    /** @type {number} Number of reconnection attempts made */
     this.reconnectAttempts = 0;
+
+    /** @type {number} Maximum number of reconnection attempts allowed */
     this.maxReconnectAttempts = 5;
+
+    /** @type {'disconnected'|'connecting'|'connected'|'error'|'closed'} Current connection state */
     this.connectionState = 'disconnected';
+
+    /** @type {Array<Object>} Queue of messages to send when connection is established */
     this.messageQueue = [];
+    
     log.info({ url }, 'Initializing WebSocket service');
     
     this.checkServerHealth().then(healthy => {

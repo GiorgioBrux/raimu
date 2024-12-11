@@ -3,19 +3,35 @@ import { webrtcLogger as log } from '../utils/logger.js';
 
 /**
  * Manages WebRTC peer connections and media streams.
+ * Handles peer-to-peer connections, media streaming, and participant events.
  */
 export class WebRTCService {
   /**
    * Creates a new WebRTCService instance.
    */
   constructor() {
+    /** @type {Peer|null} The PeerJS connection instance */
     this.peer = null;
+
+    /** @type {MediaStream|null} Local audio/video stream */
     this.localStream = null;
+
+    /** @type {Map<string, RTCPeerConnection>} Map of peer connections */
     this.connections = new Map();
+
+    /** @type {Function|null} Callback when new participant joins */
     this.onParticipantJoined = null;
+
+    /** @type {Function|null} Callback when participant leaves */
     this.onParticipantLeft = null;
+
+    /** @type {Function|null} Callback when media streams update */
     this.onStreamUpdate = null;
+
+    /** @type {Function|null} Callback when track state changes */
     this.onTrackStateChange = null;
+
+    /** @type {string|null} Current room identifier */
     this.roomId = null;
   }
 

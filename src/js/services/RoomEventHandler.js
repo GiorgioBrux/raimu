@@ -1,16 +1,29 @@
 import { roomLogger as log } from '../utils/logger.js';
 import { ParticipantVideo } from '../ui/components/ParticipantVideo.js';
-
 /**
  * Handles room events and participant state changes.
  * Specifically handles WebSocket events related to room state and participant updates.
+ * @class
  */
 export class RoomEventHandler {
+    /**
+     * Creates a new RoomEventHandler instance
+     * @param {import('../services/RoomManager.js').RoomManager} roomManager - The room manager instance to handle events for
+     */
     constructor(roomManager) {
         this.roomManager = roomManager;
     }
-
-    // WebSocket event handlers
+    /**
+     * Handles when a new user joins the room. Adds them to participants list
+     * and sends current track states.
+     * 
+     * @param {Object} data - Data about the user who joined
+     * @param {string} data.roomId - ID of the room being joined
+     * @param {string} data.userId - ID of the user who joined
+     * @param {string} data.userName - Display name of the user who joined
+     * @param {Object} [data.room] - Optional detailed room data
+     * @param {Array<{id: string, name: string}>} [data.room.participants] - List of room participants
+     */
     handleUserJoined(data) {
         if (data.roomId === this.roomManager.roomId && data.userId !== this.roomManager.userId) {
             log.info({ userId: data.userId, userName: data.userName }, 'New participant joined');
@@ -31,6 +44,14 @@ export class RoomEventHandler {
         }
     }
 
+    /**
+     * Handles when a user leaves the room. Cleans up their video/audio tracks,
+     * removes them from participants list, and triggers UI updates.
+     * 
+     * @param {Object} data - Data about the user who left
+     * @param {string} data.roomId - ID of the room the user left
+     * @param {string} data.userId - ID of the user who left
+     */
     handleUserLeft(data) {
         log.debug({ 
             messageRoomId: data.roomId, 
@@ -95,6 +116,11 @@ export class RoomEventHandler {
         }
     }
 
+    /**
+     * Handles updating the list of participants in the room
+     * @param {Object} data - Participant list data
+     * @param {Array<{id: string, name: string}>} data.participants - Array of participant objects
+     */
     handleParticipantsList(data) {
         log.debug({ participants: data.participants }, 'Updating participants list');
         this.roomManager.participants.clear();
@@ -108,6 +134,14 @@ export class RoomEventHandler {
         this.roomManager.onParticipantListUpdate?.();
     }
 
+    /**
+     * Handles track state changes (video/audio enabled/disabled) from participants
+     * @param {Object} data - Track state change data
+     * @param {string} data.roomId - ID of the room
+     * @param {string} data.userId - ID of the participant
+     * @param {string} data.trackKind - Type of track ('video' or 'audio')
+     * @param {boolean} data.enabled - Whether track is enabled
+     */
     handleTrackStateChange(data) {
         if (data.roomId === this.roomManager.roomId && data.userId !== this.roomManager.userId) {
             log.debug({ 
@@ -120,6 +154,14 @@ export class RoomEventHandler {
         }
     }
 
+    /**
+     * Handles room creation event and stores room info in session storage
+     * @param {Object} data - Room creation data
+     * @param {Object} data.room - Room information
+     * @param {string} data.room.PIN - Room PIN
+     * @param {string} data.room.name - Room name
+     * @param {string} data.room.id - Room ID
+     */
     handleRoomCreated(data) {
         log.info({ room: data.room }, 'Got info about created room');
         sessionStorage.setItem('PIN', data.room.PIN);
@@ -135,7 +177,12 @@ export class RoomEventHandler {
         window.appRouter.navigate(`/room/${data.room.id}`);
     }
 
-    // Private methods
+    /**
+     * Adds a participant to the room's participant list
+     * @param {string} userId - ID of participant to add
+     * @param {string} userName - Name of participant
+     * @private
+     */
     _addParticipant(userId, userName) {
         this.roomManager.participants.set(userId, {
             id: userId,
@@ -144,6 +191,14 @@ export class RoomEventHandler {
         this.roomManager.onParticipantListUpdate?.();
     }
 
+    /**
+     * Updates the UI state of a participant's video/audio tracks
+     * @param {Object} data - Track state change data
+     * @param {string} data.userId - ID of participant
+     * @param {string} data.trackKind - Type of track ('video' or 'audio')
+     * @param {boolean} data.enabled - Whether track is enabled
+     * @private
+     */
     _updateParticipantTrackState(data) {
         const container = document.getElementById(`participant-${data.userId}`);
         if (container) {
@@ -158,6 +213,11 @@ export class RoomEventHandler {
         }
     }
 
+    /**
+     * Sends current video and audio track states to a specific participant
+     * @param {string} targetUserId - ID of participant to send states to
+     * @private
+     */
     _sendCurrentTrackStates(targetUserId) {
         const videoTrack = this.roomManager.webrtc.localStream?.getVideoTracks()[0];
         const audioTrack = this.roomManager.webrtc.localStream?.getAudioTracks()[0];
@@ -175,6 +235,13 @@ export class RoomEventHandler {
         }
     }
 
+    /**
+     * Sends a track state change message via WebSocket
+     * @param {string} trackKind - Type of track ('video' or 'audio')
+     * @param {boolean} enabled - Whether track is enabled
+     * @param {string} targetUserId - ID of participant to send state to
+     * @private
+     */
     _sendTrackState(trackKind, enabled, targetUserId) {
         this.roomManager.ws.send({
             type: 'trackStateChange',
