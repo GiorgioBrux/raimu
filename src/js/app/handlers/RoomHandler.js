@@ -22,7 +22,6 @@ export class RoomHandler {
      */
     async initialize(roomId) {
 
-        sessionStorage.setItem('lastPath', window.location.pathname);
         // Validate error modal exists for room page
         const errorModal = document.getElementById('errorModal');
         if (!errorModal) {
@@ -35,6 +34,8 @@ export class RoomHandler {
             new ErrorModal(errorModal).show();
             return;
         }
+
+        sessionStorage.setItem('lastPath', window.location.pathname);
 
         try {
             await this.setupRoom(roomId);
@@ -56,6 +57,10 @@ export class RoomHandler {
         // Update RoomManager's roomId to match the current room
         roomManager.roomId = roomId;
         roomManager.webrtc.setRoomId(roomId);
+
+        roomManager.PIN = sessionStorage.getItem('PIN');
+        roomManager.userName = sessionStorage.getItem('userName');
+        roomManager.roomName = sessionStorage.getItem('roomName');
 
         logger.debug({ 
             updatedRoomId: roomId,
@@ -119,12 +124,14 @@ export class RoomHandler {
         };
 
         roomManager.onStreamUpdate = (participantId, stream) => {
+            const participantName = roomManager.participants.get(participantId)?.name || 'Anonymous';
             logger.info({
                 participantId,
+                participantName,
                 hasVideo: stream.getVideoTracks().length > 0,
                 hasAudio: stream.getAudioTracks().length > 0
             }, 'Stream received from participant');
-            roomUI.addParticipantVideo(participantId, stream);
+            roomUI.addParticipantVideo(participantId, participantName, stream);
         };
 
         roomManager.onParticipantJoined = (participant) => {

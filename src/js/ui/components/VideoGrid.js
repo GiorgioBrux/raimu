@@ -18,11 +18,12 @@ export class VideoGrid {
   /**
    * Adds a new video element to the grid.
    * @param {string} participantId - Unique identifier for the participant
+   * @param {string} participantName - Name of the participant
    * @param {MediaStream} stream - The participant's media stream
    * @param {Function} setupCallbacks - Function to set up event handlers for the video container
    * @returns {HTMLElement} The created video container element
    */
-  addVideo(participantId, stream, setupCallbacks) {
+  addVideo(participantId, participantName, stream, setupCallbacks) {
     if (!this.gridElement || !this.remoteTemplate) {
       log.error({ participantId }, 'Missing grid element or template');
       return;
@@ -50,7 +51,7 @@ export class VideoGrid {
     // Find the name element and update it safely
     const nameElement = container.querySelector('.participant-name');
     if (nameElement) {
-      nameElement.textContent = participantId === 'local' ? 'You' : 'Participant';
+      nameElement.textContent = participantName;
     } else {
       log.warn({ participantId }, 'Could not find name element in video container');
     }

@@ -54,7 +54,6 @@ export class UIElements {
     return {
       audio: document.getElementById('toggleAudio'),
       video: document.getElementById('toggleVideo'),
-      screen: document.getElementById('shareScreen'),
       leave: document.getElementById('leaveCall'),
       transcribe: document.getElementById('toggleTranscription'),
       chat: document.getElementById('toggleChat')

@@ -63,7 +63,7 @@ export class RoomManager {
 
         /** @type {Function|null} Callback when media streams update */
         this.onStreamUpdate = null;
-        
+
         /** @type {Function|null} Callback when participant leaves */
         this.onParticipantLeft = null;
 
@@ -93,11 +93,7 @@ export class RoomManager {
                     
                     if (data.type === 'participants' && data.roomId === roomId) {
                         this.ws.onMessage = this._handleWsMessage.bind(this);  // Restore normal handler
-                        // Extract just the IDs if participants are objects
-                        const participantIds = data.participants.map(p => 
-                            typeof p === 'object' ? p.id : p
-                        );
-                        resolve(participantIds);
+                        resolve(data.participants);
                     }
                 } catch (error) {
                     log.error({ error }, 'Failed to handle participants message');
@@ -222,22 +218,30 @@ export class RoomManager {
 
             // Connect to each participant with better error handling
             const connectionPromises = existingParticipants
-                .filter(participantId => {
+                .filter(participant => {
                     // Make sure we're working with the ID string
-                    const id = typeof participantId === 'object' ? participantId.id : participantId;
+                    const id = typeof participant === 'object' ? participant.id : participant;
                     return id !== this.userId;
                 })
-                .map(async participantId => {
+                .map(async participant => {
                     try {
-                        // Extract ID if it's an object
-                        const id = typeof participantId === 'object' ? participantId.id : participantId;
-                        log.debug({ participantId: id }, 'Attempting to connect to participant');
+                        // Extract ID and name if it's an object
+                        const id = typeof participant === 'object' ? participant.id : participant;
+                        const name = typeof participant === 'object' ? participant.name : 'Anonymous';
+                        
+                        log.debug({ participantId: id, participantName: name }, 'Attempting to connect to participant');
                         await this.webrtc.connectToParticipant(id);
-                        log.debug({ participantId: id }, 'Successfully connected to participant');
+                        log.debug({ participantId: id, participantName: name }, 'Successfully connected to participant');
+                        
+                        // Add to list of participants with name
+                        this.participants.set(id, {
+                            id: id,
+                            name: name
+                        });
                     } catch (error) {
                         log.error({ 
                             error,
-                            participantId: typeof participantId === 'object' ? participantId.id : participantId,
+                            participantId: typeof participant === 'object' ? participant.id : participant,
                             errorType: error.type,
                             errorMessage: error.message,
                             stack: error.stack

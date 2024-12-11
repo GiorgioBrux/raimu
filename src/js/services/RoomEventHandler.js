@@ -27,18 +27,7 @@ export class RoomEventHandler {
     handleUserJoined(data) {
         if (data.roomId === this.roomManager.roomId && data.userId !== this.roomManager.userId) {
             log.info({ userId: data.userId, userName: data.userName }, 'New participant joined');
-            
-            // If we have detailed room data, use it
-            if (data.room?.participants) {
-                const participant = data.room.participants.find(p => p.id === data.userId);
-                if (participant) {
-                    this._addParticipant(participant.id, participant.name);
-                    this._sendCurrentTrackStates(participant.id);
-                    return;
-                }
-            }
-            
-            // Fallback to basic data
+                    
             this._addParticipant(data.userId, data.userName);
             this._sendCurrentTrackStates(data.userId);
         }

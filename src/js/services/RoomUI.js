@@ -139,7 +139,6 @@ export class RoomUI {
       onVideoToggle: (disable) => {
         this.roomManager.webrtc.toggleVideo(disable);
       },
-      onScreenShare: () => this.roomManager.webrtc.shareScreen(),
       onLeave: () => this.handleLeaveRoom(),
       onPanelToggle: (panelId) => PanelManager.togglePanel(panelId)
     });
@@ -157,10 +156,11 @@ export class RoomUI {
   /**
    * Adds a participant's video stream to the video grid
    * @param {string} participantId - Unique identifier for the participant
+   * @param {string} participantName - Name of the participant
    * @param {MediaStream} stream - The participant's media stream containing audio/video tracks
    * @returns {HTMLElement} The container element for the participant's video
    */
-  addParticipantVideo(participantId, stream) {
+  addParticipantVideo(participantId, participantName, stream) {
     if (!this.initialized) {
       log.warn({ participantId }, 'Attempted to add participant video before initialization');
       return;
@@ -181,7 +181,7 @@ export class RoomUI {
       );
     };
 
-    return this.videoGrid.addVideo(participantId, stream, setupCallbacks);
+    return this.videoGrid.addVideo(participantId, participantName, stream, setupCallbacks);
   }
 
   /**
@@ -239,13 +239,7 @@ export class RoomUI {
     this.mediaControls.updateInitialStates(isVideoEnabled, isAudioEnabled);
     
     // Add local video using the template
-    const container = this.addParticipantVideo('local', stream);
-
-    // Update the participant name to show "You (username)"
-    const nameElement = container.querySelector('.participant-name');
-    if (nameElement) {
-      nameElement.textContent = `You (${sessionStorage.getItem('userName')})`;
-    }
+    const container = this.addParticipantVideo('local', `You (${sessionStorage.getItem('userName')})`, stream);
 
     // Update UI elements
     this.uiElements.addLocalVideoElement(container);

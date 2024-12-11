@@ -372,42 +372,6 @@ export class WebRTCService {
   }
 
   /**
-   * Initiates screen sharing.
-   * @returns {Promise<void>}
-   */
-  async shareScreen() {
-    try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true
-      });
-      
-      // Replace video track
-      const videoTrack = screenStream.getVideoTracks()[0];
-      const senders = this.connections.forEach(connection => {
-        const sender = connection.peerConnection.getSenders()
-          .find(s => s.track?.kind === 'video');
-        if (sender) {
-          sender.replaceTrack(videoTrack);
-        }
-      });
-
-      // Handle stop sharing
-      videoTrack.onended = () => {
-        const originalTrack = this.localStream.getVideoTracks()[0];
-        this.connections.forEach(connection => {
-          const sender = connection.peerConnection.getSenders()
-            .find(s => s.track?.kind === 'video');
-          if (sender) {
-            sender.replaceTrack(originalTrack);
-          }
-        });
-      };
-    } catch (error) {
-      log.error({ error }, 'Failed to share screen');
-    }
-  }
-
-  /**
    * Disconnects from all peers and cleans up resources.
    */
   disconnect() {
