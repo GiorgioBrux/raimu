@@ -136,6 +136,7 @@ class Router {
    * @returns {Promise<void>}
    */
   navigate(path) {
+    sessionStorage.setItem('lastPath', path);
     window.history.pushState({}, '', path);
     return this.handleRoute();
   }

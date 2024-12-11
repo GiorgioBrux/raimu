@@ -27,6 +27,7 @@ window.appRouter = router;
 
 // Initialize the router when the page loads
 document.addEventListener('DOMContentLoaded', () => {
+  
   router.init();
 });
 
@@ -36,6 +37,12 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 router.onRouteChange = async (path) => {
   if (path === '/') {
+    // Set initial path
+    sessionStorage.setItem('lastPath', window.location.pathname);
+    log.debug({ 
+      initialPath: window.location.pathname 
+    }, 'Initial path set');
+
     // Clean up any existing room or media settings
     if (roomUI) {
       log.info('Cleaning up existing room');
@@ -100,6 +107,12 @@ router.onRouteChange = async (path) => {
     };
   } 
   else if (path === '/join') {
+    // Set initial path
+    sessionStorage.setItem('lastPath', window.location.pathname);
+    log.debug({ 
+      initialPath: window.location.pathname 
+    }, 'Initial path set');
+
     // Clean up any existing instances
     if (mediaSettings) {
       log.debug('Cleaning up previous media settings');
@@ -234,28 +247,26 @@ router.onRouteChange = async (path) => {
   }
 }; 
 
-// Replace the beforeunload handler with this
-let isRefreshing = false;
+// Remove all the refresh detection code and replace with this simpler approach
 
-window.addEventListener('beforeunload', (event) => {
-  // Check if it's a refresh (Ctrl+R, F5, or refresh button)
-  if (event.clientY < 0 || // Refresh button or F5
-      (event.clientX < 0 && !event.clientY) || // Ctrl+R
-      (event.keyCode === 116)) { // F5 key
-    isRefreshing = true;
-    sessionStorage.clear();
-  }
-});
+window.addEventListener('beforeunload', () => {
+  const currentPath = window.location.pathname;
+  const lastPath = sessionStorage.getItem('lastPath');
 
-// Add this to handle navigation
-window.addEventListener('unload', () => {
-  // Only clear if it was a refresh
-  if (isRefreshing) {
+  // If we're on the same path as before, it's a refresh
+  if (currentPath === lastPath) {
     sessionStorage.clear();
+    log.debug('Session storage cleared on page refresh');
+    // Reset the last path to the current path for error modal
+    sessionStorage.setItem('lastPath', currentPath);
+  } else {
+    // If paths are different, just update the last path
+    sessionStorage.setItem('lastPath', currentPath);
   }
-  
-  // Clean up WebSocket regardless
+
+  // Always clean up WebSocket
   if (ws) {
     ws.disconnect();
+    log.debug('WebSocket disconnected');
   }
 });
