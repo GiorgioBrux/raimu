@@ -3,9 +3,12 @@ import { AudioMeter } from './audioMeter.js';
 import { DeviceManager } from './deviceManager.js';
 import { StreamManager } from './streamManager.js';
 import { AudioTest } from './audioTest.js'; 
+import { uiLogger as logger } from '../../../utils/logger.js';
 
 export class MediaSettings {
   constructor(container) {
+    logger.info('Initializing MediaSettings with container: ', container);
+    
     this.container = container;
     this.elements = this.cacheElements();
 

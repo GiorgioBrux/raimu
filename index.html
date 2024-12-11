@@ -5,9 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Raimu</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Base transition classes */
+      .fade-enter {
+        opacity: 0;
+      }
+      .fade-enter-active {
+        opacity: 1;
+      }
+      .fade-leave {
+        opacity: 1;
+      }
+      .fade-leave-active {
+        opacity: 0;
+      }
+
+      /* Slide transition */
+      .slide-enter {
+        transform: translateX(100%);
+      }
+      .slide-enter-active {
+        transform: translateX(0);
+      }
+      .slide-leave {
+        transform: translateX(0);
+      }
+      .slide-leave-active {
+        transform: translateX(-100%);
+      }
+    </style>
 </head>
-<body class="bg-slate-950 text-white">
+<body class="bg-slate-950">
+
+    <!-- Main App Container -->
     <div id="app"></div>
-    <script type="module" src="/src/js/main.js"></script>
+
+    <script type="module" src="/src/js/app/index.js"></script>
 </body>
 </html>

@@ -120,6 +120,21 @@ export class RoomEventHandler {
         }
     }
 
+    handleRoomCreated(data) {
+        log.info({ room: data.room }, 'Got info about created room');
+        sessionStorage.setItem('PIN', data.room.PIN);
+        sessionStorage.setItem('roomName', data.room.name);
+        sessionStorage.setItem('roomId', data.room.id);
+        
+        log.debug({ 
+            newRoomId: data.room.id,
+            storedRoomId: sessionStorage.getItem('roomId'),
+        }, 'Room ID set in sessionStorage');
+        
+        
+        window.appRouter.navigate(`/room/${data.room.id}`);
+    }
+
     // Private methods
     _addParticipant(userId, userName) {
         this.roomManager.participants.set(userId, {

@@ -127,7 +127,7 @@ export class AudioMeter {
       if (this.audioSource) {
         this.audioSource.disconnect();
       }
-      if (this.audioContext) {
+      if (this.audioContext && this.audioContext.state !== 'closed') {
         this.audioContext.close();
       }
       this.meterSegments = [];

@@ -156,4 +156,20 @@ export class WebSocketService {
       log.info('Disconnected successfully');
     }
   }
+
+  /**
+   * Gets current connection state
+   * @returns {string} Current connection state
+   */
+  get state() {
+    return this.connectionState;
+  }
+
+  /**
+   * Checks if connection is active
+   * @returns {boolean} True if connected
+   */
+  get isConnected() {
+    return this.connectionState === 'connected';
+  }
 } 

@@ -66,3 +66,5 @@ export const webrtcLogger = logger.child({ module: 'WebRTC' });
 export const roomLogger = logger.child({ module: 'Room' });
 export const wsLogger = logger.child({ module: 'WebSocket' });
 export const uiLogger = logger.child({ module: 'UI' }); 
+export const appLogger = logger.child({ module: 'App' });
+export const routerLogger = logger.child({ module: 'Router' });

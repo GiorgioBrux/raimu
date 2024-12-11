@@ -1,16 +1,25 @@
 import { generateRoomName } from '../utils/nameGenerator.js';
-
+import { appLogger as logger } from '../utils/logger.js';
+/**
+ * @class
+ * @classdesc Manages the modal for creating a room
+ */
 export class ModalManager {
-    constructor() {
-        this.modal = document.getElementById('createRoomModal');
-        this.form = document.getElementById('createRoomForm');
-        this.cancelBtn = document.getElementById('cancelCreateRoom');
-        this.generateBtn = document.getElementById('generateRoomName');
-        this.userNameInput = document.getElementById('userName');
+    /**
+     * @param {HTMLElement} modalContainer - The modal container element
+     * @param {Function} onSubmit - The function to call when the form is submitted
+     */
+    constructor(modalContainer, onSubmit = null) {
+
+        this.modal = modalContainer;
+        this.form = this.modal.querySelector('form');
+        this.cancelBtn = this.modal.querySelector('#cancelCreateRoom');
+        this.generateBtn = this.modal.querySelector('#generateRoomName');
+        this.userNameInput = this.modal.querySelector('#userName');
         this.roomNameInput = this.form.querySelector('input[name="roomName"]');
         this.maxParticipantsSelect = this.form.querySelector('select[name="maxParticipants"]');
         
-        this.onSubmit = null; // Will be set by the caller
+        this.onSubmit = onSubmit; // Optional callback for form submission
         this.setupListeners();
     }
 
@@ -21,6 +30,7 @@ export class ModalManager {
         }
 
         this.form.addEventListener('submit', async (e) => {
+            logger.debug('Home page form submitted');
             e.preventDefault();
             const submitBtn = this.form.querySelector('button[type="submit"]');
             const originalText = submitBtn.textContent;
@@ -74,18 +84,28 @@ export class ModalManager {
         });
     }
 
+    /**
+     * Shows the modal by adding visibility classes and focusing the username input
+     */
     show() {
         this.modal.classList.add('opacity-100', 'pointer-events-auto');
         this.modal.classList.remove('opacity-0', 'pointer-events-none');
         this.userNameInput.focus();
     }
 
+    /**
+     * Hides the modal by removing visibility classes and resetting the form
+     */
     hide() {
         this.modal.classList.remove('opacity-100', 'pointer-events-auto');
         this.modal.classList.add('opacity-0', 'pointer-events-none');
         this.form.reset();
     }
 
+    /**
+     * Checks if the modal is currently visible
+     * @returns {boolean} True if modal is visible, false otherwise
+     */
     isVisible() {
         return this.modal.classList.contains('opacity-100');
     }

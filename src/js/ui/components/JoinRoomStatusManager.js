@@ -213,6 +213,6 @@ export class RoomStatusManager {
     sessionStorage.setItem('userName', displayName);
 
     // Redirect to the room page (only with roomId in URL)
-    window.location.href = `/room/${this.currentRoomData.id}`;
+    window.appRouter.navigate(`/room/${this.currentRoomData.id}`);
   }
 } 

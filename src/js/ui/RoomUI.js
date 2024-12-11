@@ -9,19 +9,6 @@ import { uiLogger as log } from '../utils/logger.js';
 export class RoomUI {
   constructor(roomManager) {
     this.roomManager = roomManager;
-    
-    // Set up the participant left handler
-    this.roomManager.onParticipantLeft = (participantId) => {
-        log.debug({ participantId }, 'Participant left, removing video');
-        this.removeParticipantVideo(participantId);
-    };
-
-    // Add handler for join errors
-    this.roomManager.onJoinError = () => {
-      log.debug('Join error received, redirecting to home');
-      sessionStorage.clear();
-      window.appRouter.navigate('/');
-    };
 
     this.initialized = false;
     this.uiElements = new UIElements();

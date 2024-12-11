@@ -367,7 +367,8 @@ export class RoomManager {
                 userJoined: this.eventHandler.handleUserJoined.bind(this.eventHandler),
                 userLeft: this.eventHandler.handleUserLeft.bind(this.eventHandler),
                 participants: this.eventHandler.handleParticipantsList.bind(this.eventHandler),
-                trackStateChange: this.eventHandler.handleTrackStateChange.bind(this.eventHandler)
+                trackStateChange: this.eventHandler.handleTrackStateChange.bind(this.eventHandler),
+                roomCreated: this.eventHandler.handleRoomCreated.bind(this.eventHandler)
             };
 
             const handler = handlers[data.type];
