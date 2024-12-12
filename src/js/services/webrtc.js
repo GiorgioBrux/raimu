@@ -9,7 +9,7 @@ export class WebRTCService {
   /**
    * Creates a new WebRTCService instance.
    */
-  constructor() {
+  constructor(webrtcConfig) {
     /** @type {Peer|null} The PeerJS connection instance */
     this.peer = null;
 
@@ -33,6 +33,9 @@ export class WebRTCService {
 
     /** @type {string|null} Current room identifier */
     this.roomId = null;
+
+    /** @type {Object} WebRTC configuration */
+    this.config = webrtcConfig;
   }
 
   /**
@@ -78,13 +81,7 @@ export class WebRTCService {
           port: 9000,
           path: '/peerjs',
           debug: 2,
-          config: {
-            iceServers: [
-              { urls: 'stun:localhost:9000' },
-              { urls: 'stun:stun.l.google.com:19302' },
-              { urls: 'stun:global.stun.twilio.com:3478' }
-            ]
-          }
+          config: this.config
         });
 
         const timeout = setTimeout(() => {

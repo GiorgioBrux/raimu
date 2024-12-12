@@ -21,6 +21,8 @@ export class RoomStatusManager {
     this.ws = websocketService;
     this.currentRoomCode = null;
     this.messageHandler = this.handleMessage.bind(this);
+    // Let's keep the old message handler, restore if the user goes back to home
+    this.oldMessageHandler = this.ws.onMessage;
     this.ws.onMessage = this.messageHandler;
 
     // Hide all states except skeleton initially
@@ -172,7 +174,7 @@ export class RoomStatusManager {
 
   destroy() {
     if (this.ws) {
-      this.ws.onMessage = null;
+      this.ws.onMessage = this.oldMessageHandler;
     }
     this.currentRoomCode = null;
   }

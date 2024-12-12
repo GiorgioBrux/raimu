@@ -94,7 +94,12 @@ export class RoomHandler {
         // Only join room if we're not already connected
         if (!roomManager.isConnected) {
             logger.info({ roomId }, 'Joining room');
-            const { localStream } = await roomManager.joinRoom(roomId);
+            // We should get media settings here
+            const mediaSettings = this.serviceManager.getService('mediaSettings');
+            const settings = mediaSettings ? await mediaSettings.getSettings() : null;
+            
+            // Pass settings to joinRoom
+            const { localStream } = await roomManager.joinRoom(roomId, settings);
             logger.debug('Setting up local stream');
             roomUI.setLocalStream(localStream);
         } else {

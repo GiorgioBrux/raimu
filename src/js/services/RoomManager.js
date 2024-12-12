@@ -17,10 +17,11 @@ export class RoomManager {
     /**
      * Creates a new RoomManager instance
      * @param {WebSocketService} websocketService - WebSocket service instance for room communication
+     * @param {Object} webrtcConfig - Configuration object for WebRTC
      */
-    constructor(websocketService) {
+    constructor(websocketService, webrtcConfig) {
         /** @type {WebRTCService} WebRTC service for peer connections */
-        this.webrtc = new WebRTCService();
+        this.webrtc = new WebRTCService(webrtcConfig);
 
         /** @type {WebSocketService} WebSocket service for signaling */
         this.ws = websocketService;
@@ -28,7 +29,7 @@ export class RoomManager {
         /** @type {RoomEventHandler} Handler for room-related events */
         this.eventHandler = new RoomEventHandler(this);
 
-        // Explicitly bind the message handler
+        // Set up WebSocket message handler
         this.ws.onMessage = this._handleWsMessage.bind(this);
         log.debug('WebSocket message handler bound');
 
@@ -66,18 +67,8 @@ export class RoomManager {
 
         /** @type {Function|null} Callback when participant leaves */
         this.onParticipantLeft = null;
-
-        this._setupEventHandlers();
     }
 
-    /**
-     * Sets up event handlers for both WebSocket and WebRTC events.
-     * @private
-     */
-    _setupEventHandlers() {
-        // WebSocket message handler - routes to appropriate event handler
-        this.ws.onMessage = this._handleWsMessage.bind(this);
-    }
 
     /**
      * Gets list of participants in a room
@@ -156,7 +147,7 @@ export class RoomManager {
      * @returns {Promise<{roomId: string, localStream: MediaStream}>}
      * @throws {Error} If joining room fails
      */
-    async joinRoom(roomId) {
+    async joinRoom(roomId, mediaSettings = null) {
         try {
             log.debug({ 
                 joiningRoomId: roomId,
@@ -197,7 +188,24 @@ export class RoomManager {
             }, 'Joining room');
 
             if (!this.isConnected) {
-                await this.initializeConnection(this.userId);
+                // Use media settings if provided when initializing connection
+                const constraints = mediaSettings ? {
+                    audio: { deviceId: mediaSettings.audioInput ? { exact: mediaSettings.audioInput } : undefined },
+                    video: { deviceId: mediaSettings.videoInput ? { exact: mediaSettings.videoInput } : undefined }
+                } : { audio: true, video: true };
+
+                // Initialize with custom constraints
+                await this.initializeConnection(this.userId, constraints);
+
+                // Set audio output if available
+                if (mediaSettings?.audioOutput) {
+                    const elements = document.querySelectorAll('audio, video');
+                    for (const element of elements) {
+                        if (element.setSinkId) {
+                            await element.setSinkId(mediaSettings.audioOutput);
+                        }
+                    }
+                }
             }
 
             // Get existing participants before joining
@@ -219,13 +227,11 @@ export class RoomManager {
             // Connect to each participant with better error handling
             const connectionPromises = existingParticipants
                 .filter(participant => {
-                    // Make sure we're working with the ID string
                     const id = typeof participant === 'object' ? participant.id : participant;
                     return id !== this.userId;
                 })
                 .map(async participant => {
                     try {
-                        // Extract ID and name if it's an object
                         const id = typeof participant === 'object' ? participant.id : participant;
                         const name = typeof participant === 'object' ? participant.name : 'Anonymous';
                         
@@ -233,7 +239,6 @@ export class RoomManager {
                         await this.webrtc.connectToParticipant(id);
                         log.debug({ participantId: id, participantName: name }, 'Successfully connected to participant');
                         
-                        // Add to list of participants with name
                         this.participants.set(id, {
                             id: id,
                             name: name
@@ -277,8 +282,8 @@ export class RoomManager {
      * @param {string} id - Connection ID to initialize with
      * @private
      */
-    async initializeConnection(id) {
-        await this.webrtc.initialize(id);
+    async initializeConnection(id, constraints = null) {
+        await this.webrtc.initialize(id, constraints);
         this._setupWebRTCCallbacks();
         this.isConnected = true;
     }

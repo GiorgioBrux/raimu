@@ -6,10 +6,7 @@ export class StreamManager {
     this.audioMeter = audioMeter;
     this.onStreamUpdate = options.onStreamUpdate;
     this.onStateChange = options.onStateChange;
-    
-    if (options.initialStream) {
-      this.stream = options.initialStream;
-    }
+    this.stream = options.initialStream || null;
   }
 
   async setupInitialStream() {
@@ -25,63 +22,94 @@ export class StreamManager {
         hasVideo: this.stream.getVideoTracks().length > 0,
         hasAudio: this.stream.getAudioTracks().length > 0
       }, 'Initial media stream setup complete');
+
+      return this.stream;
     } catch (error) {
       log.error({ error }, 'Failed to setup initial media stream');
+      throw error;
     }
+  }
+
+  async ensureStream() {
+    if (!this.stream) {
+      log.debug('No stream exists, setting up initial stream');
+      await this.setupInitialStream();
+    }
+    return this.stream;
   }
 
   async updateVideoDevice(deviceId) {
     try {
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { deviceId: { exact: deviceId } },
-        audio: false
-      });
+        log.debug({ deviceId }, 'Updating video device');
+        await this.ensureStream();
 
-      const videoTrack = newStream.getVideoTracks()[0];
-      const oldTrack = this.stream.getVideoTracks()[0];
-      
-      if (oldTrack) oldTrack.stop();
-      this.stream.removeTrack(oldTrack);
-      this.stream.addTrack(videoTrack);
-      
-      this.elements.video.srcObject = this.stream;
-      this.saveSettings();
-      log.debug({ deviceId }, 'Video device updated successfully');
-      if (this.onStreamUpdate) {
-        this.onStreamUpdate(this.stream);
-      }
+        const newStream = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId: { exact: deviceId } },
+            audio: false
+        });
+
+        const videoTrack = newStream.getVideoTracks()[0];
+        const oldTrack = this.stream.getVideoTracks()[0];
+        
+        log.debug({
+            newTrackId: videoTrack?.id,
+            oldTrackId: oldTrack?.id,
+            deviceId
+        }, 'Replacing video track');
+
+        if (oldTrack) oldTrack.stop();
+        this.stream.removeTrack(oldTrack);
+        this.stream.addTrack(videoTrack);
+        
+        this.elements.video.srcObject = this.stream;
+        this.saveSettings();
+        log.debug({ deviceId, trackId: videoTrack.id }, 'Video device updated successfully');
+        if (this.onStreamUpdate) {
+            this.onStreamUpdate(this.stream);
+        }
     } catch (error) {
-      log.error({ error, deviceId }, 'Failed to update video device');
+        log.error({ error, deviceId }, 'Failed to update video device');
+        throw error;
     }
   }
 
   async updateAudioDevice(deviceId) {
     try {
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        audio: { deviceId: { exact: deviceId } },
-        video: false
-      });
+        log.debug({ deviceId }, 'Updating audio device');
+        await this.ensureStream();
 
-      const audioTrack = newStream.getAudioTracks()[0];
-      const oldTrack = this.stream.getAudioTracks()[0];
-      
-      if (oldTrack) oldTrack.stop();
-      this.stream.removeTrack(oldTrack);
-      this.stream.addTrack(audioTrack);
+        const newStream = await navigator.mediaDevices.getUserMedia({
+            audio: { deviceId: { exact: deviceId } },
+            video: false
+        });
 
-      if (this.audioMeter && this.audioMeter.audioContext && this.audioMeter.audioSource) {
-        this.audioMeter.audioSource.disconnect();
-        this.audioMeter.audioSource = this.audioMeter.audioContext.createMediaStreamSource(this.stream);
-        this.audioMeter.audioSource.connect(this.audioMeter.audioAnalyser);
-      }
+        const audioTrack = newStream.getAudioTracks()[0];
+        const oldTrack = this.stream.getAudioTracks()[0];
+        
+        log.debug({
+            newTrackId: audioTrack?.id,
+            oldTrackId: oldTrack?.id,
+            deviceId
+        }, 'Replacing audio track');
 
-      this.saveSettings();
-      log.debug({ deviceId }, 'Audio device updated successfully');
-      if (this.onStreamUpdate) {
-        this.onStreamUpdate(this.stream);
-      }
+        if (oldTrack) oldTrack.stop();
+        this.stream.removeTrack(oldTrack);
+        this.stream.addTrack(audioTrack);
+
+        if (this.audioMeter && this.audioMeter.audioContext && this.audioMeter.audioSource) {
+            this.audioMeter.audioSource.disconnect();
+            this.audioMeter.audioSource = this.audioMeter.audioContext.createMediaStreamSource(this.stream);
+            this.audioMeter.audioSource.connect(this.audioMeter.audioAnalyser);
+        }
+
+        this.saveSettings();
+        log.debug({ deviceId, trackId: audioTrack.id }, 'Audio device updated successfully');
+        if (this.onStreamUpdate) {
+            this.onStreamUpdate(this.stream);
+        }
     } catch (error) {
-      log.error({ error, deviceId }, 'Failed to update audio device');
+        log.error({ error, deviceId }, 'Failed to update audio device');
+        throw error;
     }
   }
 
@@ -205,6 +233,19 @@ export class StreamManager {
 
   getSettings() {
     try {
+      if (!this.stream) {
+        log.debug('No stream available for settings');
+        return {
+          videoEnabled: false,
+          audioEnabled: false,
+          selectedDevices: {
+            camera: this.elements.cameraSelect.value,
+            microphone: this.elements.micSelect.value,
+            speaker: this.elements.speakerSelect.value
+          }
+        };
+      }
+
       const settings = {
         videoEnabled: this.stream.getVideoTracks()[0]?.enabled ?? false,
         audioEnabled: this.stream.getAudioTracks()[0]?.enabled ?? false,
@@ -212,8 +253,7 @@ export class StreamManager {
           camera: this.elements.cameraSelect.value,
           microphone: this.elements.micSelect.value,
           speaker: this.elements.speakerSelect.value
-        },
-        stream: this.stream
+        }
       };
       
       log.debug({ 
@@ -252,11 +292,46 @@ export class StreamManager {
 
   saveSettings() {
     const settings = this.getSettings();
-    sessionStorage.setItem('userSettings', JSON.stringify({
-      ...JSON.parse(sessionStorage.getItem('userSettings') || '{}'),
+    sessionStorage.setItem('mediaSettings', JSON.stringify({
+      ...JSON.parse(sessionStorage.getItem('mediaSettings') || '{}'),
       videoEnabled: settings.videoEnabled,
       audioEnabled: settings.audioEnabled,
       selectedDevices: settings.selectedDevices
     }));
+  }
+
+  async setVideoEnabled(enabled) {
+    const videoTrack = this.stream?.getVideoTracks()[0];
+    if (videoTrack) {
+        videoTrack.enabled = enabled;
+        this.elements.toggleCamera.dataset.active = enabled;
+        this.elements.cameraPlaceholder.classList.toggle('hidden', enabled);
+        
+        // Toggle tooltip text visibility
+        const activeText = this.elements.toggleCamera.querySelector('[data-active-text]');
+        const inactiveText = this.elements.toggleCamera.querySelector('[data-inactive-text]');
+        activeText.classList.toggle('hidden', !enabled);
+        inactiveText.classList.toggle('hidden', enabled);
+        
+        this.saveSettings();
+        log.debug({ enabled }, 'Video enabled state set');
+    }
+  }
+
+  async setAudioEnabled(enabled) {
+    const audioTrack = this.stream?.getAudioTracks()[0];
+    if (audioTrack) {
+        audioTrack.enabled = enabled;
+        this.elements.toggleMic.dataset.active = enabled;
+        
+        // Toggle tooltip text visibility
+        const activeText = this.elements.toggleMic.querySelector('[data-active-text]');
+        const inactiveText = this.elements.toggleMic.querySelector('[data-inactive-text]');
+        activeText.classList.toggle('hidden', !enabled);
+        inactiveText.classList.toggle('hidden', enabled);
+        
+        this.saveSettings();
+        log.debug({ enabled }, 'Audio enabled state set');
+    }
   }
 } 

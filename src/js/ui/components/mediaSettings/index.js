@@ -92,7 +92,72 @@ export class MediaSettings {
       }
 
       await this.deviceManager.loadDevices();
+      
+      // First set up initial stream
       await this.streamManager.setupInitialStream();
+      
+      // Then load saved settings
+      const savedSettings = sessionStorage.getItem('mediaSettings');
+      logger.debug('Loading saved settings from storage: ', savedSettings);
+
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        logger.debug('Parsed settings:', settings);
+
+        if (settings.selectedDevices) {
+          logger.debug('Found device settings:', settings.selectedDevices);
+          
+          // Log available devices first
+          logger.debug('Available devices:', {
+            cameras: Array.from(this.elements.cameraSelect.options).map(o => o.value),
+            microphones: Array.from(this.elements.micSelect.options).map(o => o.value),
+            speakers: Array.from(this.elements.speakerSelect.options).map(o => o.value)
+          });
+
+          if (settings.selectedDevices.camera) {
+            logger.debug('Setting camera:', settings.selectedDevices.camera);
+            // First check if the device still exists
+            if (Array.from(this.elements.cameraSelect.options).some(opt => opt.value === settings.selectedDevices.camera)) {
+              this.elements.cameraSelect.value = settings.selectedDevices.camera;
+              await this.streamManager.updateVideoDevice(settings.selectedDevices.camera);
+            } else {
+              logger.warn('Saved camera no longer available:', settings.selectedDevices.camera);
+            }
+          }
+
+          if (settings.selectedDevices.microphone) {
+            logger.debug('Setting microphone:', settings.selectedDevices.microphone);
+            if (Array.from(this.elements.micSelect.options).some(opt => opt.value === settings.selectedDevices.microphone)) {
+              this.elements.micSelect.value = settings.selectedDevices.microphone;
+              await this.streamManager.updateAudioDevice(settings.selectedDevices.microphone);
+            } else {
+              logger.warn('Saved microphone no longer available:', settings.selectedDevices.microphone);
+            }
+          }
+
+          if (settings.selectedDevices.speaker) {
+            logger.debug('Setting speaker:', settings.selectedDevices.speaker);
+            if (Array.from(this.elements.speakerSelect.options).some(opt => opt.value === settings.selectedDevices.speaker)) {
+              this.elements.speakerSelect.value = settings.selectedDevices.speaker;
+              await this.streamManager.updateAudioOutput(settings.selectedDevices.speaker);
+            } else {
+              logger.warn('Saved speaker no longer available:', settings.selectedDevices.speaker);
+            }
+          }
+        }
+
+        // Apply enabled states after all device updates
+        if (settings.videoEnabled !== undefined) {
+          await this.streamManager.setVideoEnabled(settings.videoEnabled);
+        }
+        if (settings.audioEnabled !== undefined) {
+          await this.streamManager.setAudioEnabled(settings.audioEnabled);
+        }
+      } else {
+        logger.debug('No saved settings found, setting up initial stream');
+        await this.streamManager.setupInitialStream();
+      }
+
       this.setupEventListeners();
       this.initAudioContextOnInteraction();
       
