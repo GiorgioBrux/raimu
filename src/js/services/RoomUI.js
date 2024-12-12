@@ -1,10 +1,13 @@
-import { VideoGrid } from '../ui/components/VideoGrid.js';
-import { MediaControls } from '../ui/components/MediaControls.js';
-import { VADManager } from '../ui/components/VADManager.js';
-import { UIElements } from '../ui/components/UIElements.js';
-import { ParticipantVideo } from '../ui/components/ParticipantVideo.js';
-import { PanelManager } from '../ui/components/PanelManager.js';
+import { VideoGrid } from '../ui/room/VideoGrid.js';
+import { MediaControls } from '../ui/room/MediaControls.js';
+import { VADManager } from '../ui/room/VADManager.js';
+import { SettingsControl } from '../ui/room/SettingsControl.js';
+import { HeaderManager } from '../ui/room/HeaderManager.js';
+import { UIElements } from '../ui/room/UIElements.js';
+import { ParticipantVideo } from '../ui/room/ParticipantVideo.js';
+import { PanelManager } from '../ui/room/PanelManager.js';
 import { uiLogger as log } from '../utils/logger.js';
+import { ParticipantMuteManager } from '../ui/room/ParticipantMuteManager.js';
 
 /**
  * Manages the user interface components for a video chat room
@@ -23,6 +26,9 @@ export class RoomUI {
     
     /** @type {UIElements} UI elements manager */
     this.uiElements = new UIElements();
+
+    /** @type {ParticipantMuteManager} Mute manager instance */
+    this.muteManager = new ParticipantMuteManager();
   }
 
   /**
@@ -43,67 +49,9 @@ export class RoomUI {
       this.videoGrid = new VideoGrid(elements.videoGrid, elements.remoteTemplate);
       this.mediaControls = new MediaControls(elements.controls);
       this.vadManager = new VADManager();
+      this.headerManager = new HeaderManager(elements.roomName, elements.PIN, elements.copyPinBtn);
+      this.settingsControl = new SettingsControl(elements.controls, elements.settingsModal, this.roomManager, this);
 
-      // Get values from sessionStorage
-      const roomName = sessionStorage.getItem('roomName');
-      const pin = sessionStorage.getItem('PIN');
-
-      // Update room name display
-      if (elements.roomName) {
-        elements.roomName.textContent = roomName || 'Unnamed Room';
-      }
-
-      // Update PIN display
-      if (elements.PIN && pin) {
-        // Clear existing dots
-        elements.PIN.innerHTML = '';
-        
-        // Create PIN display groups
-        pin.match(/.{1,4}/g).forEach((group, groupIndex) => {
-          const groupDiv = document.createElement('div');
-          groupDiv.className = 'flex gap-1 items-center group';
-          
-          // Create dots display
-          const dotsDisplay = document.createElement('div');
-          dotsDisplay.className = 'flex gap-1 absolute group-hover:opacity-0 transition-opacity';
-          
-          // Create numbers display
-          const numbersDisplay = document.createElement('div');
-          numbersDisplay.className = 'flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity';
-          
-          // Add digits for this group
-          [...group].forEach((digit) => {
-            // Create dot
-            const dot = document.createElement('div');
-            dot.className = 'w-2 h-2 rounded-full bg-lime-500';
-            dotsDisplay.appendChild(dot);
-            
-            // Create number
-            const number = document.createElement('div');
-            number.className = 'w-2 text-xs text-lime-500 font-medium';
-            number.textContent = digit;
-            numbersDisplay.appendChild(number);
-          });
-          
-          groupDiv.appendChild(dotsDisplay);
-          groupDiv.appendChild(numbersDisplay);
-          elements.PIN.appendChild(groupDiv);
-          
-          // Add separator after each group except the last
-          if (groupIndex < pin.match(/.{1,4}/g).length - 1) {
-            const separator = document.createElement('div');
-            separator.className = 'text-lime-400/50';
-            separator.textContent = '-';
-            elements.PIN.appendChild(separator);
-          }
-        });
-      }
-
-      // Add click handler for copying PIN
-      const copyPinBtn = document.getElementById('copyPinBtn');
-      if (copyPinBtn) {
-        copyPinBtn.addEventListener('click', () => this.handlePinCopy(pin));
-      }
 
       this.setupEventListeners();
       this.initialized = true;
@@ -131,9 +79,6 @@ export class RoomUI {
             videoTrack?.enabled ?? false,
             !mute
           );
-        }
-        else {
-          log.warn('Could not find local video container for audio toggle');
         }
       },
       onVideoToggle: (disable) => {
@@ -179,6 +124,16 @@ export class RoomUI {
         container, 
         ParticipantVideo.updateSpeakingIndicators
       );
+
+      // Handle remote participant mute controls
+      const muteButton = container.querySelector('[data-remote-only]');
+      if (muteButton) {
+        if (participantId === 'local') {
+          muteButton.classList.add('hidden');
+        } else {
+          this.muteManager.setupControls(participantId, container);
+        }
+      }
     };
 
     return this.videoGrid.addVideo(participantId, participantName, stream, setupCallbacks);
@@ -221,8 +176,8 @@ export class RoomUI {
    */
   setLocalStream(stream) {
     if (!this.initialized) {
-      log.warn('Attempted to set local stream before initialization');
-      return;
+        log.warn('Attempted to set local stream before initialization');
+        return;
     }
     
     const videoTrack = stream.getVideoTracks()[0];
@@ -232,43 +187,59 @@ export class RoomUI {
     const isAudioEnabled = audioTrack?.enabled ?? false;
     
     log.debug({
-      hasVideo: isVideoEnabled,
-      hasAudio: isAudioEnabled
+        hasVideo: isVideoEnabled,
+        hasAudio: isAudioEnabled
     }, 'Setting up local stream');
     
-    this.mediaControls.updateInitialStates(isVideoEnabled, isAudioEnabled);
-    
-    // Add local video using the template
-    const container = this.addParticipantVideo('local', `You (${sessionStorage.getItem('userName')})`, stream);
+    // Update existing local video if it exists
+    const existingContainer = document.getElementById('participant-local');
+    if (existingContainer) {
+        const video = existingContainer.querySelector('video');
+        if (video) {
+            video.srcObject = stream;
+            ParticipantVideo.updateMediaState(
+                existingContainer,
+                isVideoEnabled,
+                isAudioEnabled
+            );
+            this.vadManager.updateMuteState(existingContainer.id, !isAudioEnabled);
+            this.vadManager.setupVAD(
+                stream, 
+                existingContainer,
+                ParticipantVideo.updateSpeakingIndicators
+            );
+            return;
+        }
+    }
 
-    // Update UI elements
+    // If no existing video, create new one (first time setup)
+    this.mediaControls.updateInitialStates(isVideoEnabled, isAudioEnabled);
+    const container = this.addParticipantVideo('local', `You (${sessionStorage.getItem('userName')})`, stream);
     this.uiElements.addLocalVideoElement(container);
     
-    // Ensure video plays
     const video = container.querySelector('video');
-    if(!video) {
-      log.error('No video element found, container: ', container);
-      return;
+    if (!video) {
+        log.error('No video element found, container: ', container);
+        return;
     }
     
     video.play().catch(error => {
-      log.error({ error }, 'Failed to play local video');
+        log.error({ error }, 'Failed to play local video');
     });
 
-    // Update states and setup VAD
     ParticipantVideo.updateMediaState(
-      container,
-      isVideoEnabled,
-      isAudioEnabled
+        container,
+        isVideoEnabled,
+        isAudioEnabled
     );
     
     if (container) {
-      this.vadManager.updateMuteState(container.id, !isAudioEnabled);
-      this.vadManager.setupVAD(
-        stream, 
-        container,
-        ParticipantVideo.updateSpeakingIndicators
-      );
+        this.vadManager.updateMuteState(container.id, !isAudioEnabled);
+        this.vadManager.setupVAD(
+            stream, 
+            container,
+            ParticipantVideo.updateSpeakingIndicators
+        );
     }
   }
 
@@ -278,35 +249,6 @@ export class RoomUI {
   cleanup() {
     log.debug('Cleaning up Room UI');
     this.vadManager.cleanup();
-  }
-
-  /**
-   * Handles copying the room PIN to clipboard and shows feedback
-   * @param {string} pin - The PIN to copy
-   * @returns {Promise<void>}
-   */
-  async handlePinCopy(pin) {
-    if (!pin) return;
-    
-    try {
-      await navigator.clipboard.writeText(pin);
-      
-      // Show success state
-      const copyIcon = document.querySelector('.copy-icon');
-      const checkIcon = document.querySelector('.check-icon');
-      
-      if (copyIcon && checkIcon) {
-        copyIcon.classList.add('hidden');
-        checkIcon.classList.remove('hidden');
-        
-        // Reset after 2 seconds
-        setTimeout(() => {
-          copyIcon.classList.remove('hidden');
-          checkIcon.classList.add('hidden');
-        }, 2000);
-      }
-    } catch (err) {
-      log.error({ error: err }, 'Failed to copy PIN to clipboard');
-    }
+    this.muteManager.cleanup();
   }
 } 

@@ -1,21 +1,53 @@
-import { uiLogger as log } from '../../../utils/logger.js';
+import { uiLogger as logger } from '../../../utils/logger.js';
 import { AudioMeter } from './audioMeter.js';
 import { DeviceManager } from './deviceManager.js';
 import { StreamManager } from './streamManager.js';
 import { AudioTest } from './audioTest.js'; 
-import { uiLogger as logger } from '../../../utils/logger.js';
 
 export class MediaSettings {
-  constructor(container) {
+  /**
+   * @param {HTMLElement} container
+   * @param {Object} [options]
+   * @param {MediaStream} [options.initialStream] - Initial stream to use
+   * @{(stream: MediaStream) => void} [options.onStreamUpdate] - Callback when stream changes
+   */
+  constructor(container, options = {}) {
     logger.info('Initializing MediaSettings with container: ', container);
     
     this.container = container;
+    this.options = options;
     this.elements = this.cacheElements();
+
+    // Show/hide close button based on option
+    if (this.elements.closeButton) {
+        logger.debug('Close button set to: ', options.showCloseButton);
+        this.elements.closeButton.classList.toggle('hidden', !options.showCloseButton);
+    }
+
+    // Show/hide mic and camera controls based on option
+    if (this.elements.micControl) {
+      logger.debug('Mic control set to: ', options.showMicControl);
+        this.elements.micControl.classList.toggle('hidden', !options.showMicControl);
+    }
+    if (this.elements.cameraControl) {
+      logger.debug('Camera control set to: ', options.showCameraControl);
+        this.elements.cameraControl.classList.toggle('hidden', !options.showCameraControl);
+    }
 
     // Initialize managers
     this.deviceManager = new DeviceManager(this.elements);
     this.audioMeter = new AudioMeter(this.elements);
-    this.streamManager = new StreamManager(this.elements, this.audioMeter);
+    this.streamManager = new StreamManager(this.elements, this.audioMeter, {
+      initialStream: options.initialStream,
+      onStreamUpdate: options.onStreamUpdate,
+      onStateChange: (type, enabled) => {
+        if (type === 'video') {
+          this.onToggleVideo?.(enabled);
+        } else if (type === 'audio') {
+          this.onToggleMic?.(enabled);
+        }
+      }
+    });
     this.audioTest = new AudioTest(this.elements);
 
     this.init();
@@ -33,7 +65,10 @@ export class MediaSettings {
       meterFill: this.container.querySelector('.meter-fill'),
       cameraPlaceholder: this.container.querySelector('.camera-off-placeholder'),
       toggleLoopback: this.container.querySelector('#toggleLoopback'),
-      testLoadingSpinner: this.container.querySelector('[data-test-loading]')
+      testLoadingSpinner: this.container.querySelector('[data-test-loading]'),
+      closeButton: this.container.querySelector('[data-modal-close]'),
+      micControl: this.container.querySelector('#toggleMic'),
+      cameraControl: this.container.querySelector('#toggleCamera')
     };
   }
 
@@ -61,9 +96,9 @@ export class MediaSettings {
       this.setupEventListeners();
       this.initAudioContextOnInteraction();
       
-      log.debug('Media settings initialized successfully');
+      logger.debug('Media settings initialized successfully');
     } catch (error) {
-      log.error({ error }, 'Failed to initialize media settings');
+      logger.error({ error }, 'Failed to initialize media settings');
     }
   }
 
@@ -77,14 +112,23 @@ export class MediaSettings {
       this.streamManager.updateAudioOutput(this.elements.speakerSelect.value));
 
     // Toggle controls
-    this.elements.toggleCamera.addEventListener('click', () => 
-      this.streamManager.toggleCamera());
-    this.elements.toggleMic.addEventListener('click', () => 
-      this.streamManager.toggleMicrophone());
+    this.elements.toggleCamera.addEventListener('click', () => {
+      this.streamManager.toggleCamera();
+      this.onToggleVideo?.(this.streamManager.stream.getVideoTracks()[0]?.enabled ?? false);
+    });
+    
+    this.elements.toggleMic.addEventListener('click', () => {
+      this.streamManager.toggleMicrophone();
+      this.onToggleMic?.(this.streamManager.stream.getAudioTracks()[0]?.enabled ?? false);
+    });
     this.elements.testAudio.addEventListener('click', () => 
       this.audioTest.playTestSound());
     this.elements.toggleLoopback.addEventListener('click', () => 
       this.streamManager.toggleLoopback());
+
+    this.elements.closeButton.addEventListener('click', () => {
+      this.container.classList.add('hidden');
+    });
   }
 
   initAudioContextOnInteraction() {

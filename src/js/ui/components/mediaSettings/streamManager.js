@@ -1,12 +1,15 @@
 import { uiLogger as log } from '../../../utils/logger.js';
 
 export class StreamManager {
-  constructor(elements, audioMeter) {
+  constructor(elements, audioMeter, options = {}) {
     this.elements = elements;
     this.audioMeter = audioMeter;
-    this.stream = null;
-    this.loopbackNode = null;
-    this.loopbackAudio = null;
+    this.onStreamUpdate = options.onStreamUpdate;
+    this.onStateChange = options.onStateChange;
+    
+    if (options.initialStream) {
+      this.stream = options.initialStream;
+    }
   }
 
   async setupInitialStream() {
@@ -44,6 +47,9 @@ export class StreamManager {
       this.elements.video.srcObject = this.stream;
       this.saveSettings();
       log.debug({ deviceId }, 'Video device updated successfully');
+      if (this.onStreamUpdate) {
+        this.onStreamUpdate(this.stream);
+      }
     } catch (error) {
       log.error({ error, deviceId }, 'Failed to update video device');
     }
@@ -71,6 +77,9 @@ export class StreamManager {
 
       this.saveSettings();
       log.debug({ deviceId }, 'Audio device updated successfully');
+      if (this.onStreamUpdate) {
+        this.onStreamUpdate(this.stream);
+      }
     } catch (error) {
       log.error({ error, deviceId }, 'Failed to update audio device');
     }
@@ -90,44 +99,66 @@ export class StreamManager {
 
   toggleCamera() {
     try {
-      const videoTrack = this.stream.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        this.elements.toggleCamera.dataset.active = videoTrack.enabled;
-        this.elements.cameraPlaceholder.classList.toggle('hidden', videoTrack.enabled);
-        
-        // Toggle tooltip text visibility
-        const activeText = this.elements.toggleCamera.querySelector('[data-active-text]');
-        const inactiveText = this.elements.toggleCamera.querySelector('[data-inactive-text]');
-        activeText.classList.toggle('hidden', !videoTrack.enabled);
-        inactiveText.classList.toggle('hidden', videoTrack.enabled);
-        
-        this.saveSettings();
-        log.debug({ enabled: videoTrack.enabled }, 'Camera toggled');
-      }
+        // Find and trigger the main room control button
+        const roomVideoBtn = document.getElementById('toggleVideo');
+        if (roomVideoBtn) {
+            roomVideoBtn.click();
+
+            const activeText = this.elements.toggleCamera.querySelector('[data-active-text]');
+            const inactiveText = this.elements.toggleCamera.querySelector('[data-inactive-text]');
+            activeText.classList.toggle('hidden', !videoTrack.enabled);
+            inactiveText.classList.toggle('hidden', videoTrack.enabled);
+
+            return;
+        }
+
+        // Fallback for when not in room (e.g., join page)
+        const videoTrack = this.stream.getVideoTracks()[0];
+        if (videoTrack) {
+            videoTrack.enabled = !videoTrack.enabled;
+            this.elements.toggleCamera.dataset.active = videoTrack.enabled;
+            this.elements.cameraPlaceholder.classList.toggle('hidden', videoTrack.enabled);
+            
+            // Toggle tooltip text visibility
+            const activeText = this.elements.toggleCamera.querySelector('[data-active-text]');
+            const inactiveText = this.elements.toggleCamera.querySelector('[data-inactive-text]');
+            activeText.classList.toggle('hidden', !videoTrack.enabled);
+            inactiveText.classList.toggle('hidden', videoTrack.enabled);
+            
+            this.saveSettings();
+            log.debug({ enabled: videoTrack.enabled }, 'Camera toggled');
+        }
     } catch (error) {
-      log.error({ error }, 'Failed to toggle camera');
+        log.error({ error }, 'Failed to toggle camera');
     }
   }
 
   toggleMicrophone() {
     try {
-      const audioTrack = this.stream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        this.elements.toggleMic.dataset.active = audioTrack.enabled;
-        
-        // Toggle tooltip text visibility
-        const activeText = this.elements.toggleMic.querySelector('[data-active-text]');
-        const inactiveText = this.elements.toggleMic.querySelector('[data-inactive-text]');
-        activeText.classList.toggle('hidden', !audioTrack.enabled);
-        inactiveText.classList.toggle('hidden', audioTrack.enabled);
-        
-        this.saveSettings();
-        log.debug({ enabled: audioTrack.enabled }, 'Microphone toggled');
-      }
+        // Find and trigger the main room control button
+        const roomAudioBtn = document.getElementById('toggleAudio');
+        if (roomAudioBtn) {
+            roomAudioBtn.click();
+            return;
+        }
+
+        // Fallback for when not in room (e.g., join page)
+        const audioTrack = this.stream.getAudioTracks()[0];
+        if (audioTrack) {
+            audioTrack.enabled = !audioTrack.enabled;
+            this.elements.toggleMic.dataset.active = audioTrack.enabled;
+            
+            // Toggle tooltip text visibility
+            const activeText = this.elements.toggleMic.querySelector('[data-active-text]');
+            const inactiveText = this.elements.toggleMic.querySelector('[data-inactive-text]');
+            activeText.classList.toggle('hidden', !audioTrack.enabled);
+            inactiveText.classList.toggle('hidden', audioTrack.enabled);
+            
+            this.saveSettings();
+            log.debug({ enabled: audioTrack.enabled }, 'Microphone toggled');
+        }
     } catch (error) {
-      log.error({ error }, 'Failed to toggle microphone');
+        log.error({ error }, 'Failed to toggle microphone');
     }
   }
 

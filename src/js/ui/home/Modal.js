@@ -1,5 +1,5 @@
-import { generateRoomName } from '../utils/nameGenerator.js';
-import { appLogger as logger } from '../utils/logger.js';
+import { generateRoomName } from '../../utils/nameGenerator.js';
+import { appLogger as logger } from '../../utils/logger.js';
 /**
  * @class
  * @classdesc Manages the modal for creating a room

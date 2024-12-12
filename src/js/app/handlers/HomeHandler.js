@@ -1,5 +1,5 @@
-import { ModalManager } from '../../ui/Modal.js';
-import { ErrorModal } from '../../ui/components/ErrorModal.js';
+import { ModalManager } from '../../ui/home/Modal.js';
+import { ErrorModal } from '../../ui/room/ErrorModal.js';
 import { appLogger as logger } from '../../utils/logger.js';
 import { router } from '../../router/index.js';
 

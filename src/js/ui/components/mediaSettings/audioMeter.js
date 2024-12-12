@@ -104,10 +104,10 @@ export class AudioMeter {
             : 'rgb(51, 65, 85)';
         });
         
-        if (frameCount % 60 === 0) {
-          log.debug({ rms, db, targetLevel, smoothedLevel, activeSegments }, 
-            'Audio meter values');
-        }
+        // if (frameCount % 60 === 0) {
+        //   log.debug({ rms, db, targetLevel, smoothedLevel, activeSegments }, 
+        //     'Audio meter values');
+        // }
         
         frameCount++;
         this.animationFrame = requestAnimationFrame(updateMeter);

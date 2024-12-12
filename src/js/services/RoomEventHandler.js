@@ -1,5 +1,5 @@
 import { roomLogger as log } from '../utils/logger.js';
-import { ParticipantVideo } from '../ui/components/ParticipantVideo.js';
+import { ParticipantVideo } from '../ui/room/ParticipantVideo.js';
 /**
  * Handles room events and participant state changes.
  * Specifically handles WebSocket events related to room state and participant updates.

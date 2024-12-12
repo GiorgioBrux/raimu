@@ -1,3 +1,5 @@
+import { uiLogger as logger } from "../../utils/logger.js";
+
 /**
  * Manages access to UI elements in the room interface.
  */
@@ -36,12 +38,14 @@ export class UIElements {
         remoteTemplate: document.getElementById('videoTemplate'),
         roomName: document.getElementById('roomName'),
         PIN: document.getElementById('pinDisplay'),
-        controls: this.initializeControls()
+        copyPinBtn: document.getElementById('copyPinBtn'),
+        controls: this.initializeControls(),
+        settingsModal: document.getElementById('settingsModal')
       };
 
       return this.validateElements();
     } catch (error) {
-      console.error('Error initializing elements:', error);
+      logger.error('Error initializing elements:', error);
       return false;
     }
   }
@@ -56,7 +60,8 @@ export class UIElements {
       video: document.getElementById('toggleVideo'),
       leave: document.getElementById('leaveCall'),
       transcribe: document.getElementById('toggleTranscription'),
-      chat: document.getElementById('toggleChat')
+      chat: document.getElementById('toggleChat'),
+      settings: document.getElementById('settings')
     };
   }
 
@@ -65,8 +70,23 @@ export class UIElements {
    * @returns {boolean} Whether all elements are present
    */
   validateElements() {
-    return !Object.values(this.elements).some(el => !el) && 
-           !Object.values(this.elements.controls).some(el => !el);
+    // Check main elements
+    for (const [key, element] of Object.entries(this.elements)) {
+      if (!element && key !== 'controls') {
+        logger.error(`Missing required UI element: ${key}`);
+        return false;
+      }
+    }
+
+    // Check control elements 
+    for (const [key, element] of Object.entries(this.elements.controls)) {
+      if (!element) {
+        logger.error(`Missing required control element: ${key}`);
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /**

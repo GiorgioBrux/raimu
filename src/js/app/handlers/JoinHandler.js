@@ -1,6 +1,6 @@
 import { MediaSettings } from '../../ui/components/mediaSettings/index.js';
-import { RoomCodeInput } from '../../ui/components/RoomCodeInput.js';
-import { RoomStatusManager } from '../../ui/components/JoinRoomStatusManager.js';
+import { RoomCodeInput } from '../../ui/room/RoomCodeInput.js';
+import { RoomStatusManager } from '../../ui/join/RoomStatusManager.js';
 import { appLogger as logger } from '../../utils/logger.js';
 import { router } from '../../router/index.js';
 

@@ -84,7 +84,7 @@ export class App {
      */
     setupRouter() {
         // Handle page initialization after navigation
-        router.afterEach(async (context) => {
+        router.afterEach(async (/** @type {import('../router/types.js').RouteContext} */ context) => {
             try {
                 logger.debug({ context }, 'Handling page');
                 await this.pageManager.handlePage(context);

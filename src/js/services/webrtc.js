@@ -428,4 +428,137 @@ export class WebRTCService {
     }, 'Setting WebRTC roomId');
     this.roomId = roomId;
   }
+
+  /**
+   * Updates the local stream with a new one
+   * @param {MediaStream} newStream - The new stream to use
+   */
+  async updateLocalStream(newStream) {
+    log.debug({
+        newStreamTracks: newStream.getTracks().map(t => ({
+            kind: t.kind,
+            enabled: t.enabled,
+            readyState: t.readyState,
+            id: t.id
+        })),
+        oldStreamTracks: this.localStream?.getTracks().map(t => ({
+            kind: t.kind,
+            enabled: t.enabled,
+            readyState: t.readyState,
+            id: t.id
+        }))
+    }, 'Starting stream update');
+    
+    try {
+        const oldStream = this.localStream;
+        
+        // Only update tracks that have actually changed
+        const oldTracks = oldStream?.getTracks() || [];
+        const newTracks = newStream.getTracks();
+        const tracksToStop = oldTracks.filter(oldTrack => 
+            !newTracks.some(newTrack => 
+                newTrack.id === oldTrack.id
+            )
+        );
+
+        this.localStream = newStream;
+
+        // Update all peer connections
+        const updatePromises = [];
+        for (const [peerId, connection] of this.connections) {
+            if (connection.type === 'media' && connection.peerConnection) {
+                try {
+                    const pc = connection.peerConnection;
+                    const senders = pc.getSenders();
+                    
+                    log.debug({
+                        peerId,
+                        senders: senders.map(s => ({
+                            kind: s.track?.kind,
+                            trackEnabled: s.track?.enabled,
+                            trackId: s.track?.id
+                        }))
+                    }, 'Current senders state');
+
+                    // Replace only tracks that have changed
+                    for (const track of newTracks) {
+                        const sender = senders.find(s => s.track?.kind === track.kind);
+                        if (sender && sender.track?.id !== track.id) {
+                            log.debug({ 
+                                peerId, 
+                                trackKind: track.kind,
+                                trackEnabled: track.enabled,
+                                trackId: track.id,
+                                senderTrackId: sender.track?.id
+                            }, 'Replacing track');
+                            
+                            updatePromises.push(
+                                sender.replaceTrack(track)
+                                    .then(() => {
+                                        log.debug({ 
+                                            peerId, 
+                                            trackKind: track.kind,
+                                            newTrackId: track.id,
+                                            senderTrackId: sender.track?.id,
+                                            trackEnabled: track.enabled,
+                                            trackReadyState: track.readyState
+                                        }, 'Track replaced successfully');
+                                    })
+                            );
+                        }
+                    }
+                } catch (error) {
+                    log.error({ error, peerId }, 'Failed to update connection');
+                }
+            }
+        }
+
+        // Wait for all track replacements to complete
+        await Promise.all(updatePromises);
+
+        // Now stop only the tracks that were actually replaced
+        for (const track of tracksToStop) {
+            try {
+                track.stop();
+                log.debug({ 
+                    trackKind: track.kind,
+                    trackId: track.id,
+                    enabled: track.enabled,
+                    readyState: track.readyState
+                }, 'Old track stopped');
+            } catch (error) {
+                log.error({ 
+                    error, 
+                    trackKind: track.kind,
+                    trackId: track.id
+                }, 'Failed to stop old track');
+            }
+        }
+
+        // Update track states
+        newStream.getTracks().forEach(track => {
+            this.onTrackStateChange?.(
+                this.peer.id, 
+                track.kind, 
+                track.enabled, 
+                this.roomId
+            );
+        });
+
+        log.debug({
+            hasVideo: newStream.getVideoTracks().length > 0,
+            hasAudio: newStream.getAudioTracks().length > 0,
+            videoEnabled: newStream.getVideoTracks()[0]?.enabled,
+            audioEnabled: newStream.getAudioTracks()[0]?.enabled,
+            videoTrackState: newStream.getVideoTracks()[0]?.readyState,
+            audioTrackState: newStream.getAudioTracks()[0]?.readyState,
+            videoTrackId: newStream.getVideoTracks()[0]?.id,
+            audioTrackId: newStream.getAudioTracks()[0]?.id
+        }, 'Local stream update completed');
+
+    } catch (error) {
+        log.error({ error }, 'Failed to update local stream');
+        throw error;
+    }
+  }
 } 

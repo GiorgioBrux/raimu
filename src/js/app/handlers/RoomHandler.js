@@ -1,7 +1,9 @@
 import { RoomUI } from '../../services/RoomUI.js';
-import { ErrorModal } from '../../ui/components/ErrorModal.js';
+import { ErrorModal } from '../../ui/room/ErrorModal.js';
 import { logger } from '../../utils/logger.js';
 import { router } from '../../router/index.js';
+import { MediaSettings } from '../../ui/components/mediaSettings/index.js';
+import { MediaControls } from '../../ui/room/MediaControls.js';
 
 /**
  * @class
@@ -52,6 +54,7 @@ export class RoomHandler {
      * @private
      */
     async setupRoom(roomId) {
+        /** @type {import('../../services/RoomManager.js').RoomManager} */
         const roomManager = this.serviceManager.getService('roomManager');
         
         // Update RoomManager's roomId to match the current room
@@ -69,19 +72,13 @@ export class RoomHandler {
             sessionStorageRoomId: sessionStorage.getItem('roomId')
         }, 'Updated room IDs before UI initialization');
 
-        // Initialize room UI with delay for setup
+        // Initialize room UI
         const roomUI = new RoomUI(roomManager);
-        await new Promise(resolve => setTimeout(resolve, 200));
         await roomUI.initialize();
         this.serviceManager.setService('roomUI', roomUI);
 
         this.setupRoomCallbacks(roomManager);
 
-        // Initialize VAD if available
-        if (roomUI.initializeVAD) {
-            await roomUI.initializeVAD();
-            logger.debug('VAD initialized');
-        }
 
         logger.debug('Room page initialized');
     }
@@ -171,10 +168,6 @@ export class RoomHandler {
             await roomUI.cleanup();
             logger.debug('Room UI cleaned up');
         }
-
-        // Remove event listeners
-        window.removeEventListener('resize', this.handleResize);
-        document.removeEventListener('fullscreenchange', this.handleFullscreen);
 
         // Clear session storage
         sessionStorage.clear();

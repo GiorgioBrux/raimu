@@ -280,7 +280,11 @@ export const router = new Router({
             path: '/room/:id',
             component: 'pages/room.html',
             components: {
-                'mediaControls': 'components/mediaControls.html'
+                'mediaControls': 'components/mediaControls.html',
+                'roomMediaSettings': {
+                    path: 'components/mediaSettings/index.html',
+                    target: '#roomMediaSettings'
+                }
             },
             metadata: {
                 title: 'Room',
