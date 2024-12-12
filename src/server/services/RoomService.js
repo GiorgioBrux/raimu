@@ -29,6 +29,11 @@ export class RoomService {
     if (!room) {
       throw new Error('Room not found');
     }
+
+    if (room.participants.size >= room.maxParticipants) {
+      throw new Error('Room is full');
+    }
+
     room.addParticipant(userId, userName, ws);
     this.notifyObservers(room);
     return room;

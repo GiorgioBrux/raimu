@@ -137,13 +137,24 @@ export class RoomStatusManager {
     this.currentRoomData = roomData;
 
     this.elements.roomName.textContent = roomData.name;
-    this.elements.participantList.innerHTML = roomData.participants
-      .map(p => `<div class="flex items-center gap-2">
-        <div class="w-2 h-2 rounded-full bg-lime-500"></div>
-        <span class="text-slate-300">${p.name}</span>
-        ${p.joinedAt ? `<span class="text-xs text-slate-500">joined ${new Date(p.joinedAt).toLocaleTimeString()}</span>` : ''}
-      </div>`)
-      .join('');
+    
+    // Update participant list with count
+    this.elements.participantList.innerHTML = `
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-slate-300">Current Participants:</span>
+            <span class="font-semibold ${roomData.participantCount >= roomData.maxParticipants ? 'text-red-400' : 'text-lime-400'}">
+                ${roomData.participantCount}/${roomData.maxParticipants}
+            </span>
+        </div>
+        <div class="pl-4 space-y-1">
+            ${roomData.participants.map(p => `
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-lime-500"></div>
+                    <span class="text-slate-300">${p.name}</span>
+                    ${p.joinedAt ? `<span class="text-xs text-slate-500">joined ${new Date(p.joinedAt).toLocaleTimeString()}</span>` : ''}
+                </div>
+            `).join('')}
+        </div>`;
     
     // Update join button state considering both room state and display name
     const isRoomFull = roomData.participantCount >= roomData.maxParticipants;
@@ -153,8 +164,8 @@ export class RoomStatusManager {
     this.elements.joinButton.disabled = !roomData.active || isRoomFull || !isValidName;
     
     if (isRoomFull) {
-      this.updateErrorMessage('Room is full');
-      this.showState('error');
+        this.updateErrorMessage('Room is full');
+        this.showState('error');
     }
   }
 

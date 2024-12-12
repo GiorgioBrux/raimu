@@ -61,11 +61,22 @@ export const messageHandlers = {
 
     } catch (error) {
       console.error('Error joining room:', error);
-      ws.send(JSON.stringify({
-        type: 'joinError',
-        roomId: data.roomId,
-        message: error.message
-      }));
+      
+      // Send specific error for room full
+      if (error.message === 'Room is full') {
+        ws.send(JSON.stringify({
+          type: 'joinError',
+          roomId: data.roomId,
+          error: 'roomFull',
+          message: 'Room has reached maximum participants'
+        }));
+      } else {
+        ws.send(JSON.stringify({
+          type: 'joinError',
+          roomId: data.roomId,
+          message: error.message
+        }));
+      }
     }
   },
   
