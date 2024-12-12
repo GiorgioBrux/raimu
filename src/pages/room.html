@@ -122,24 +122,51 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[50vh] overflow-hidden">
         <!-- Transcription Area -->
         <div class="bg-slate-900/50 backdrop-blur-sm border border-white/5 rounded-2xl p-4 transition-visibility panel-expanded flex flex-col h-full">
-          <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center justify-between mb-3 flex-shrink-0">
             <h3 class="text-sm font-medium text-gray-400">Transcription</h3>
-            <button id="toggleTranscription" class="p-1.5 hover:bg-white/5 rounded-lg transition-colors">
-              <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
+            <div class="flex items-center gap-3">
+              <!-- Language selector -->
+              <select id="transcriptionLang" 
+                      class="bg-slate-800/50 border border-white/10 rounded-lg px-2 py-1 text-sm text-slate-300
+                             focus:outline-none focus:ring-2 focus:ring-lime-500/50">
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="it">Italian</option>
+                <option value="pt">Portuguese</option>
+              </select>
+              <!-- Enable/Disable switch -->
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="transcriptionEnabled" class="sr-only peer">
+                <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer 
+                            peer-checked:after:translate-x-full peer-checked:after:border-white 
+                            after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
+                            after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all
+                            peer-checked:bg-lime-500"></div>
+              </label>
+            </div>
           </div>
-          <div id="transcriptionText" class="flex-1 overflow-y-auto text-sm text-gray-300 space-y-2 min-h-0 max-h-full">
-            <!-- Transcription placeholder -->
-            <div class="flex flex-col gap-2 opacity-30">
-              <div class="bg-slate-700/50 h-6 w-3/4 rounded"></div>
-              <div class="bg-slate-700/50 h-6 w-1/2 rounded"></div>
-              <div class="bg-slate-700/50 h-6 w-2/3 rounded"></div>
-              <div class="bg-slate-700/50 h-6 w-1/3 rounded"></div>
-              <div class="bg-slate-700/50 h-6 w-3/5 rounded"></div>
-              <div class="text-sm text-slate-500 italic text-center mt-2">
-                Transcriptions will appear here when participants speak...
+          <div class="flex-1 min-h-0 relative">
+            <div id="transcriptionText" 
+                 class="absolute inset-0 overflow-y-auto space-y-2 pr-2
+                        [&::-webkit-scrollbar]:w-2
+                        [&::-webkit-scrollbar-track]:bg-slate-800/20
+                        [&::-webkit-scrollbar-thumb]:bg-lime-500/20
+                        [&::-webkit-scrollbar-thumb]:rounded-full
+                        hover:[&::-webkit-scrollbar-thumb]:bg-lime-500/30
+                        [&::-webkit-scrollbar-thumb]:transition-colors">
+              <!-- Transcription placeholder -->
+              <div class="flex flex-col gap-2 opacity-30">
+                <div class="bg-slate-700/50 h-6 w-3/4 rounded"></div>
+                <div class="bg-slate-700/50 h-6 w-1/2 rounded"></div>
+                <div class="bg-slate-700/50 h-6 w-2/3 rounded"></div>
+                <div class="bg-slate-700/50 h-6 w-1/3 rounded"></div>
+                <div class="bg-slate-700/50 h-6 w-3/5 rounded"></div>
+                <div class="text-sm text-slate-400 italic text-center mt-2">
+                  Enable transcription to see your speech converted to text in real-time.
+                  <br>
+                </div>
               </div>
             </div>
           </div>

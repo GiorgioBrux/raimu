@@ -9,6 +9,7 @@ import { PanelManager } from '../ui/room/PanelManager.js';
 import { uiLogger as log } from '../utils/logger.js';
 import { ParticipantMuteManager } from '../ui/room/ParticipantMuteManager.js';
 import { ChatManager } from '../ui/room/ChatManager.js';
+import { TranscriptionManager } from '../ui/room/TranscriptionManager.js';
 
 /**
  * Manages the user interface components for a video chat room
@@ -49,10 +50,11 @@ export class RoomUI {
       
       this.videoGrid = new VideoGrid(elements.videoGrid, elements.remoteTemplate);
       this.mediaControls = new MediaControls(elements.controls);
-      this.vadManager = new VADManager();
       this.headerManager = new HeaderManager(elements.roomName, elements.PIN, elements.copyPinBtn);
       this.settingsControl = new SettingsControl(elements.controls, elements.settingsModal, this.roomManager, this);
       this.chatManager = new ChatManager(elements, this.roomManager.ws, this.roomManager.roomId);
+      this.transcriptionManager = new TranscriptionManager(this.uiElements, this.roomManager.ws, this.roomManager.roomId);
+      this.vadManager = new VADManager(this.transcriptionManager);
 
       this.setupEventListeners();
       this.initialized = true;
@@ -120,6 +122,7 @@ export class RoomUI {
 
     const setupCallbacks = (container, stream) => {
       ParticipantVideo.setupStates(container, stream);
+      log.debug({ containerId: container.id }, 'Setting up VAD for participant');
       this.vadManager.setupVAD(
         stream, 
         container, 
@@ -204,6 +207,7 @@ export class RoomUI {
                 isAudioEnabled
             );
             this.vadManager.updateMuteState(existingContainer.id, !isAudioEnabled);
+            log.debug({ containerId: existingContainer.id }, 'Setting up VAD for existing local participant');
             this.vadManager.setupVAD(
                 stream, 
                 existingContainer,
@@ -236,11 +240,12 @@ export class RoomUI {
     
     if (container) {
         this.vadManager.updateMuteState(container.id, !isAudioEnabled);
-        this.vadManager.setupVAD(
-            stream, 
-            container,
-            ParticipantVideo.updateSpeakingIndicators
-        );
+        log.debug({ containerId: container.id }, 'Setting up VAD for new local participant');
+        // this.vadManager.setupVAD(
+        //     stream, 
+        //     container,
+        //     ParticipantVideo.updateSpeakingIndicators
+        // );
     }
   }
 

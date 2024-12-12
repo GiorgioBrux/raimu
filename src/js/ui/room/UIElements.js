@@ -8,6 +8,7 @@ export class UIElements {
    * Creates a new UIElements instance.
    */
   constructor() {
+    /** @type {Object.<string, HTMLElement>} */
     this.elements = {};
   }
 
@@ -44,6 +45,9 @@ export class UIElements {
         chatInput: document.getElementById('chatInput'),
         sendMessage: document.getElementById('sendMessage'),
         chatMessages: document.getElementById('chatMessages'),
+        transcriptionEnabled: document.getElementById('transcriptionEnabled'),
+        transcriptionLang: document.getElementById('transcriptionLang'),
+        transcriptionText: document.getElementById('transcriptionText'),
       };
 
       return this.validateElements();
@@ -62,7 +66,6 @@ export class UIElements {
       audio: document.getElementById('toggleAudio'),
       video: document.getElementById('toggleVideo'),
       leave: document.getElementById('leaveCall'),
-      transcribe: document.getElementById('toggleTranscription'),
       chat: document.getElementById('toggleChat'),
       settings: document.getElementById('settings')
     };

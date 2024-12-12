@@ -1,3 +1,5 @@
+import { WhisperService } from '../services/WhisperService.js';
+
 export const messageHandlers = {
   createRoom: (ws, data, { roomService }) => {
     try {
@@ -173,6 +175,32 @@ export const messageHandlers = {
     console.log('Broadcasting chat message:', chatMessage);
 
     roomService.broadcastToRoom(room.id, chatMessage);
+  },
+
+  transcriptionRequest: async (ws, data, { roomService }) => {
+    try {
+      const whisperService = new WhisperService();
+      
+      // Convert base64 to buffer
+      const audioBuffer = Buffer.from(data.audioData, 'base64');
+      
+      // Get transcription
+      const transcription = await whisperService.transcribe(audioBuffer, data.language);
+      
+      // Send back only to the requesting user
+      ws.send(JSON.stringify({
+        type: 'transcription',
+        text: transcription,
+        timestamp: data.timestamp
+      }));
+      
+    } catch (error) {
+      console.error({ error }, 'Transcription request failed');
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: 'Transcription failed'
+      }));
+    }
   }
 };
 

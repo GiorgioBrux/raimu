@@ -9,9 +9,15 @@ export class VADManager {
   /**
    * Creates a new VADManager instance.
    */
-  constructor() {
+  constructor(transcriptionManager = null) {
     this.instances = new Map();
-    this.muted = new Map();  // Track mute state for each participant
+    this.muted = new Map();
+
+    this.vad = null;
+    this.audioContext = null;
+    this.speaking = false;
+    this.onSpeakingChange = null;
+    this.transcriptionManager = transcriptionManager;
   }
 
   /**
@@ -40,9 +46,16 @@ export class VADManager {
             log.debug({ containerId: container.id }, 'Speech started but muted');
           }
         },
-        onSpeechEnd: () => {
+        onSpeechEnd: (audioData) => {
           log.debug({ containerId: container.id }, 'Speech ended');
           onSpeakingChange(container, false);
+          
+          // Only process audio for transcription if not muted
+          if (!this.muted.get(container.id) && this.transcriptionManager) {
+            const wavBuffer = this._encodeWAV(audioData);
+            const base64 = this._arrayBufferToBase64(wavBuffer);
+            this.transcriptionManager.sendAudioForTranscription(base64);
+          }
         },
         modelURL: "v5",
         baseAssetPath: "/",
@@ -102,5 +115,85 @@ export class VADManager {
       this.instances.clear();
       this.muted.clear();
     }
+  }
+
+  /**
+   * Encodes audio data to WAV format
+   * @private
+   * @param {Float32Array} samples - Raw audio samples
+   * @returns {ArrayBuffer} WAV encoded audio
+   */
+  _encodeWAV(samples) {
+    const buffer = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(buffer);
+    
+    // Write WAV header
+    // "RIFF" identifier
+    this._writeString(view, 0, 'RIFF');
+    // File length
+    view.setUint32(4, 36 + samples.length * 2, true);
+    // "WAVE" identifier
+    this._writeString(view, 8, 'WAVE');
+    // "fmt " chunk identifier
+    this._writeString(view, 12, 'fmt ');
+    // Chunk length
+    view.setUint32(16, 16, true);
+    // Sample format (1 is PCM)
+    view.setUint16(20, 1, true);
+    // Mono channel
+    view.setUint16(22, 1, true);
+    // Sample rate (16000 for Whisper)
+    view.setUint32(24, 16000, true);
+    // Byte rate
+    view.setUint32(28, 16000 * 2, true);
+    // Block align
+    view.setUint16(32, 2, true);
+    // Bits per sample
+    view.setUint16(34, 16, true);
+    // "data" identifier
+    this._writeString(view, 36, 'data');
+    // Data chunk length
+    view.setUint32(40, samples.length * 2, true);
+    
+    // Write audio data
+    this._floatTo16BitPCM(view, 44, samples);
+    
+    return buffer;
+  }
+
+  /**
+   * Writes a string to a DataView
+   * @private
+   */
+  _writeString(view, offset, string) {
+    for (let i = 0; i < string.length; i++) {
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
+  }
+
+  /**
+   * Converts Float32Array to 16-bit PCM
+   * @private
+   */
+  _floatTo16BitPCM(view, offset, input) {
+    for (let i = 0; i < input.length; i++, offset += 2) {
+      const s = Math.max(-1, Math.min(1, input[i]));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+  }
+
+  /**
+   * Converts ArrayBuffer to base64 string
+   * @private
+   */
+  _arrayBufferToBase64(buffer) {
+    // Convert buffer to base64 in chunks to avoid call stack issues
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
   }
 } 

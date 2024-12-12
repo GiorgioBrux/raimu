@@ -20,7 +20,9 @@
   },
   "dependencies": {
     "@ricky0123/vad-web": "^0.0.21",
+    "dotenv": "^16.4.7",
     "onnxruntime-web": "^1.20.1",
+    "openai": "^4.76.1",
     "pino": "^9.5.0",
     "pino-pretty": "^13.0.0",
     "web-audio-peak-meter": "^3.1.0"

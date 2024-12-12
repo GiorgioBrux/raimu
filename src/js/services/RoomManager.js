@@ -398,33 +398,39 @@ export class RoomManager {
      * Handles incoming WebSocket messages
      * @private
      */
-    _handleWsMessage(msg) {
+    _handleWsMessage(event) {
         try {
-            const data = typeof msg === 'string' ? JSON.parse(msg) : msg;
-            log.debug({ 
-                messageType: data.type,
-                messageData: data,
-                hasEventHandler: !!this.eventHandler
-            }, 'Handling WebSocket message');
-            
-            const handlers = {
-                userJoined: this.eventHandler.handleUserJoined.bind(this.eventHandler),
-                userLeft: this.eventHandler.handleUserLeft.bind(this.eventHandler),
-                participants: this.eventHandler.handleParticipantsList.bind(this.eventHandler),
-                trackStateChange: this.eventHandler.handleTrackStateChange.bind(this.eventHandler),
-                roomCreated: this.eventHandler.handleRoomCreated.bind(this.eventHandler),
-                chat: this.eventHandler.handleMessage.bind(this.eventHandler)
-            };
+            const data = typeof event === 'string' ? JSON.parse(event) : event;
+            console.log('Client received:', data);
 
-            const handler = handlers[data.type];
-            if (handler) {
-                log.debug({ messageType: data.type }, 'Found handler, executing');
-                handler(data);
-            } else {
-                log.warn({ messageType: data.type }, 'No handler found for message type');
+            switch (data.type) {
+                case 'roomCreated':
+                    this.eventHandler.handleRoomCreated(data);
+                    break;
+                case 'userJoined':
+                    this.eventHandler.handleUserJoined(data);
+                    break;
+                case 'userLeft':
+                    this.eventHandler.handleUserLeft(data);
+                    break;
+                case 'chat':
+                    this.ui.handleChatMessage(data);
+                    break;
+                case 'transcription':
+                    this.roomUI.transcriptionManager?.addTranscription(
+                        data.text,
+                        this.userId,
+                        data.timestamp
+                    );
+                    break;
+                case 'error':
+                    this.eventHandler.handleError(data);
+                    break;
+                default:
+                    console.warn('Unknown message type:', data.type);
             }
         } catch (error) {
-            log.error({ error, rawMessage: msg }, 'Error handling WebSocket message');
+            console.error('Error handling message:', error);
         }
     }
 
