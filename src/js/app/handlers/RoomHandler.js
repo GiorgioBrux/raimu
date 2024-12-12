@@ -75,6 +75,7 @@ export class RoomHandler {
         // Initialize room UI
         const roomUI = new RoomUI(roomManager);
         await roomUI.initialize();
+        roomManager.setRoomUI(roomUI);
         this.serviceManager.setService('roomUI', roomUI);
 
         this.setupRoomCallbacks(roomManager);

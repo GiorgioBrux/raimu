@@ -40,7 +40,10 @@ export class UIElements {
         PIN: document.getElementById('pinDisplay'),
         copyPinBtn: document.getElementById('copyPinBtn'),
         controls: this.initializeControls(),
-        settingsModal: document.getElementById('settingsModal')
+        settingsModal: document.getElementById('settingsModal'),
+        chatInput: document.getElementById('chatInput'),
+        sendMessage: document.getElementById('sendMessage'),
+        chatMessages: document.getElementById('chatMessages'),
       };
 
       return this.validateElements();

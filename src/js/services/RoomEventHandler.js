@@ -9,10 +9,21 @@ export class RoomEventHandler {
     /**
      * Creates a new RoomEventHandler instance
      * @param {import('../services/RoomManager.js').RoomManager} roomManager - The room manager instance to handle events for
+     * @param {import('../services/RoomUI.js').RoomUI} roomUI - The room UI instance
      */
-    constructor(roomManager) {
+    constructor(roomManager, roomUI = null) {
         this.roomManager = roomManager;
+        this.roomUI = roomUI;
     }
+
+    /**
+     * Updates the RoomUI reference
+     * @param {import('../services/RoomUI.js').RoomUI} roomUI 
+     */
+    setRoomUI(roomUI) {
+        this.roomUI = roomUI;
+    }
+
     /**
      * Handles when a new user joins the room. Adds them to participants list
      * and sends current track states.
@@ -30,6 +41,15 @@ export class RoomEventHandler {
                     
             this._addParticipant(data.userId, data.userName);
             this._sendCurrentTrackStates(data.userId);
+            
+            // Add system message for user joining
+            if (this.roomUI) {
+                this.roomUI.handleChatMessage({
+                    sender: 'system',
+                    message: `${data.userName} joined the room`,
+                    timestamp: new Date().toISOString()
+                });
+            }
         }
     }
 
@@ -50,6 +70,9 @@ export class RoomEventHandler {
 
         if (data.roomId === this.roomManager.roomId) {
             log.info({ userId: data.userId }, 'Participant left');
+            
+            // Get user name before removing from participants
+            const userName = this.roomManager.participants.get(data.userId)?.name || 'Anonymous';
             
             try {
                 // First stop any track state updates
@@ -92,6 +115,15 @@ export class RoomEventHandler {
                 // Clean up WebRTC connection last
                 log.debug({ userId: data.userId }, 'Cleaning up WebRTC connection');
                 this.roomManager.webrtc.removeConnection(data.userId);
+                
+                // Add system message for user leaving
+                if (this.roomUI) {
+                    this.roomUI.handleChatMessage({
+                        sender: 'system',
+                        message: `${userName} left the room`,
+                        timestamp: new Date().toISOString()
+                    });
+                }
                 
                 log.debug({ userId: data.userId }, 'Participant removal completed');
             } catch (error) {
@@ -239,6 +271,28 @@ export class RoomEventHandler {
             trackKind,
             enabled,
             targetUserId
+        });
+    }
+
+    /**
+     * Handles incoming messages from WebSocket
+     * @param {Object} message - Incoming message
+     */
+    handleMessage(message) {
+        if (!this.roomUI) {
+            console.warn('RoomUI not initialized for chat message');
+            return;
+        }
+        
+        // If it's our own message, use our username
+        const sender = message.sender === this.roomManager.userId ? 
+            this.roomManager.userName : 
+            this.roomManager.participants.get(message.sender)?.name || 'Anonymous';
+
+        this.roomUI.handleChatMessage({
+            sender,
+            message: message.message,
+            timestamp: message.timestamp
         });
     }
 } 

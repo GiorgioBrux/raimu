@@ -29,6 +29,9 @@ export class RoomManager {
         /** @type {RoomEventHandler} Handler for room-related events */
         this.eventHandler = new RoomEventHandler(this);
 
+        /** @type {import('../services/RoomUI.js').RoomUI|null} Room UI instance */
+        this.roomUI = null;
+
         // Set up WebSocket message handler
         this.ws.onMessage = this._handleWsMessage.bind(this);
         log.debug('WebSocket message handler bound');
@@ -69,6 +72,14 @@ export class RoomManager {
         this.onParticipantLeft = null;
     }
 
+    /**
+     * Sets the RoomUI instance and updates event handler
+     * @param {import('../services/RoomUI.js').RoomUI} roomUI 
+     */
+    setRoomUI(roomUI) {
+        this.roomUI = roomUI;
+        this.eventHandler.setRoomUI(roomUI);
+    }
 
     /**
      * Gets list of participants in a room
@@ -401,7 +412,8 @@ export class RoomManager {
                 userLeft: this.eventHandler.handleUserLeft.bind(this.eventHandler),
                 participants: this.eventHandler.handleParticipantsList.bind(this.eventHandler),
                 trackStateChange: this.eventHandler.handleTrackStateChange.bind(this.eventHandler),
-                roomCreated: this.eventHandler.handleRoomCreated.bind(this.eventHandler)
+                roomCreated: this.eventHandler.handleRoomCreated.bind(this.eventHandler),
+                chat: this.eventHandler.handleMessage.bind(this.eventHandler)
             };
 
             const handler = handlers[data.type];

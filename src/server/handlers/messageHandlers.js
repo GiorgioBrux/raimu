@@ -145,6 +145,34 @@ export const messageHandlers = {
         enabled: data.enabled
       }, ws);
     }
+  },
+
+  chat: (ws, data, { roomService }) => {
+    const room = roomService.getRoomById(data.roomId);
+    if (!room) {
+      console.log("Ignoring chat message for room:", data.roomId);
+      return;
+    }
+
+    console.log("WS connection info:", ws.connectionInfo);
+
+    // Check if sender exists in room
+    if (!room.participants.has(ws.connectionInfo.userId)) {
+      console.log("Sender not found in room:", ws.connectionInfo.userId);
+      return;
+    }
+
+    // Broadcast the chat message to all participants in the room
+    const chatMessage = {
+        type: 'chat',
+        sender: ws.connectionInfo.userId,
+        message: data.message,
+        timestamp: data.timestamp
+    };
+
+    console.log('Broadcasting chat message:', chatMessage);
+
+    roomService.broadcastToRoom(room.id, chatMessage);
   }
 };
 
@@ -168,4 +196,4 @@ export function handleMessage(ws, message, services) {
       message: 'Internal server error'
     }));
   }
-} 
+}

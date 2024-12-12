@@ -101,24 +101,6 @@ export class ComponentLoader {
     }
 
     /**
-     * Loads an external script
-     * @private
-     * @param {string} src - Script source URL
-     */
-    async _loadExternalScript(src) {
-        try {
-            const response = await fetch(src);
-            const content = await response.text();
-            const script = document.createElement('script');
-            script.textContent = content;
-            document.head.appendChild(script);
-        } catch (error) {
-            logger.error({ error, src }, 'Failed to load external script');
-            throw error;
-        }
-    }
-
-    /**
      * Fetches a component from the server
      * @param {string} path - Component path
      * @param {boolean} [useCache=false] - Whether to use cache

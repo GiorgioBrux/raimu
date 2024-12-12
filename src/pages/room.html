@@ -2,42 +2,40 @@
   <!-- Header -->
   <header class="fixed top-0 left-0 right-0 bg-slate-900/50 backdrop-blur-md border-b border-lime-400/10 z-50">
     <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-      <div class="flex items-center gap-3">
-        <div class="flex items-center gap-2">
-          <span class="text-lg font-bold bg-gradient-to-r from-lime-300 to-lime-500 bg-clip-text text-transparent">
-            Raimu
-          </span>
-          <img src="/logo.svg" alt="Raimu" class="w-6 h-6"/>
-        </div>
-        <div class="w-px h-4 bg-lime-400/10"></div>
-        <span id="roomName" class="text-sm text-slate-400"></span>
-        <div class="w-px h-4 bg-lime-400/10"></div>
+      <div class="flex items-center gap-2">
+        <span class="text-lg font-bold bg-gradient-to-r from-lime-300 to-lime-500 bg-clip-text text-transparent">
+          Raimu
+        </span>
+        <img src="/logo.svg" alt="Raimu" class="w-6 h-6 hidden sm:block"/>
+      </div>
+      <div class="flex items-center">
         <!-- PIN Display -->
-        <div class="flex items-center gap-2">
-          <div class="flex items-center gap-1.5 select-none cursor-default">
-            <span class="text-xs font-medium text-slate-500">PIN:</span>
-            <div class="flex items-center select-none cursor-default" id="pinDisplay">
-              <!-- PIN dots will be inserted here dynamically -->
-            </div>
+        <div class="flex items-center gap-1.5 select-none cursor-default">
+          <span class="text-xs font-medium text-slate-500">PIN</span>
+          <div class="flex items-center select-none cursor-default" id="pinDisplay">
+            <!-- PIN dots will be inserted here -->
           </div>
-          <button id="copyPinBtn" 
-                  class="p-1.5 hover:bg-white/5 rounded-lg transition-colors relative group">
-            <svg class="w-4 h-4 text-slate-400 group-hover:text-lime-400 transition-colors copy-icon" 
-                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                    d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-            </svg>
-            <svg class="w-4 h-4 text-lime-400 transition-colors check-icon hidden" 
-                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                    d="M5 13l4 4L19 7" />
-            </svg>
-            <span class="absolute left-1/2 -translate-x-1/2 -bottom-8 px-2 py-1 bg-black/90 text-xs rounded 
-                       opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              Copy PIN
-            </span>
-          </button>
         </div>
+        <button id="copyPinBtn" 
+                class="p-1.5 hover:bg-white/5 rounded-lg transition-colors relative group ml-1">
+          <svg class="w-4 h-4 text-slate-400 group-hover:text-lime-400 transition-colors copy-icon" 
+               fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+          </svg>
+          <svg class="w-4 h-4 text-lime-400 transition-colors check-icon hidden" 
+               fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="absolute left-1/2 -translate-x-1/2 -bottom-8 px-2 py-1 bg-black/90 text-xs rounded 
+                     opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            Copy PIN
+          </span>
+        </button>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="roomName" class="text-sm text-slate-400 hidden sm:inline"></span>
       </div>
     </div>
   </header>
@@ -121,9 +119,9 @@
       </div>
 
       <!-- Bottom section -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[50vh] overflow-hidden">
         <!-- Transcription Area -->
-        <div class="bg-slate-900/50 backdrop-blur-sm border border-white/5 rounded-2xl p-4 transition-visibility panel-expanded">
+        <div class="bg-slate-900/50 backdrop-blur-sm border border-white/5 rounded-2xl p-4 transition-visibility panel-expanded flex flex-col h-full">
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-sm font-medium text-gray-400">Transcription</h3>
             <button id="toggleTranscription" class="p-1.5 hover:bg-white/5 rounded-lg transition-colors">
@@ -132,14 +130,24 @@
               </svg>
             </button>
           </div>
-          <div id="transcriptionText" class="flex-1 overflow-y-auto text-sm text-gray-300 space-y-2">
-            <!-- Transcriptions will be inserted here -->
+          <div id="transcriptionText" class="flex-1 overflow-y-auto text-sm text-gray-300 space-y-2 min-h-0 max-h-full">
+            <!-- Transcription placeholder -->
+            <div class="flex flex-col gap-2 opacity-30">
+              <div class="bg-slate-700/50 h-6 w-3/4 rounded"></div>
+              <div class="bg-slate-700/50 h-6 w-1/2 rounded"></div>
+              <div class="bg-slate-700/50 h-6 w-2/3 rounded"></div>
+              <div class="bg-slate-700/50 h-6 w-1/3 rounded"></div>
+              <div class="bg-slate-700/50 h-6 w-3/5 rounded"></div>
+              <div class="text-sm text-slate-500 italic text-center mt-2">
+                Transcriptions will appear here when participants speak...
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- Chat Area -->
-        <div class="bg-slate-900/50 backdrop-blur-sm border border-white/5 rounded-2xl p-4 transition-visibility panel-expanded">
-          <div class="flex items-center justify-between mb-3">
+        <div class="bg-slate-900/50 backdrop-blur-sm border border-white/5 rounded-2xl p-4 transition-visibility panel-expanded flex flex-col h-full">
+          <div class="flex items-center justify-between flex-shrink-0 mb-3">
             <h3 class="text-sm font-medium text-gray-400">Chat</h3>
             <button id="toggleChat" class="p-1.5 hover:bg-white/5 rounded-lg transition-colors">
               <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -147,10 +155,25 @@
               </svg>
             </button>
           </div>
-          <div id="chatMessages" class="flex-1 overflow-y-auto space-y-2">
-            <!-- Chat messages will be inserted here -->
+          <div class="flex-1 min-h-0 relative">
+            <div id="chatMessages" class="absolute inset-0 overflow-y-auto space-y-2 pr-2
+                     [&::-webkit-scrollbar]:w-2
+                     [&::-webkit-scrollbar-track]:bg-slate-800/20
+                     [&::-webkit-scrollbar-thumb]:bg-lime-500/20
+                     [&::-webkit-scrollbar-thumb]:rounded-full
+                     hover:[&::-webkit-scrollbar-thumb]:bg-lime-500/30
+                     [&::-webkit-scrollbar-thumb]:transition-colors">
+              <!-- Chat background pattern -->
+              <div class="absolute inset-0 opacity-[0.02] pointer-events-none">
+                <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M54.627 0l.83.828-1.415 1.415L51.8 0h2.827zM5.373 0l-.83.828L5.96 2.243 8.2 0H5.374zM48.97 0l3.657 3.657-1.414 1.414L46.143 0h2.828zM11.03 0L7.372 3.657 8.787 5.07 13.857 0H11.03zm32.284 0L49.8 6.485 48.384 7.9l-7.9-7.9h2.83zM16.686 0L10.2 6.485 11.616 7.9l7.9-7.9h-2.83zM22.344 0L13.858 8.485 15.272 9.9l7.9-7.9h-.828zm5.656 0L19.515 8.485 17.343 10.657 28 0h-2.83zM32.656 0L26.172 6.485 24 8.657 34.657 0h-2zM44.97 0L40.5 4.472 42.672 6.644 50 0h-5.03zm-12.656 0l6.485 6.485L36.157 8.828 30 2.672 36.157 0h-3.843zM0 5.373l.828-.83L2.243 5.96 0 8.2V5.374zm0 5.656l.828-.829L5.657 5.373 0 0v11.03z\' fill=\'%23a3e635\' fill-opacity=\'0.1\' fill-rule=\'evenodd\'/%3E%3C/svg%3E')"></div>
+              </div>
+              <!-- Empty state message -->
+              <div class="text-sm text-slate-500 italic text-center mt-4">
+                No messages yet. Start the conversation...
+              </div>
+            </div>
           </div>
-          <div class="flex gap-2 mt-3">
+          <div class="flex gap-2 mt-3 flex-shrink-0">
             <input type="text" id="chatInput" 
                    class="flex-1 px-4 py-2 bg-slate-800/50 border border-white/10 rounded-xl 
                           focus:outline-none focus:ring-2 focus:ring-blue-500/50
@@ -276,15 +299,6 @@
   </div>
 
   <style>
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: .5; }
-    }
-
-    .animate-pulse {
-      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-
     .peer-speaking {
       position: absolute;
       inset: 0;

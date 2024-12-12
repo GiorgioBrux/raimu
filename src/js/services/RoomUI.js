@@ -8,6 +8,7 @@ import { ParticipantVideo } from '../ui/room/ParticipantVideo.js';
 import { PanelManager } from '../ui/room/PanelManager.js';
 import { uiLogger as log } from '../utils/logger.js';
 import { ParticipantMuteManager } from '../ui/room/ParticipantMuteManager.js';
+import { ChatManager } from '../ui/room/ChatManager.js';
 
 /**
  * Manages the user interface components for a video chat room
@@ -51,7 +52,7 @@ export class RoomUI {
       this.vadManager = new VADManager();
       this.headerManager = new HeaderManager(elements.roomName, elements.PIN, elements.copyPinBtn);
       this.settingsControl = new SettingsControl(elements.controls, elements.settingsModal, this.roomManager, this);
-
+      this.chatManager = new ChatManager(elements, this.roomManager.ws, this.roomManager.roomId);
 
       this.setupEventListeners();
       this.initialized = true;
@@ -250,5 +251,16 @@ export class RoomUI {
     log.debug('Cleaning up Room UI');
     this.vadManager.cleanup();
     this.muteManager.cleanup();
+  }
+
+  /**
+   * Handles incoming chat messages
+   * @param {Object} data - The incoming chat message data
+   */
+  handleChatMessage(data) {
+    if (!this.initialized || !this.chatManager) return;
+    
+    const { sender, message, timestamp } = data;
+    this.chatManager.addMessage(sender, message, timestamp);
   }
 } 

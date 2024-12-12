@@ -59,11 +59,36 @@ export class RoomService {
 
   broadcastToRoom(roomId, message, exclude = null) {
     const room = this.rooms.get(roomId);
-    if (!room) return;
+    if (!room) {
+      console.log("Room not found:", roomId);
+      return;
+    }
+    
+    console.log("Broadcasting to room:", {
+      roomId,
+      participantCount: room.participants.size,
+      message
+    });
 
     for (const participant of room.participants.values()) {
-      if (participant.ws !== exclude && participant.ws.readyState === WebSocket.OPEN) {
-        participant.ws.send(JSON.stringify(message));
+      try {
+        console.log("Processing participant:", {
+          userId: participant.ws.connectionInfo?.userId,
+          readyState: participant.ws.readyState,
+          isExcluded: participant.ws === exclude
+        });
+
+        if (participant.ws !== exclude && participant.ws.readyState === WebSocket.OPEN) {
+          const stringifiedMessage = JSON.stringify(message);
+          console.log("Sending message:", stringifiedMessage);
+          participant.ws.send(JSON.stringify(message));
+          console.log("Message sent successfully to:", participant.ws.connectionInfo?.userId);
+        }
+      } catch (error) {
+        console.error("Error broadcasting to participant:", {
+          userId: participant.ws.connectionInfo?.userId,
+          error: error.message
+        });
       }
     }
   }
