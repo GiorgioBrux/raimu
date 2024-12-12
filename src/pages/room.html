@@ -14,15 +14,15 @@
         <div class="w-px h-4 bg-lime-400/10"></div>
         <!-- PIN Display -->
         <div class="flex items-center gap-2">
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-1.5 select-none cursor-default">
             <span class="text-xs font-medium text-slate-500">PIN:</span>
-            <div class="flex items-center" id="pinDisplay">
+            <div class="flex items-center select-none cursor-default" id="pinDisplay">
               <!-- PIN dots will be inserted here dynamically -->
             </div>
           </div>
           <button id="copyPinBtn" 
-                  class="p-1.5 hover:bg-white/5 rounded-lg transition-colors group relative">
-            <svg class="w-4 h-4 text-slate-400 hover:text-lime-400 transition-colors copy-icon" 
+                  class="p-1.5 hover:bg-white/5 rounded-lg transition-colors relative group">
+            <svg class="w-4 h-4 text-slate-400 group-hover:text-lime-400 transition-colors copy-icon" 
                  fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                     d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
@@ -33,7 +33,7 @@
                     d="M5 13l4 4L19 7" />
             </svg>
             <span class="absolute left-1/2 -translate-x-1/2 -bottom-8 px-2 py-1 bg-black/90 text-xs rounded 
-                       opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                       opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
               Copy PIN
             </span>
           </button>
