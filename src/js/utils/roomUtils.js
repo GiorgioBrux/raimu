@@ -9,7 +9,7 @@ import { roomLogger as log } from './logger.js';
  * @returns {string} UUID for room identification
  */
 export function generateRoomId() {
-    return crypto.randomUUID();
+    return window.crypto.randomUUID();
 }
 
 /**
@@ -25,7 +25,7 @@ export function generateRoomPIN() {
  * @returns {string} UUID for user identification
  */
 export function generateUserId() {
-    return crypto.randomUUID();
+    return window.crypto.randomUUID();
 }
 
 /**
