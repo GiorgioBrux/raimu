@@ -6,16 +6,9 @@ WORKDIR /app
 # Copy package files
 COPY package.json ./
 
-# Install dependencies
+# Install dependencies and build
 RUN bun install
-
-# Copy source files
 COPY . .
-
-# Debug: List files to verify case sensitivity
-RUN ls -la src/js/services/
-
-# Build the application
 RUN bun run build
 
 # Runtime stage
@@ -25,19 +18,17 @@ WORKDIR /app
 
 # Install Node.js and bun
 RUN apt-get update && apt-get install -y curl unzip git \
-    && curl -fsSL https://bun.sh/install | bash
+    && curl -fsSL https://bun.sh/install | bash \
+    && ln -s /root/.bun/bin/bun /usr/local/bin/bun
 
 # Copy Python requirements and install dependencies
 COPY src/server/python/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy built files and source
+# Copy built files, source and node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src ./src
-
-# Copy package files and install production dependencies
-COPY package.json ./
-RUN bun install --production --frozen-lockfile
+COPY --from=builder /app/node_modules ./node_modules
 
 # Expose required ports
 EXPOSE 5173 8080 9000
