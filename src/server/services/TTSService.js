@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 class TTSService {
     constructor() {
         this.initialized = true;
-        this.pythonServiceUrl = 'http://localhost:8001/tts';  // Python service URL
+        this.pythonServiceUrl = 'http://127.0.0.1:8001/tts';  // Python service URL
     }
 
     async synthesizeSpeech(text, language = 'en', transcribedAudio = null, transcribedText = null) {
