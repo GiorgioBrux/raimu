@@ -37,6 +37,8 @@ COPY --from=builder /app/src ./src
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/package-lock.json ./package-lock.json
+# Copy src/pages inside dist
+COPY --from=builder /app/src/pages ./dist/src/pages
 
 # Expose required ports
 EXPOSE 4000 19302

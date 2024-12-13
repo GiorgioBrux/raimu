@@ -48,7 +48,7 @@ export class HomeHandler {
                   };
             }
             else {
-                throw new Error('Failed to initialize home page');
+                throw new Error('Cannot find modal container');
             }
 
             this.setupCreateRoomHandler();
