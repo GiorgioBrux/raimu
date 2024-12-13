@@ -1,4 +1,4 @@
-:4173 {
+:4000 {
     # Proxy PeerJS server
     handle /peerjs* {
         reverse_proxy localhost:9000

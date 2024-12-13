@@ -39,7 +39,7 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/package-lock.json ./package-lock.json
 
 # Expose required ports
-EXPOSE 4173 19302
+EXPOSE 4000 19302
 
 # Create startup script
 RUN echo '#!/bin/bash\n\

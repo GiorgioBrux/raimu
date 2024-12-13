@@ -73,10 +73,10 @@ Terminal 6: Serve the built files
     bun run preview
 
 The application will be available at:
-- Web UI, WebSocket, and PeerJS: http://localhost:4173 (all through Caddy)
+- Web UI, WebSocket, and PeerJS: http://localhost:4000 (all through Caddy)
 - STUN Server: http://localhost:19302 (UDP)
 
-Only ports 4173 and 19302 need to be exposed to the outside world.
+Only ports 4000 and 19302 need to be exposed to the outside world.
 
 ### Troubleshooting
 
