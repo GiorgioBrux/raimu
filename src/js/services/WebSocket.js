@@ -37,7 +37,7 @@ export class WebSocketService {
 
   async checkServerHealth() {
     try {
-      const healthUrl = this.url.replace('ws:', 'http:').replace('/ws', '/ws/health');
+      const healthUrl = this.url.replace('ws:', 'http:').replace('wss:', 'https:').replace('/ws', '/ws/health');
       log.debug({ url: healthUrl }, 'Checking server health');
       const response = await fetch(healthUrl);
       const data = await response.json();
