@@ -66,13 +66,14 @@ export class VADManager {
           log.debug({ containerId: container.id }, 'Speech ended');
           onSpeakingChange(container, false);
           
-          // Only process audio for transcription if not muted
-          if (!this.muted.get(container.id) && this.transcriptionManager) {
+          // Only process audio for transcription if not muted and transcription manager exists
+          if (!this.muted.get(container.id) && 
+              this.transcriptionManager && 
+              !this.transcriptionManager.webrtc?.isAudioMuted()) {
             log.debug({ containerId: container.id }, 'Processing audio for transcription');
             const wavBuffer = this._encodeWAV(audioData);
             const base64 = this._arrayBufferToBase64(wavBuffer);
             
-            // Always send for transcription
             this.transcriptionManager.sendAudioForTranscription(base64);
           }
         },

@@ -11,16 +11,48 @@ export class StreamManager {
 
   async setupInitialStream() {
     try {
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true
-      });
+      // iOS-friendly constraints
+      const constraints = {
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user',
+          // Add these for iOS
+          frameRate: { max: 30 },
+          aspectRatio: { ideal: 1.7777777778 }
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      };
 
-      this.elements.video.srcObject = this.stream;
+      this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+      // Ensure video element is properly configured
+      if (this.elements.video) {
+        this.elements.video.setAttribute('playsinline', ''); // Required for iOS
+        this.elements.video.setAttribute('autoplay', '');
+        this.elements.video.setAttribute('muted', '');
+        this.elements.video.style.width = '100%';
+        this.elements.video.style.height = '100%';
+        this.elements.video.style.objectFit = 'cover';
+        
+        this.elements.video.srcObject = this.stream;
+        
+        // Explicitly play the video (important for iOS)
+        try {
+          await this.elements.video.play();
+        } catch (playError) {
+          log.warn({ error: playError }, 'Auto-play failed, may need user interaction');
+        }
+      }
       
       log.debug({
         hasVideo: this.stream.getVideoTracks().length > 0,
-        hasAudio: this.stream.getAudioTracks().length > 0
+        hasAudio: this.stream.getAudioTracks().length > 0,
+        videoSettings: this.stream.getVideoTracks()[0]?.getSettings()
       }, 'Initial media stream setup complete');
 
       return this.stream;

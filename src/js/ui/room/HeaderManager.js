@@ -45,15 +45,26 @@ export class HeaderManager {
             // Create PIN display groups
             PIN.match(/.{1,4}/g).forEach((group, groupIndex) => {
               const groupDiv = document.createElement('div');
-              groupDiv.className = 'flex gap-1 items-center group';
+              groupDiv.className = 'flex gap-1 items-center cursor-pointer';
               
               // Create dots display
               const dotsDisplay = document.createElement('div');
-              dotsDisplay.className = 'flex gap-1 absolute group-hover:opacity-0 transition-opacity';
+              dotsDisplay.className = 'flex gap-1 absolute transition-opacity';
               
               // Create numbers display
               const numbersDisplay = document.createElement('div');
-              numbersDisplay.className = 'flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity';
+              numbersDisplay.className = 'flex gap-1 opacity-0 transition-opacity';
+              
+              // Add click/touch handler
+              groupDiv.addEventListener('click', () => {
+                dotsDisplay.classList.toggle('opacity-0');
+                numbersDisplay.classList.toggle('opacity-100');
+                // Auto-hide after 2 seconds
+                setTimeout(() => {
+                  dotsDisplay.classList.remove('opacity-0');
+                  numbersDisplay.classList.remove('opacity-100');
+                }, 2000);
+              });
               
               // Add digits for this group
               [...group].forEach((digit) => {

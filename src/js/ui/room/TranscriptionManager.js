@@ -195,15 +195,25 @@ export class TranscriptionManager {
             log.debug({ containerId: container.id }, 'Destroyed old VAD instance');
         }
         
+        // Create a clone of the stream for VAD
+        const vadStream = stream.clone();
+        
         // Setup new VAD
         await vadManager.setupVAD(
-            stream,
+            vadStream,
             container,
             ParticipantVideo.updateSpeakingIndicators
         );
         
+        // Update the VAD stream's enabled state based on mute status
+        const audioTrack = vadStream.getAudioTracks()[0];
+        if (audioTrack) {
+            audioTrack.enabled = !this.webrtc?.isAudioMuted();
+        }
+        
         log.debug({ containerId: container.id }, 'VAD setup completed');
     }
+
     /**
      * Handles incoming TTS audio data by playing it through the local audio context
      * and updating the WebRTC stream that peers receive
@@ -305,5 +315,15 @@ export class TranscriptionManager {
 
     isEnabled() {
         return this.enabled;
+    }
+
+    // Add this new method to handle mute state changes
+    updateVADMuteState(isMuted) {
+        if (this.originalStream) {
+            const audioTrack = this.originalStream.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.enabled = !isMuted;
+            }
+        }
     }
 } 
