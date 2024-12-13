@@ -28,14 +28,13 @@ RUN apt-get update && apt-get install -y curl unzip \
 COPY src/server/python/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy built files from builder
+# Copy built files and source
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/src/server ./src/server
-COPY --from=builder /app/src/peerServer ./src/peerServer
+COPY --from=builder /app/src ./src
 
-# Copy package files for runtime dependencies
+# Copy package files and install production dependencies
 COPY package.json ./
-RUN bun install --production
+RUN bun install --production --frozen-lockfile
 
 # Expose required ports
 EXPOSE 5173 8080 9000
