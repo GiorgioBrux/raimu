@@ -34,7 +34,7 @@ COPY --from=builder /app/package-lock.json ./package-lock.json
 
 
 # Expose required ports
-EXPOSE 4173 9000
+EXPOSE 4173 19302
 
 # Create startup script
 RUN echo '#!/bin/bash\n\
@@ -42,6 +42,7 @@ bun run preview & \n\
 node src/peerServer/index.js & \n\
 node src/server/index.js & \n\
 cd src/server/python && python tts_server.py & \n\
+node src/js/stunServer/index.js & \n\
 wait' > /app/start.sh && chmod +x /app/start.sh
 
 CMD ["/app/start.sh"] 

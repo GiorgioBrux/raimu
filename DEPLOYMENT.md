@@ -65,9 +65,12 @@ Terminal 4: Serve the built files
 
 The application will be available at:
 - Web UI: http://localhost:5173 (dev) or http://localhost:4173 (preview)
-- Signaling Server: http://localhost:8080
-- Peer Server: http://localhost:9000 (default PeerJS port)
+- WebSocket Backend: http://localhost:8080 (internal service)
+- Peer Server: http://localhost:9000 (internal service)
 - TTS Server: http://localhost:8001 (internal service)
+- STUN Server: http://localhost:19302
+
+Internal services don't need to be exposed to the outside world.
 
 ### Troubleshooting
 
@@ -98,15 +101,13 @@ If you have Traefik set up, you can use the provided docker-compose.yml:
 
 The container exposes these ports:
 - 4173: Web UI
-- 8080: WebSocket Backend
-- 9000: PeerJS Server
+- 19302: STUN server
 
 You can use your preferred reverse proxy or Docker setup. Example with plain Docker:
 
     docker run -d \
       -p 4173:4173 \
-      -p 8080:8080 \
-      -p 9000:9000 \
+      -p 19302:19302 \
       -e OPENAI_API_KEY=your_key_here \
       ghcr.io/giorgiobrux/raimu:latest
 

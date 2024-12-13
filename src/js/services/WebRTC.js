@@ -77,8 +77,8 @@ export class WebRTCService {
         log.debug({ attempt: attemptCount, retries }, 'Connection attempt');
 
         this.peer = new Peer(userId, {
-          host: 'localhost',
-          port: 9000,
+          host: window.location.hostname,
+          port: window.location.port,
           path: '/peerjs',
           debug: 2,
           config: this.config

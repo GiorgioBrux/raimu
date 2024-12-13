@@ -7,7 +7,8 @@
     "dev:vite": "vite",
     "dev:peer": "node src/peerServer/index.js",
     "dev:signaling": "node --expose-gc src/server/index.js",
-    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:peer\" \"npm run dev:signaling\"",
+    "dev:stun": "node src/js/stunServer/index.js",
+    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:peer\" \"npm run dev:signaling\" \"npm run dev:stun\"",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0"
   },
@@ -22,6 +23,7 @@
     "@huggingface/transformers": "^3.1.2",
     "@ricky0123/vad-web": "^0.0.21",
     "dotenv": "^16.4.7",
+    "node-stun": "^0.1.2",
     "onnxruntime-web": "^1.20.1",
     "openai": "^4.76.1",
     "pino": "^9.5.0",

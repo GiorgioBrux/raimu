@@ -31,8 +31,9 @@ export class ServiceManager {
         try {
             const webrtcConfig = {
                 iceServers: [
-                    // Use deployed STUN server or fallback to Google's
-                    { urls: `stun:${window.location.hostname}:9000` },
+                    // Our STUN server
+                    { urls: `stun:${window.location.hostname}:19302` },
+                    // Keep Google's STUN servers as fallback
                     { urls: 'stun:stun.l.google.com:19302' },
                     { urls: 'stun:stun1.l.google.com:19302' }
                 ],
