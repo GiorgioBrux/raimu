@@ -67,8 +67,8 @@ initializeServices().then(() => {
     // Start server
     server.listen(SERVER_CONFIG.port, SERVER_CONFIG.host, () => {
         console.log(`WebSocket server running on port ${SERVER_CONFIG.port}`);
-        console.log(`WebSocket endpoint: ws://localhost:${SERVER_CONFIG.port}${SERVER_CONFIG.wsPath}`);
-        console.log(`Health check endpoint: http://localhost:${SERVER_CONFIG.port}/health`);
+        console.log(`WebSocket endpoint: ws://${SERVER_CONFIG.host}:${SERVER_CONFIG.port}${SERVER_CONFIG.wsPath}`);
+        console.log(`Health check endpoint: http://${SERVER_CONFIG.host}:${SERVER_CONFIG.port}/ws/health`);
     });
 
     // Handle process termination

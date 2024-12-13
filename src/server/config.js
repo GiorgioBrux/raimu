@@ -12,7 +12,7 @@ export function createServer() {
   });
 
   // Health check endpoint
-  app.get('/health', (req, res) => {
+  app.get('/ws/health', (req, res) => {
     res.json({ status: 'ok' });
   });
 

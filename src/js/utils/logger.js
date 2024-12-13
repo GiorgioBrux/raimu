@@ -47,8 +47,8 @@ const prettyPrint = {
   }
 };
 
-// Get log level from environment or default to 'info'
-const LOG_LEVEL = process.env.LOG_LEVEL?.toLowerCase() || 'debug';
+// Get log level from environment
+const LOG_LEVEL = (typeof process !== 'undefined' && process.env?.LOG_LEVEL?.toLowerCase()) || 'debug';
 
 export const logger = pino({
   browser: {

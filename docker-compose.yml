@@ -28,12 +28,6 @@ services:
       traefik.http.routers.raimu.tls.options: securetls@file 
       traefik.http.services.raimu.loadbalancer.server.port: 4173
 
-      # WebSocket Backend
-      traefik.http.routers.raimu-ws.rule: Host(`raimu.${DOMAIN}`) && PathPrefix(`/ws`)
-      traefik.http.routers.raimu-ws.entrypoints: websecure
-      traefik.http.routers.raimu-ws.tls: true
-      traefik.http.services.raimu-ws.loadbalancer.server.port: 8080
-
       # PeerJS Server
       traefik.http.routers.raimu-peer.rule: Host(`peer.raimu.${DOMAIN}`)
       traefik.http.routers.raimu-peer.entrypoints: websecure

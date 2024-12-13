@@ -31,18 +31,22 @@ export class ServiceManager {
         try {
             const webrtcConfig = {
                 iceServers: [
-                    // Local server
-                    { urls: 'stun:localhost:9000' },
+                    // Use deployed STUN server or fallback to Google's
+                    { urls: `stun:${window.location.hostname}:9000` },
                     { urls: 'stun:stun.l.google.com:19302' },
                     { urls: 'stun:stun1.l.google.com:19302' }
                 ],
                 iceCandidatePoolSize: 10
             };
 
-            this.services.ws = new WebSocketService('ws://localhost:8080/ws');
+            // Use secure WebSocket if page is served over HTTPS
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+            logger.info({ wsUrl }, 'WebSocket URL');
+            this.services.ws = new WebSocketService(wsUrl);
             this.services.roomManager = new RoomManager(this.services.ws, webrtcConfig);
             
-            logger.info({ webrtcConfig }, 'Core services initialized');
+            logger.info({ webrtcConfig, wsUrl }, 'Core services initialized');
         } catch (error) {
             logger.error({ error }, 'Failed to initialize services');
             throw error;
