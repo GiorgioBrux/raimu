@@ -35,17 +35,24 @@ export class StreamManager {
         this.elements.video.setAttribute('playsinline', ''); // Required for iOS
         this.elements.video.setAttribute('autoplay', '');
         this.elements.video.setAttribute('muted', '');
+        this.elements.video.muted = true; // Explicitly set muted property
         this.elements.video.style.width = '100%';
         this.elements.video.style.height = '100%';
         this.elements.video.style.objectFit = 'cover';
         
         this.elements.video.srcObject = this.stream;
         
-        // Explicitly play the video (important for iOS)
+        // For iOS Safari, we need to play immediately while muted
         try {
           await this.elements.video.play();
         } catch (playError) {
-          log.warn({ error: playError }, 'Auto-play failed, may need user interaction');
+          log.warn({ error: playError }, 'Auto-play failed, will retry after user interaction');
+          // Add click handler to try playing again
+          this.elements.video.addEventListener('click', () => {
+            this.elements.video.play().catch(e => 
+              log.error({ error: e }, 'Failed to play video after user interaction')
+            );
+          }, { once: true });
         }
       }
       

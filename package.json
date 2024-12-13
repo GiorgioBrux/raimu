@@ -9,7 +9,7 @@
     "dev:signaling": "node --expose-gc src/server/index.js",
     "dev:stun": "node src/js/stunServer/index.js",
     "dev:tts": "python src/server/python/tts_server.py",
-    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:peer\" \"npm run dev:signaling\" \"npm run dev:stun\"",
+    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:peer\" \"npm run dev:signaling\" \"npm run dev:stun\" \"npm run dev:tts\"",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0"
   },

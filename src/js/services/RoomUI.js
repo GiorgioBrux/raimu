@@ -236,9 +236,18 @@ export class RoomUI {
         return;
     }
     
-    video.play().catch(error => {
-        log.error({ error }, 'Failed to play local video');
-    });
+    video.muted = true; // Ensure muted for iOS Safari
+    try {
+       video.play();
+    } catch (error) {
+        log.warn({ error }, 'Auto-play failed, will retry after user interaction');
+        // Add click handler to try playing again
+        video.addEventListener('click', () => {
+            video.play().catch(e => 
+                log.error({ error: e }, 'Failed to play video after user interaction')
+            );
+        }, { once: true });
+    }
 
     ParticipantVideo.updateMediaState(
         container,
