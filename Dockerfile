@@ -12,6 +12,9 @@ RUN bun install
 # Copy source files
 COPY . .
 
+# Debug: List files to verify case sensitivity
+RUN ls -la src/js/services/
+
 # Build the application
 RUN bun run build
 
