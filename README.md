@@ -5,7 +5,7 @@
 Raimu is a sleek, browser-based video chat platform that brings a fresh twist to online communication. Like its namesake - the Japanese word for lime - it's refreshingly simple, yet full of zest.
 
 ## Try It Out
-Visit [raimu.reizouko.eu](https://raimu.reizouko.eu) to use the hosted instance, or check out [DEPLOYMENT.md](DEPLOYMENT.md) for self-hosting instructions.
+Visit [raimu.cursedkarma.com](https://raimu.cursedkarma.com) to use the hosted instance, or check out [DEPLOYMENT.md](DEPLOYMENT.md) for self-hosting instructions.
 
 ## What Makes Raimu Special
 
