@@ -29,7 +29,7 @@ export class HeaderManager {
      */
     updateRoomName(roomName) {
         if (this.roomName) {
-            this.roomName.textContent = roomName != null ? roomName : 'Unnamed Room';
+            this.roomName.textContent = roomName ? roomName : 'Unnamed Room';
         }
     }
 
