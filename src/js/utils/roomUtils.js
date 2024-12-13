@@ -9,7 +9,16 @@ import { roomLogger as log } from './logger.js';
  * @returns {string} UUID for room identification
  */
 export function generateRoomId() {
-    return window.crypto.randomUUID();
+    try {
+        return window?.crypto?.randomUUID() || crypto.randomUUID();
+    } catch (error) {
+        // Fallback to UUID v4 implementation
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
 }
 
 /**
@@ -25,7 +34,16 @@ export function generateRoomPIN() {
  * @returns {string} UUID for user identification
  */
 export function generateUserId() {
-    return window.crypto.randomUUID();
+    try {
+        return window?.crypto?.randomUUID() || crypto.randomUUID();
+    } catch (error) {
+        // Fallback to UUID v4 implementation
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
 }
 
 /**
