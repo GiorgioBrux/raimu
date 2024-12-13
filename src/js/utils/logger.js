@@ -47,6 +47,9 @@ const prettyPrint = {
   }
 };
 
+// Get log level from environment or default to 'info'
+const LOG_LEVEL = process.env.LOG_LEVEL?.toLowerCase() || 'debug';
+
 export const logger = pino({
   browser: {
     write: {
@@ -56,7 +59,7 @@ export const logger = pino({
       debug: (o) => console.debug(prettyPrint.messageFormat(o, 'msg', 'DEBUG')),
     }
   },
-  level: 'debug',
+  level: LOG_LEVEL,
   formatters,
   options: prettyPrint
 });

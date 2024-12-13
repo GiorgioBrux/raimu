@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  raimu:
+    build: .
+    ports:
+      - "5173:5173"  # Web UI
+      - "8080:8080"  # Signaling Server
+      - "9000:9000"  # Peer Server
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LOG_LEVEL=info
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped 

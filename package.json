@@ -7,12 +7,12 @@
     "dev:vite": "vite",
     "dev:peer": "node src/peerServer/index.js",
     "dev:signaling": "node --expose-gc src/server/index.js",
-    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:peer\" \"npm run dev:signaling\"",
+    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:peer\" \"npm run dev:signaling\" \"cd src/server/python && python tts_server.py\"",
     "build": "vite build",
     "preview": "vite preview"
   },
   "devDependencies": {
-    "concurrently": "^9.1.0",
+    "concurrently": "^8.2.0",
     "peer": "^1.0.2",
     "peerjs": "^1.5.4",
     "vite": "^6.0.3",

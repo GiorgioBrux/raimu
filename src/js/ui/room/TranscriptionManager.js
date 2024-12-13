@@ -204,7 +204,12 @@ export class TranscriptionManager {
         
         log.debug({ containerId: container.id }, 'VAD setup completed');
     }
-
+    /**
+     * Handles incoming TTS audio data by playing it through the local audio context
+     * and updating the WebRTC stream that peers receive
+     * @param {string} base64Audio - Base64 encoded audio data to be played
+     * @returns {Promise<void>}
+     */
     async handleTTSAudio(base64Audio) {
         if (!this.currentStream || !this.voiceTTSEnabled.checked || !this.webrtc) return;
 
