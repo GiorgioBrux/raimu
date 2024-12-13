@@ -43,6 +43,9 @@ export class StreamManager {
         log.debug({ deviceId }, 'Updating video device');
         await this.ensureStream();
 
+        // Store current enabled state
+        const currentEnabled = this.stream.getVideoTracks()[0]?.enabled ?? true;
+
         const newStream = await navigator.mediaDevices.getUserMedia({
             video: { deviceId: { exact: deviceId } },
             audio: false
@@ -54,16 +57,20 @@ export class StreamManager {
         log.debug({
             newTrackId: videoTrack?.id,
             oldTrackId: oldTrack?.id,
-            deviceId
+            deviceId,
+            preservingState: currentEnabled
         }, 'Replacing video track');
 
         if (oldTrack) oldTrack.stop();
         this.stream.removeTrack(oldTrack);
+        
+        // Preserve enabled state
+        videoTrack.enabled = currentEnabled;
         this.stream.addTrack(videoTrack);
         
         this.elements.video.srcObject = this.stream;
         this.saveSettings();
-        log.debug({ deviceId, trackId: videoTrack.id }, 'Video device updated successfully');
+        log.debug({ deviceId, trackId: videoTrack.id, enabled: videoTrack.enabled }, 'Video device updated successfully');
         if (this.onStreamUpdate) {
             this.onStreamUpdate(this.stream);
         }
@@ -78,6 +85,9 @@ export class StreamManager {
         log.debug({ deviceId }, 'Updating audio device');
         await this.ensureStream();
 
+        // Store current enabled state
+        const currentEnabled = this.stream.getAudioTracks()[0]?.enabled ?? true;
+
         const newStream = await navigator.mediaDevices.getUserMedia({
             audio: { deviceId: { exact: deviceId } },
             video: false
@@ -89,11 +99,15 @@ export class StreamManager {
         log.debug({
             newTrackId: audioTrack?.id,
             oldTrackId: oldTrack?.id,
-            deviceId
+            deviceId,
+            preservingState: currentEnabled
         }, 'Replacing audio track');
 
         if (oldTrack) oldTrack.stop();
         this.stream.removeTrack(oldTrack);
+        
+        // Preserve enabled state
+        audioTrack.enabled = currentEnabled;
         this.stream.addTrack(audioTrack);
 
         if (this.audioMeter && this.audioMeter.audioContext && this.audioMeter.audioSource) {
@@ -103,7 +117,7 @@ export class StreamManager {
         }
 
         this.saveSettings();
-        log.debug({ deviceId, trackId: audioTrack.id }, 'Audio device updated successfully');
+        log.debug({ deviceId, trackId: audioTrack.id, enabled: audioTrack.enabled }, 'Audio device updated successfully');
         if (this.onStreamUpdate) {
             this.onStreamUpdate(this.stream);
         }

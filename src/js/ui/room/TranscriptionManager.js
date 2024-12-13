@@ -75,25 +75,23 @@ export class TranscriptionManager {
                 const localVideo = this.uiElements.getElements().localVideo;
                 const videoElement = localVideo?.querySelector('video');
 
-                if (enabled) {
-                    // Get current video constraints before enabling TTS
-                    const videoTrack = this.currentStream.getVideoTracks()[0];
-                    const videoConstraints = videoTrack?.getConstraints() || { width: 1280, height: 720 };
+                // Store current video enabled state
+                const videoTrack = this.currentStream.getVideoTracks()[0];
+                const isVideoEnabled = videoTrack?.enabled ?? false;
+                const videoConstraints = videoTrack?.getConstraints() || { width: 1280, height: 720 };
 
+                if (enabled) {
                     // Store a fresh stream for VAD and local display
                     this.originalStream = await navigator.mediaDevices.getUserMedia({ 
                         audio: true, 
-                        video: videoConstraints  // Use current constraints
+                        video: videoConstraints
                     });
                     
-                    log.debug({
-                        tracks: this.originalStream.getTracks().map(t => ({
-                            kind: t.kind,
-                            enabled: t.enabled,
-                            id: t.id,
-                            constraints: t.getConstraints()
-                        }))
-                    }, 'Got fresh stream for VAD');
+                    // Match previous video enabled state
+                    const newVideoTrack = this.originalStream.getVideoTracks()[0];
+                    if (newVideoTrack) {
+                        newVideoTrack.enabled = isVideoEnabled;
+                    }
 
                     // Update local video display with original stream
                     if (videoElement) {
@@ -104,7 +102,8 @@ export class TranscriptionManager {
                     const silentStream = new MediaStream();
                     const originalVideoTrack = this.originalStream.getVideoTracks()[0];
                     if (originalVideoTrack) {
-                        silentStream.addTrack(originalVideoTrack);  // Use the same track, don't clone
+                        silentStream.addTrack(originalVideoTrack);
+                        originalVideoTrack.enabled = isVideoEnabled;  // Match video state
                     }
                     
                     // Create silent audio track for peers
@@ -132,33 +131,24 @@ export class TranscriptionManager {
                     // Clean up original stream
                     if (this.originalStream) {
                         this.originalStream.getTracks().forEach(track => {
-                            if (track.kind === 'audio') {  // Only stop audio tracks
+                            if (track.kind === 'audio') {
                                 track.stop();
                             }
                         });
                         this.originalStream = null;
                     }
 
-                    // Get current video constraints
-                    const videoTrack = this.currentStream.getVideoTracks()[0];
-                    const videoConstraints = videoTrack?.getConstraints() || { width: 1280, height: 720 };
-
-                    log.debug({ videoConstraints }, 'Using current video constraints for new stream');
-
-                    // Get fresh stream with current video settings
+                    // Get fresh stream with current settings
                     const newStream = await navigator.mediaDevices.getUserMedia({ 
                         audio: true, 
-                        video: videoConstraints  // Use current constraints
+                        video: videoConstraints
                     });
                     
-                    log.debug({
-                        tracks: newStream.getTracks().map(t => ({
-                            kind: t.kind,
-                            enabled: t.enabled,
-                            id: t.id,
-                            constraints: t.kind === 'video' ? t.getConstraints() : null
-                        }))
-                    }, 'Got fresh stream with current settings');
+                    // Match previous video enabled state
+                    const newVideoTrack = newStream.getVideoTracks()[0];
+                    if (newVideoTrack) {
+                        newVideoTrack.enabled = isVideoEnabled;
+                    }
 
                     // Update local video element with new stream
                     if (videoElement) {
