@@ -1,6 +1,6 @@
-<div class="snap-y snap-mandatory h-screen overflow-y-scroll">
+<div class="snap-y snap-mandatory h-screen overflow-y-auto">
     <!-- Hero Section - Add snap -->
-    <div class="snap-start h-screen flex flex-col relative">
+    <div class="snap-start min-h-screen flex flex-col relative">
         <!-- Background gradients -->
         <div class="fixed inset-0 overflow-hidden -z-10">
             <!-- Base gradient -->
@@ -16,10 +16,10 @@
                  background-repeat: repeat;"></div>
         </div>
 
-        <!-- Main content - Add overflow-y-auto -->
-        <div class="relative min-h-screen flex flex-col overflow-y-auto">
+        <!-- Main content - Remove overflow-y-auto -->
+        <div class="relative flex-1 flex flex-col">
             <!-- Center section -->
-            <main class="flex-1 flex items-center justify-center px-6 py-12">
+            <main class="flex-1 flex items-center justify-center px-6 py-16 md:py-12">
                 <div class="w-full max-w-4xl mx-auto flex flex-col items-center">
                     <!-- Logo and Title - reduced spacing -->
                     <div class="flex flex-col items-center space-y-8">
@@ -66,8 +66,8 @@
                 </div>
             </main>
 
-            <!-- Scroll indicator - Fixed position relative to viewport -->
-            <div class="fixed bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center text-lime-400/30">
+            <!-- Scroll indicator - Adjust positioning -->
+            <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center text-lime-400/30">
                 <span class="text-sm font-medium mb-3">Scroll to learn more</span>
                 <svg class="w-6 h-6 animate-[bounce_3s_ease-in-out_infinite]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -169,8 +169,8 @@
         </div>
     </div>
 
-    <!-- Features Section -->
-    <div class="snap-start h-screen relative overflow-y-auto">
+    <!-- Features Section - Fix height and overflow -->
+    <div class="snap-start min-h-screen relative">
         <section class="min-h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 py-8 md:py-16">
             <div class="container mx-auto px-4 md:px-6 h-full flex flex-col justify-center">
                 <!-- Introduction - adjusted spacing -->
