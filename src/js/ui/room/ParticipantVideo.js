@@ -22,6 +22,60 @@ export class ParticipantVideo {
     // Initial state setup
     this.updateMediaState(container, videoTrack?.enabled ?? false, audioTrack?.enabled ?? false);
     
+    // Set up video element with Safari-friendly attributes
+    const video = container.querySelector('video');
+    if (video) {
+      video.setAttribute('playsinline', '');
+      video.setAttribute('autoplay', '');
+      
+      // Clear any existing source
+      try {
+        video.srcObject = null;
+        video.srcObject = stream;
+      } catch (srcError) {
+        log.warn({ error: srcError }, 'Failed to set srcObject directly, trying URL.createObjectURL fallback');
+        try {
+          video.src = URL.createObjectURL(stream);
+        } catch (urlError) {
+          log.error({ error: urlError }, 'Failed to set video source');
+        }
+      }
+
+      // Handle playback with retries
+      const attemptPlay = async () => {
+        try {
+          await video.play();
+          log.debug({ containerId: container.id }, 'Remote video playback started');
+        } catch (playError) {
+          if (playError.name === 'NotSupportedError') {
+            log.warn({ error: playError }, 'Remote play not supported yet, retrying...');
+            setTimeout(attemptPlay, 1000);
+          } else {
+            log.warn({ error: playError }, 'Remote auto-play failed, adding click handler');
+            const playHandler = async () => {
+              try {
+                await video.play();
+                document.removeEventListener('click', playHandler);
+              } catch (retryError) {
+                if (retryError.name === 'NotSupportedError') {
+                  log.warn('Remote stream not ready, waiting...');
+                  setTimeout(attemptPlay, 1000);
+                } else {
+                  log.error({ error: retryError }, 'Remote play failed after user interaction');
+                }
+              }
+            };
+            document.addEventListener('click', playHandler);
+          }
+        }
+      };
+
+      video.addEventListener('loadedmetadata', () => {
+        attemptPlay();
+      });
+    }
+
+    // Track state handlers remain the same
     if (videoTrack) {
       videoTrack.onmute = () => {
         log.debug({ containerId: container.id }, 'Video track muted');

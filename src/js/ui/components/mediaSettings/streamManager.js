@@ -28,7 +28,34 @@ export class StreamManager {
         }
       };
 
-      this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+      // Add retry logic for stream acquisition
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+          break;
+        } catch (streamError) {
+          retryCount++;
+          log.warn({ 
+            error: streamError, 
+            attempt: retryCount 
+          }, 'Stream acquisition failed, retrying...');
+          
+          if (retryCount === maxRetries) {
+            throw streamError;
+          }
+          
+          // Simplify constraints for retry
+          constraints.video = retryCount === 2 ? true : {
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          };
+          
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
 
       // Ensure video element is properly configured
       if (this.elements.video) {
@@ -41,19 +68,6 @@ export class StreamManager {
         this.elements.video.style.objectFit = 'cover';
         
         this.elements.video.srcObject = this.stream;
-        
-        // For iOS Safari, we need to play immediately while muted
-        try {
-          await this.elements.video.play();
-        } catch (playError) {
-          log.warn({ error: playError }, 'Auto-play failed, will retry after user interaction');
-          // Add click handler to try playing again
-          this.elements.video.addEventListener('click', () => {
-            this.elements.video.play().catch(e => 
-              log.error({ error: e }, 'Failed to play video after user interaction')
-            );
-          }, { once: true });
-        }
       }
       
       log.debug({

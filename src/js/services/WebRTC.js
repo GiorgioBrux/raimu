@@ -64,50 +64,81 @@ export class WebRTCService {
    * @private
    */
   async _createPeer(userId, retries = 3) {
-    return new Promise((resolve, reject) => {
-      let attemptCount = 0;
-      
-      const attempt = () => {
-        if (attemptCount >= retries) {
-          reject(new Error('Failed to connect to server after multiple attempts'));
-          return;
-        }
+    try {
+      const support = await this._checkWebRTCSupport();
+      log.debug({ 
+        support,
+        userAgent: navigator.userAgent 
+      }, 'Checking WebRTC support');
 
-        attemptCount++;
-        log.debug({ attempt: attemptCount, retries }, 'Connection attempt');
-
-        this.peer = new Peer(userId, {
-          host: window.location.hostname,
-          port: window.location.port,
-          path: '/peerjs',
-          debug: 2,
-          config: this.config
-        });
-
-        const timeout = setTimeout(() => {
-          this.peer.destroy();
-          attempt();
-        }, 5000);
-
-        this.peer.on('open', (id) => {
-          log.info({ id }, 'Connected to PeerJS server');
-          clearTimeout(timeout);
-          this._setupPeerEvents();
-          resolve(this.peer);
-        });
-
-        this.peer.on('error', (error) => {
-          log.error({ error }, 'PeerJS connection error');
-          clearTimeout(timeout);
-          if (error.type === 'network' || error.type === 'server-error') {
-            attempt();
-          } else {
-            reject(error);
+      return new Promise((resolve, reject) => {
+        let attemptCount = 0;
+        
+        const attempt = () => {
+          if (attemptCount >= retries) {
+            reject(new Error('Failed to connect to server after multiple attempts'));
+            return;
           }
-        });
+
+          attemptCount++;
+          log.debug({ attempt: attemptCount, retries }, 'Connection attempt');
+
+          this.peer = new Peer(userId, {
+            host: window.location.hostname,
+            port: window.location.port,
+            path: '/peerjs',
+            debug: 2,
+            config: this.config
+          });
+
+          const timeout = setTimeout(() => {
+            this.peer.destroy();
+            attempt();
+          }, 5000);
+
+          this.peer.on('open', (id) => {
+            log.info({ id }, 'Connected to PeerJS server');
+            clearTimeout(timeout);
+            this._setupPeerEvents();
+            resolve(this.peer);
+          });
+
+          this.peer.on('error', (error) => {
+            log.error({ error }, 'PeerJS connection error');
+            clearTimeout(timeout);
+            if (error.type === 'network' || error.type === 'server-error') {
+              attempt();
+            } else {
+              reject(error);
+            }
+          });
+        };
+
+        attempt();
+      });
+    } catch (error) {
+      log.error({ error }, 'WebRTC support check failed');
+      throw error;
+    }
+  }
+
+  _checkWebRTCSupport() {
+    return new Promise((resolve, reject) => {
+      const support = {
+        webRTC: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+        mediaDevices: !!(navigator.mediaDevices && navigator.mediaDevices.enumerateDevices),
+        audioContext: !!(window.AudioContext || window.webkitAudioContext),
+        screenSharing: !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia),
+        isWebKit: /WebKit/.test(navigator.userAgent) && !/Edge/.test(navigator.userAgent),
+        isSafari: /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
       };
 
-      attempt();
+      if (!support.webRTC) {
+        reject(new Error('WebRTC is not supported in this browser'));
+        return;
+      }
+
+      resolve(support);
     });
   }
 
@@ -140,14 +171,38 @@ export class WebRTCService {
    */
   async initializeMedia() {
     try {
-      if (!this.localStream) {  // Only initialize if we don't have a stream
+      if (!this.localStream) {
         log.debug('Initializing media devices');
-        this.localStream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true
-        });
+        const constraints = {
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { max: 30 },
+            aspectRatio: { ideal: 1.7777777778 }
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        };
+
+        try {
+          this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (mediaError) {
+          log.warn({ error: mediaError }, 'Failed with initial constraints, trying fallback');
+          this.localStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true
+          });
+        }
+
         log.info({
-          tracks: this.localStream.getTracks().map(t => t.kind)
+          tracks: this.localStream.getTracks().map(t => ({
+            kind: t.kind,
+            label: t.label,
+            settings: t.getSettings()
+          }))
         }, 'Media initialized');
       }
       return this.localStream;
