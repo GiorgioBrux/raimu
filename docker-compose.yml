@@ -28,7 +28,7 @@ services:
       traefik.http.routers.raimu.service: raimu 
       traefik.http.routers.raimu.tls.certresolver: cfdns 
       traefik.http.routers.raimu.tls.options: securetls@file 
-      traefik.http.services.raimu.loadbalancer.server.port: 5173
+      traefik.http.services.raimu.loadbalancer.server.port: 4173
 
       # WebSocket Backend
       traefik.http.routers.raimu-ws.rule: Host(`raimu.${DOMAIN}`) && PathPrefix(`/ws`)
