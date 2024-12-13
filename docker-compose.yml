@@ -12,8 +12,6 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       # Log level: trace, debug, info, warn, error (default: info)
       - LOG_LEVEL=${LOG_LEVEL:-info}
-    networks: 
-      - saltbox
     labels:
       com.github.saltbox.saltbox_managed: true 
       # Frontend
@@ -41,7 +39,3 @@ services:
       traefik.http.routers.raimu-peer.entrypoints: websecure
       traefik.http.routers.raimu-peer.tls: true
       traefik.http.services.raimu-peer.loadbalancer.server.port: 9000
-
-networks: 
-  saltbox:
-    external: true

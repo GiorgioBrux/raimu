@@ -78,4 +78,39 @@ The application will be available at:
 ---
 
 ## Docker Deployment
-[Coming soon]
+
+The Docker image is available at `ghcr.io/giorgiobrux/raimu:latest`.
+
+### Using Traefik (recommended)
+
+If you have Traefik set up, you can use the provided docker-compose.yml:
+
+    services:
+      raimu:
+        image: ghcr.io/giorgiobrux/raimu:latest
+        environment:
+          - OPENAI_API_KEY=your_key_here  # Optional
+          - LOG_LEVEL=info                # Optional
+        labels:
+          # ... see docker-compose.yml for full Traefik configuration
+
+### Custom Setup
+
+The container exposes these ports:
+- 4173: Web UI
+- 8080: WebSocket Backend
+- 9000: PeerJS Server
+
+You can use your preferred reverse proxy or Docker setup. Example with plain Docker:
+
+    docker run -d \
+      -p 4173:4173 \
+      -p 8080:8080 \
+      -p 9000:9000 \
+      -e OPENAI_API_KEY=your_key_here \
+      ghcr.io/giorgiobrux/raimu:latest
+
+Remember to:
+- Configure your reverse proxy to handle WebSocket connections
+- Set up HTTPS (required for WebRTC)
+- Point the PeerJS domain to your server
