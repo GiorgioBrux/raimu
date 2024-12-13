@@ -29,6 +29,7 @@ COPY src/server/python/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy built files and source
+COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src ./src
 
 # Copy package files and install production dependencies
