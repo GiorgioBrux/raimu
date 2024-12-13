@@ -7,9 +7,9 @@
     "dev:vite": "vite",
     "dev:peer": "node src/peerServer/index.js",
     "dev:signaling": "node --expose-gc src/server/index.js",
-    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:peer\" \"npm run dev:signaling\" \"cd src/server/python && python tts_server.py\"",
+    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:peer\" \"npm run dev:signaling\"",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview --host 0.0.0.0"
   },
   "devDependencies": {
     "concurrently": "^8.2.0",
