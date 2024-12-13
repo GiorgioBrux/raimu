@@ -24,7 +24,7 @@ FROM python:3.10-slim
 WORKDIR /app
 
 # Install Node.js and bun
-RUN apt-get update && apt-get install -y curl unzip \
+RUN apt-get update && apt-get install -y curl unzip git \
     && curl -fsSL https://bun.sh/install | bash
 
 # Copy Python requirements and install dependencies
