@@ -4,7 +4,7 @@ FROM oven/bun:1 as builder
 WORKDIR /app
 
 # Copy package files
-COPY package.json bun.lockb ./
+COPY package.json ./
 
 # Install dependencies
 RUN bun install
@@ -34,7 +34,7 @@ COPY --from=builder /app/src/server ./src/server
 COPY --from=builder /app/src/peerServer ./src/peerServer
 
 # Copy package files for runtime dependencies
-COPY package.json bun.lockb ./
+COPY package.json ./
 RUN bun install --production
 
 # Expose required ports
