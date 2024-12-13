@@ -9,15 +9,12 @@ export class VADManager {
   /**
    * Creates a new VADManager instance.
    */
-  constructor(transcriptionManager = null) {
+  constructor(transcriptionManager) {
     this.instances = new Map();
     this.muted = new Map();
-
-    this.vad = null;
-    this.audioContext = null;
-    this.speaking = false;
-    this.onSpeakingChange = null;
     this.transcriptionManager = transcriptionManager;
+    // Share the AudioContext with TranscriptionManager
+    this.audioContext = transcriptionManager.audioContext;
   }
 
   /**
@@ -33,27 +30,49 @@ export class VADManager {
     }
     
     try {
-      log.debug({ containerId: container.id }, 'Setting up VAD');
+      log.debug({ 
+        containerId: container.id,
+        hasAudioTrack: !!stream.getAudioTracks().length,
+        audioTrack: stream.getAudioTracks()[0] ? {
+          id: stream.getAudioTracks()[0].id,
+          enabled: stream.getAudioTracks()[0].enabled,
+          readyState: stream.getAudioTracks()[0].readyState,
+          constraints: stream.getAudioTracks()[0].getConstraints()
+        } : null
+      }, 'Setting up VAD');
+
+      // Reuse existing VAD instance if possible
+      if (this.instances.has(container.id)) {
+        log.debug({ containerId: container.id }, 'Destroying existing VAD instance');
+        await this.instances.get(container.id).destroy();
+      }
+
       const vad = await MicVAD.new({
         stream: stream,
         onSpeechStart: () => {
           // Only trigger speaking if not muted
           if (!this.muted.get(container.id)) {
-            log.debug({ containerId: container.id }, 'Speech started');
+            log.debug({ 
+              containerId: container.id,
+              audioTrackId: stream.getAudioTracks()[0]?.id
+            }, 'Speech started');
             onSpeakingChange(container, true);
           }
           else {
             log.debug({ containerId: container.id }, 'Speech started but muted');
           }
         },
-        onSpeechEnd: (audioData) => {
+        onSpeechEnd: async (audioData) => {
           log.debug({ containerId: container.id }, 'Speech ended');
           onSpeakingChange(container, false);
           
           // Only process audio for transcription if not muted
           if (!this.muted.get(container.id) && this.transcriptionManager) {
+            log.debug({ containerId: container.id }, 'Processing audio for transcription');
             const wavBuffer = this._encodeWAV(audioData);
             const base64 = this._arrayBufferToBase64(wavBuffer);
+            
+            // Always send for transcription
             this.transcriptionManager.sendAudioForTranscription(base64);
           }
         },
@@ -195,5 +214,20 @@ export class VADManager {
         binary += String.fromCharCode(bytes[i]);
     }
     return btoa(binary);
+  }
+
+  async _replaceAudioTrack(stream, audioBuffer) {
+    const source = new AudioContext().createBufferSource();
+    source.buffer = audioBuffer;
+    const dest = new MediaStreamAudioDestinationNode(source.context);
+    source.connect(dest);
+    source.start();
+
+    // Replace the audio track in the stream
+    const [oldTrack] = stream.getAudioTracks();
+    if (oldTrack) {
+      stream.removeTrack(oldTrack);
+    }
+    stream.addTrack(dest.stream.getAudioTracks()[0]);
   }
 } 

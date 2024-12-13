@@ -53,7 +53,12 @@ export class RoomUI {
       this.headerManager = new HeaderManager(elements.roomName, elements.PIN, elements.copyPinBtn);
       this.settingsControl = new SettingsControl(elements.controls, elements.settingsModal, this.roomManager, this);
       this.chatManager = new ChatManager(elements, this.roomManager.ws, this.roomManager.roomId);
-      this.transcriptionManager = new TranscriptionManager(this.uiElements, this.roomManager.ws, this.roomManager.roomId);
+      this.transcriptionManager = new TranscriptionManager(
+        this.uiElements,
+        this.roomManager.ws,
+        this.roomManager.roomId,
+        this.roomManager
+      );
       this.vadManager = new VADManager(this.transcriptionManager);
 
       this.setupEventListeners();
@@ -184,6 +189,9 @@ export class RoomUI {
         return;
     }
     
+    // Pass both stream and WebRTC instance to TranscriptionManager
+    this.transcriptionManager.setCurrentStream(stream, this.roomManager.webrtc);
+    
     const videoTrack = stream.getVideoTracks()[0];
     const audioTrack = stream.getAudioTracks()[0];
     
@@ -240,12 +248,6 @@ export class RoomUI {
     
     if (container) {
         this.vadManager.updateMuteState(container.id, !isAudioEnabled);
-        log.debug({ containerId: container.id }, 'Setting up VAD for new local participant');
-        // this.vadManager.setupVAD(
-        //     stream, 
-        //     container,
-        //     ParticipantVideo.updateSpeakingIndicators
-        // );
     }
   }
 

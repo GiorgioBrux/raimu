@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
-import { pipeline } from '@xenova/transformers';
+import { pipeline } from '@huggingface/transformers';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { Readable } from 'stream';
@@ -14,19 +14,21 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 dotenv.config({ path: join(__dirname, '../../../.env') });
 
-let localTranscriber = null;  // Singleton instance
+let localTranscriber = null;
+let instance = null;
 
 export class WhisperService {
     constructor() {
+        if (instance) return instance;
+        
         this.useOpenAI = !!process.env.OPENAI_API_KEY;
-
         if (this.useOpenAI) {
             this.openai = new OpenAI({
                 apiKey: process.env.OPENAI_API_KEY
             });
-        } else {
-            console.log('No OpenAI API key found, using local Whisper model');
         }
+        
+        instance = this;
     }
 
     async initializeLocalModel() {
@@ -34,7 +36,7 @@ export class WhisperService {
             if (!localTranscriber) {
                 console.log('Initializing local Whisper model...');
                 localTranscriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny');
-                console.log('Local Whisper model initialized');
+                console.log('Local Whisper model initialized successfully');
             }
         } catch (error) {
             console.error('Failed to initialize local Whisper model:', error);
@@ -96,4 +98,7 @@ export class WhisperService {
             throw error;
         }
     }
-} 
+}
+
+// Export a singleton instance
+export default new WhisperService(); 

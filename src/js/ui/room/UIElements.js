@@ -48,6 +48,7 @@ export class UIElements {
         transcriptionEnabled: document.getElementById('transcriptionEnabled'),
         transcriptionLang: document.getElementById('transcriptionLang'),
         transcriptionText: document.getElementById('transcriptionText'),
+        voiceTTSEnabled: document.getElementById('voiceTTSEnabled'),
       };
 
       return this.validateElements();

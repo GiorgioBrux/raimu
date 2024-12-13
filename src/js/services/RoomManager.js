@@ -416,9 +416,23 @@ export class RoomManager {
                 case 'chat':
                     this.ui.handleChatMessage(data);
                     break;
+                case 'trackStateChange':
+                    this.eventHandler.handleTrackStateChange(data);
+                    break;
                 case 'transcription':
+                    // Handle TTS audio if available
+                    if (data.ttsAudio && this.roomUI?.transcriptionManager) {
+                        this.roomUI.transcriptionManager.handleTTSAudio(data.ttsAudio);
+                    }
+
+                    // Display transcription with translation if available
+                    let displayText = data.text;
+                    // if (data.translatedText) {
+                    //     displayText += `\n(English: ${data.translatedText})`;
+                    // }
+
                     this.roomUI.transcriptionManager?.addTranscription(
-                        data.text,
+                        displayText,
                         this.userId,
                         data.timestamp
                     );
@@ -445,5 +459,23 @@ export class RoomManager {
 
     get roomId() {
         return this._roomId;
+    }
+
+    /**
+     * Adds a new peer connection to the room
+     * @param {string} userId - User ID of the peer connection
+     * @param {RTCPeerConnection} peerConnection - WebRTC peer connection
+     */
+    addPeerConnection(userId, peerConnection) {
+        this.peerConnections[userId] = peerConnection;
+    }
+
+    /**
+     * Updates peer connections in TranscriptionManager
+     */
+    updatePeerConnections() {
+        if (this.roomUI?.transcriptionManager) {
+            this.roomUI.transcriptionManager.peerConnections = Array.from(this.webrtc.connections.values());
+        }
     }
 }

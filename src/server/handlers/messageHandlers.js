@@ -1,4 +1,6 @@
-import { WhisperService } from '../services/WhisperService.js';
+import WhisperService from '../services/WhisperService.js';
+import TTSService from '../services/TTSService.js';
+import TranslationService from '../services/TranslationService.js';
 
 export const messageHandlers = {
   createRoom: (ws, data, { roomService }) => {
@@ -177,29 +179,70 @@ export const messageHandlers = {
     roomService.broadcastToRoom(room.id, chatMessage);
   },
 
-  transcriptionRequest: async (ws, data, { roomService }) => {
+  TTSStatus: (ws, data, { roomService }) => {
     try {
-      const whisperService = new WhisperService();
-      
-      // Convert base64 to buffer
-      const audioBuffer = Buffer.from(data.audioData, 'base64');
-      
-      // Get transcription
-      const transcription = await whisperService.transcribe(audioBuffer, data.language);
-      
-      // Send back only to the requesting user
-      ws.send(JSON.stringify({
-        type: 'transcription',
-        text: transcription,
-        timestamp: data.timestamp
-      }));
+      // Update the connection info to include TTS preference
+      ws.connectionInfo = {
+        ...ws.connectionInfo,
+        ttsEnabled: data.enabled
+      };
       
     } catch (error) {
-      console.error({ error }, 'Transcription request failed');
+      console.error('Error updating TTS status:', error);
       ws.send(JSON.stringify({
         type: 'error',
-        message: 'Transcription failed'
+        message: 'Failed to update TTS status'
       }));
+    }
+  },
+
+  transcriptionRequest: async (ws, data, { roomService }) => {
+    try {
+        // Convert base64 to buffer
+        const audioBuffer = Buffer.from(data.audioData, 'base64');
+        
+        // Get transcription in original language
+        const transcription = await WhisperService.transcribe(audioBuffer, data.language);
+
+        // Prepare response object
+        const response = {
+            type: 'transcription',
+            text: transcription,
+            timestamp: data.timestamp,
+            originalLanguage: data.language
+        };
+
+        // Only translate and generate TTS if TTS is enabled for this user
+        if (ws.connectionInfo?.ttsEnabled) {
+            // Translate to English if not already in English
+            if (data.language !== 'en') {
+                const translatedText = await TranslationService.translate(transcription, data.language);
+                if (translatedText) {
+                    response.translatedText = translatedText;
+                }
+            }
+
+            // Generate TTS audio using the translated or original text
+            const textForTTS = response.translatedText || transcription;
+            const ttsAudio = await TTSService.synthesizeSpeech(
+                textForTTS,
+                'en',
+                data.audioData,
+                transcription
+            );
+            if (ttsAudio) {
+                response.ttsAudio = Buffer.from(ttsAudio).toString('base64');
+            }
+        }
+        
+        ws.send(JSON.stringify(response));
+        
+    } catch (error) {
+        console.error({ error }, 'Transcription request failed');
+        ws.send(JSON.stringify({
+            type: 'error',
+            message: 'Transcription failed'
+        }));
     }
   }
 };

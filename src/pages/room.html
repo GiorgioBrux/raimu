@@ -122,9 +122,9 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[50vh] overflow-hidden">
         <!-- Transcription Area -->
         <div class="bg-slate-900/50 backdrop-blur-sm border border-white/5 rounded-2xl p-4 transition-visibility panel-expanded flex flex-col h-full">
-          <div class="flex items-center justify-between mb-3 flex-shrink-0">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 flex-shrink-0 gap-2">
             <h3 class="text-sm font-medium text-gray-400">Transcription</h3>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
               <!-- Language selector -->
               <select id="transcriptionLang" 
                       class="bg-slate-800/50 border border-white/10 rounded-lg px-2 py-1 text-sm text-slate-300
@@ -136,15 +136,33 @@
                 <option value="it">Italian</option>
                 <option value="pt">Portuguese</option>
               </select>
-              <!-- Enable/Disable switch -->
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" id="transcriptionEnabled" class="sr-only peer">
-                <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer 
-                            peer-checked:after:translate-x-full peer-checked:after:border-white 
-                            after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
-                            after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all
-                            peer-checked:bg-lime-500"></div>
-              </label>
+              <!-- Enable/Disable switches -->
+              <div class="flex items-center gap-2">
+                <!-- Transcription toggle -->
+                <div class="flex items-center gap-2 relative group">
+                  <span class="text-xs text-slate-400">Transcribe</span>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="transcriptionEnabled" class="sr-only peer">
+                    <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer 
+                                peer-checked:after:translate-x-full peer-checked:after:border-white 
+                                after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
+                                after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all
+                                peer-checked:bg-lime-500"></div>
+                  </label>
+                </div>
+                <!-- Voice Translation toggle -->
+                <div class="flex items-center gap-2 relative group">
+                  <span class="text-xs text-slate-400">Voice TTS</span>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="voiceTTSEnabled" class="sr-only peer">
+                    <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer 
+                                peer-checked:after:translate-x-full peer-checked:after:border-white 
+                                after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
+                                after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all
+                                peer-checked:bg-lime-500"></div>
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
           <div class="flex-1 min-h-0 relative">
@@ -512,6 +530,15 @@
     #pinDisplay .group span {
       animation: tooltipFade 0.2s ease;
       pointer-events: none;
+    }
+
+    /* Add these styles if not already present */
+    .cursor-not-allowed {
+        cursor: not-allowed;
+    }
+    
+    .opacity-50 {
+        opacity: 0.5;
     }
   </style>
 </div> 

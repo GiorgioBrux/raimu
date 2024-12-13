@@ -214,6 +214,9 @@ export class WebRTCService {
         } catch (error) {
           log.error({ error, participantId }, 'Failed to setup media connection');
         }
+
+        // After successful connection, notify RoomUI to update peer connections
+        this.roomManager?.roomUI?.updatePeerConnections();
       });
 
       connection.on('error', (error) => {
@@ -394,6 +397,9 @@ export class WebRTCService {
       }
       this.peer = null;
     }
+
+    // After disconnect, notify RoomUI to update peer connections
+    this.roomManager?.roomUI?.updatePeerConnections();
   }
 
   /**
