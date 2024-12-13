@@ -52,7 +52,12 @@ export class RoomUI {
       this.mediaControls = new MediaControls(elements.controls);
       this.headerManager = new HeaderManager(elements.roomName, elements.PIN, elements.copyPinBtn);
       this.settingsControl = new SettingsControl(elements.controls, elements.settingsModal, this.roomManager, this);
-      this.chatManager = new ChatManager(elements, this.roomManager.ws, this.roomManager.roomId);
+      this.chatManager = new ChatManager(
+        elements, 
+        this.roomManager.ws, 
+        this.roomManager.roomId,
+        this.roomManager
+      );
       this.transcriptionManager = new TranscriptionManager(
         this.uiElements,
         this.roomManager.ws,

@@ -414,7 +414,7 @@ export class RoomManager {
                     this.eventHandler.handleUserLeft(data);
                     break;
                 case 'chat':
-                    this.ui.handleChatMessage(data);
+                    this.roomUI.handleChatMessage(data);
                     break;
                 case 'trackStateChange':
                     this.eventHandler.handleTrackStateChange(data);
