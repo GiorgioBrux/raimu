@@ -3,13 +3,23 @@ from fastapi.responses import Response
 from pydantic import BaseModel
 import io
 import soundfile as sf
-from f5_tts.api import F5TTS
 import base64
 import os
 import tempfile
 import torch
 import logging
 from tqdm import tqdm
+
+# Wrap the problematic import in a try-except
+try:
+    from f5_tts.api import F5TTS
+except AttributeError as e:
+    # If the specific error is about HTTPClientError, try to patch it
+    import botocore.exceptions
+    if not hasattr(botocore.exceptions, 'HTTPClientError'):
+        botocore.exceptions.HTTPClientError = botocore.exceptions.ClientError
+    # Try importing again
+    from f5_tts.api import F5TTS
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

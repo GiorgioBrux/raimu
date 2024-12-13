@@ -172,7 +172,7 @@ export class RoomService {
       throw new Error('Invalid maxParticipants value');
     }
 
-    if (!data.roomName || !data.userId || !data.userName) {
+    if (!data.userId || !data.userName) {
       throw new Error('Missing required fields');
     }
 

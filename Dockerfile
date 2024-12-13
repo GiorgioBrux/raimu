@@ -51,7 +51,7 @@ caddy run --config /app/Caddyfile & \n\
 bun run preview & \n\
 node src/peerServer/index.js & \n\
 node src/server/index.js & \n\
-python src/server/python/tts_server.py & \n\
+PYTHONHASHSEED=1 python src/server/python/tts_server.py & \n\
 node src/js/stunServer/index.js & \n\
 wait' > /app/start.sh && chmod +x /app/start.sh
 
