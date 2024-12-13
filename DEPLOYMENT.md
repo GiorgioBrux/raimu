@@ -14,6 +14,7 @@ This guide covers how to deploy Raimu either locally or using Docker (recommende
 - Node.js 18+ 
 - Python 3.10+
 - bun or your preferred package manager
+- Caddy
 - Git
 
 ### Python Dependencies
@@ -46,9 +47,9 @@ For development (runs all services concurrently):
 
 For production, run each service in separate terminals:
 
-Terminal 1: Run the peer server
+Terminal 1: Run Caddy as reverse proxy
 
-    node src/peerServer/index.js
+    caddy run
 
 Terminal 2: Run the signaling server
 
@@ -59,18 +60,23 @@ Terminal 3: Run the Python TTS server
     cd src/server/python
     python tts_server.py
 
-Terminal 4: Serve the built files
+Terminal 4: Run the PeerJS server
+
+    node src/peerServer/index.js
+
+Terminal 5: Run the STUN server
+
+    node src/js/stunServer/index.js
+
+Terminal 6: Serve the built files
 
     bun run preview
 
 The application will be available at:
-- Web UI: http://localhost:5173 (dev) or http://localhost:4173 (preview)
-- WebSocket Backend: http://localhost:8080 (internal service)
-- Peer Server: http://localhost:9000 (internal service)
-- TTS Server: http://localhost:8001 (internal service)
-- STUN Server: http://localhost:19302
+- Web UI, WebSocket, and PeerJS: http://localhost:4173 (all through Caddy)
+- STUN Server: http://localhost:19302 (UDP)
 
-Internal services don't need to be exposed to the outside world.
+Only ports 4173 and 19302 need to be exposed to the outside world.
 
 ### Troubleshooting
 

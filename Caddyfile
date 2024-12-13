@@ -1,0 +1,21 @@
+:4173 {
+    # Proxy PeerJS server
+    handle /peerjs* {
+        reverse_proxy localhost:9000
+    }
+
+    # Proxy WebSocket for PeerJS
+    handle /ws* {
+        reverse_proxy localhost:8080
+    }
+
+    # Handle all other requests
+    handle {
+        reverse_proxy localhost:4173
+    }
+
+    # Log for debugging
+    log {
+        format console
+    }
+} 
