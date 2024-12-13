@@ -2,6 +2,12 @@
 
 This guide covers how to deploy Raimu either locally or using Docker (recommended).
 
+## System Requirements
+
+- At least 1GB of free disk space (for AI models)
+- Minimum 8GB RAM recommended
+- Models run locally on CPU - no GPU required
+
 ## Local Deployment
 
 ### Prerequisites
