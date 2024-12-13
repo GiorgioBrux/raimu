@@ -69,7 +69,7 @@ export class VADManager {
           // Only process audio for transcription if not muted and transcription manager exists
           if (!this.muted.get(container.id) && 
               this.transcriptionManager && 
-              !this.transcriptionManager.webrtc?.isAudioMuted()) {
+              !this.transcriptionManager.isAudioMuted()) {
             log.debug({ containerId: container.id }, 'Processing audio for transcription');
             const wavBuffer = this._encodeWAV(audioData);
             const base64 = this._arrayBufferToBase64(wavBuffer);

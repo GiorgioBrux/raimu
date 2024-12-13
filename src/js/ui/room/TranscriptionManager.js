@@ -45,7 +45,7 @@ export class TranscriptionManager {
             
             // Handle TTS switch state
             if (this.enabled) {
-                // Enable TTS switch when transcription is enabled
+                // Enable TTS switch whenever transcription is enabled
                 this.voiceTTSEnabled.disabled = false;
                 this.voiceTTSEnabled.parentElement?.classList.remove('opacity-50', 'cursor-not-allowed');
                 log.debug('Enabled TTS switch');
@@ -67,7 +67,9 @@ export class TranscriptionManager {
 
         this.voiceTTSEnabled.addEventListener('change', async () => {
             const enabled = this.voiceTTSEnabled.checked;
-            log.debug({ enabled }, 'TTS toggle');
+            // Store the REAL mute state from WebRTC before we do anything
+            const currentMuteState = !this.webrtc?.localStream?.getAudioTracks()[0]?.enabled ?? false;
+            log.debug({ enabled, currentMuteState }, 'TTS toggle');
             
             if (this.currentStream && this.webrtc) {
                 const roomUI = this.roomManager?.roomUI;
@@ -75,7 +77,7 @@ export class TranscriptionManager {
                 const localVideo = this.uiElements.getElements().localVideo;
                 const videoElement = localVideo?.querySelector('video');
 
-                // Store current video enabled state
+                // Store current states
                 const videoTrack = this.currentStream.getVideoTracks()[0];
                 const isVideoEnabled = videoTrack?.enabled ?? false;
                 const videoConstraints = videoTrack?.getConstraints() || { width: 1280, height: 720 };
@@ -87,11 +89,8 @@ export class TranscriptionManager {
                         video: videoConstraints
                     });
                     
-                    // Match previous video enabled state
-                    const newVideoTrack = this.originalStream.getVideoTracks()[0];
-                    if (newVideoTrack) {
-                        newVideoTrack.enabled = isVideoEnabled;
-                    }
+                    // Update stream states
+                    this._updateStreamStates(this.originalStream, isVideoEnabled, currentMuteState);
 
                     // Update local video display with original stream
                     if (videoElement) {
@@ -117,14 +116,25 @@ export class TranscriptionManager {
                     oscillator.start();
                     silentStream.addTrack(dest.stream.getAudioTracks()[0]);
                     
-                    // Update WebRTC (what peers receive)
-                    await this.webrtc.updateLocalStream(silentStream);
+                    // Temporarily disable track state change handler
+                    const originalHandler = this.webrtc.onTrackStateChange;
+                    this.webrtc.onTrackStateChange = null;
+                    
+                    try {
+                        // Update WebRTC (what peers receive)
+                        await this.webrtc.updateLocalStream(silentStream);
+                        // Ensure the silent stream respects mute state
+                        silentStream.getAudioTracks()[0].enabled = !currentMuteState;
+                    } finally {
+                        this.webrtc.onTrackStateChange = originalHandler;
+                    }
                     
                     // Use original stream for VAD
                     this.currentStream = this.originalStream;
 
                     // Setup VAD with new stream
                     if (vadManager && localVideo) {
+                        vadManager.muted.set(localVideo.id, currentMuteState);
                         await this.setupVADWithStream(vadManager, localVideo, this.currentStream);
                     }
                 } else {
@@ -144,22 +154,31 @@ export class TranscriptionManager {
                         video: videoConstraints
                     });
                     
-                    // Match previous video enabled state
-                    const newVideoTrack = newStream.getVideoTracks()[0];
-                    if (newVideoTrack) {
-                        newVideoTrack.enabled = isVideoEnabled;
-                    }
+                    // Update stream states
+                    this._updateStreamStates(newStream, isVideoEnabled, currentMuteState);
 
                     // Update local video element with new stream
                     if (videoElement) {
                         videoElement.srcObject = newStream;
                     }
 
-                    await this.webrtc.updateLocalStream(newStream);
+                    // Temporarily disable track state change handler
+                    const originalHandler = this.webrtc.onTrackStateChange;
+                    this.webrtc.onTrackStateChange = null;
+                    
+                    try {
+                        await this.webrtc.updateLocalStream(newStream);
+                        // Ensure the new stream respects mute state
+                        newStream.getAudioTracks()[0].enabled = !currentMuteState;
+                    } finally {
+                        this.webrtc.onTrackStateChange = originalHandler;
+                    }
+                    
                     this.currentStream = newStream;
 
                     // Reinitialize VAD with new stream
                     if (vadManager && localVideo) {
+                        vadManager.muted.set(localVideo.id, currentMuteState);
                         await this.setupVADWithStream(vadManager, localVideo, newStream);
                     }
                 }
@@ -190,7 +209,8 @@ export class TranscriptionManager {
 
         // First destroy existing VAD instance
         if (vadManager.instances.has(container.id)) {
-            await vadManager.instances.get(container.id).destroy();
+            const existingVAD = vadManager.instances.get(container.id);
+            await existingVAD.destroy();
             vadManager.instances.delete(container.id);
             log.debug({ containerId: container.id }, 'Destroyed old VAD instance');
         }
@@ -198,18 +218,20 @@ export class TranscriptionManager {
         // Create a clone of the stream for VAD
         const vadStream = stream.clone();
         
+        // Set initial mute state before setting up VAD
+        const audioTrack = vadStream.getAudioTracks()[0];
+        if (audioTrack) {
+            const isMuted = vadManager.muted.get(container.id) ?? false;
+            audioTrack.enabled = !isMuted;
+            log.debug({ isMuted }, 'Setting initial VAD stream mute state');
+        }
+        
         // Setup new VAD
         await vadManager.setupVAD(
             vadStream,
             container,
             ParticipantVideo.updateSpeakingIndicators
         );
-        
-        // Update the VAD stream's enabled state based on mute status
-        const audioTrack = vadStream.getAudioTracks()[0];
-        if (audioTrack) {
-            audioTrack.enabled = !this.webrtc?.isAudioMuted();
-        }
         
         log.debug({ containerId: container.id }, 'VAD setup completed');
     }
@@ -221,7 +243,10 @@ export class TranscriptionManager {
      * @returns {Promise<void>}
      */
     async handleTTSAudio(base64Audio) {
-        if (!this.currentStream || !this.voiceTTSEnabled.checked || !this.webrtc) return;
+        if (!this.currentStream || 
+            !this.voiceTTSEnabled.checked || 
+            !this.webrtc ||
+            this.isAudioMuted()) return;
 
         try {
             const audioData = Uint8Array.from(atob(base64Audio), c => c.charCodeAt(0));
@@ -267,7 +292,8 @@ export class TranscriptionManager {
     }
 
     sendAudioForTranscription(base64AudioData) {
-        if (!this.enabled) return;
+        // Only send audio for transcription if enabled and not muted
+        if (!this.enabled || this.isAudioMuted()) return;
 
         this.websocket.send({
             type: 'transcriptionRequest',
@@ -281,6 +307,16 @@ export class TranscriptionManager {
     setCurrentStream(stream, webrtc) {
         this.currentStream = stream;
         this.webrtc = webrtc;
+        // Register for track state changes
+        const originalCallback = webrtc.onTrackStateChange;
+        webrtc.onTrackStateChange = (peerId, kind, enabled, roomId) => {
+            // Only handle local audio track changes
+            if (peerId === webrtc.peer?.id && kind === 'audio') {
+                this.handleMuteStateChange(!enabled);
+            }
+            // Call original callback if it exists
+            originalCallback?.(peerId, kind, enabled, roomId);
+        };
     }
 
     addTranscription(text, userId, timestamp) {
@@ -317,13 +353,70 @@ export class TranscriptionManager {
         return this.enabled;
     }
 
-    // Add this new method to handle mute state changes
-    updateVADMuteState(isMuted) {
-        if (this.originalStream) {
-            const audioTrack = this.originalStream.getAudioTracks()[0];
-            if (audioTrack) {
-                audioTrack.enabled = !isMuted;
+    // handle mute state changes
+    handleMuteStateChange(isMuted) {
+        const roomUI = this.roomManager?.roomUI;
+        const vadManager = roomUI?.vadManager;
+        const localVideo = this.uiElements.getElements().localVideo;
+
+        if (vadManager && localVideo) {
+            // Update VAD's mute state
+            vadManager.muted.set(localVideo.id, isMuted);
+
+            // Update the current stream being used for VAD
+            const stream = this.voiceTTSEnabled.checked ? this.originalStream : this.currentStream;
+            if (stream) {
+                const audioTrack = stream.getAudioTracks()[0];
+                if (audioTrack) {
+                    audioTrack.enabled = !isMuted;
+                }
             }
+
+            // Reinitialize VAD with current stream and mute state
+            this.setupVADWithStream(vadManager, localVideo, stream);
+        }
+    }
+
+    /**
+     * Checks if audio is currently muted
+     * @returns {boolean} True if audio is muted
+     */
+    isAudioMuted() {
+        if (!this.webrtc?.localStream) return false;
+        const audioTrack = this.webrtc.localStream.getAudioTracks()[0];
+        return audioTrack ? !audioTrack.enabled : false;
+    }
+
+    /**
+     * Updates a stream's tracks to match current states
+     * @param {MediaStream} stream - Stream to update
+     * @param {boolean} isVideoEnabled - Video enabled state to apply
+     * @param {boolean} isAudioMuted - Audio mute state to apply
+     */
+    _updateStreamStates(stream, isVideoEnabled, isAudioMuted) {
+        log.debug({ 
+            isVideoEnabled, 
+            isAudioMuted,
+            streamTracks: stream.getTracks().map(t => ({
+                kind: t.kind,
+                enabled: t.enabled,
+                id: t.id
+            }))
+        }, 'Updating stream states');
+
+        const videoTrack = stream.getVideoTracks()[0];
+        if (videoTrack) {
+            videoTrack.enabled = isVideoEnabled;
+        }
+
+        const audioTrack = stream.getAudioTracks()[0];
+        if (audioTrack) {
+            audioTrack.enabled = !isAudioMuted;
+            log.debug({ 
+                audioTrackId: audioTrack.id,
+                enabled: audioTrack.enabled,
+                shouldBeMuted: isAudioMuted 
+            }, 'Updated audio track state');
         }
     }
 } 
