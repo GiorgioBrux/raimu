@@ -1,5 +1,6 @@
 import { roomLogger as log } from '../utils/logger.js';
 import { ParticipantVideo } from '../ui/room/ParticipantVideo.js';
+import { showError } from '../ui/home/Modal.js';
 /**
  * Handles room events and participant state changes.
  * Specifically handles WebSocket events related to room state and participant updates.
@@ -294,5 +295,26 @@ export class RoomEventHandler {
             message: message.message,
             timestamp: message.timestamp
         });
+    }
+
+    /**
+     * Handles room error event and shows error using the modal
+     * @param {Object} data - Room error data
+     */
+    handleError(data) {
+        log.error({ error: data }, 'Room error received');
+        
+        // Format error message and details
+        const errorMessage = data.message || 'An error occurred';
+        const errorDetails = data.details || '';
+        
+        // Determine if the error requires a page refresh
+        const shouldRefresh = data.requiresRefresh || 
+                             data.type === 'connection_error' || 
+                             data.type === 'fatal_error' ||
+                             data.code === 'WEBSOCKET_ERROR';
+        
+        // Show error using the modal
+        showError(errorMessage, errorDetails, shouldRefresh);
     }
 } 

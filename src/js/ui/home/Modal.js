@@ -17,7 +17,6 @@ export class ModalManager {
         this.generateBtn = this.modal.querySelector('#generateRoomName');
         this.userNameInput = this.modal.querySelector('#userName');
         this.roomNameInput = this.form.querySelector('input[name="roomName"]');
-        this.maxParticipantsSelect = this.form.querySelector('select[name="maxParticipants"]');
         
         this.onSubmit = onSubmit; // Optional callback for form submission
         this.setupListeners();
@@ -25,7 +24,7 @@ export class ModalManager {
 
     setupListeners() {
         if (!this.modal || !this.form || !this.cancelBtn) {
-            console.error('Modal elements not found');
+            logger.error({ modal: this.modal, form: this.form, cancelBtn: this.cancelBtn }, 'Modal elements not found');
             return;
         }
 
@@ -42,7 +41,6 @@ export class ModalManager {
                 await this.onSubmit?.(
                     this.userNameInput.value,
                     this.roomNameInput.value || null,
-                    parseInt(this.maxParticipantsSelect.value)
                 );
                 
                 this.hide();
@@ -102,4 +100,42 @@ export class ModalManager {
     isVisible() {
         return this.modal.classList.contains('opacity-100');
     }
-} 
+}
+
+// Error modal
+
+export function showError(message, details = '', shouldRefresh = false) {
+    const errorModal = document.getElementById('errorModal');
+    const messageEl = document.getElementById('errorMessage');
+    const detailsEl = document.getElementById('errorDetails');
+    const okBtn = document.getElementById('errorModalOkBtn');
+    
+    messageEl.textContent = message;
+    detailsEl.textContent = details;
+    
+    // Remove any existing click handlers
+    const newOkBtn = okBtn.cloneNode(true);
+    okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+    
+    // Add click handler
+    newOkBtn.addEventListener('click', () => {
+        hideError();
+        if (shouldRefresh) {
+            window.location.reload();
+        }
+    });
+    
+    errorModal.classList.remove('opacity-0', 'pointer-events-none');
+    errorModal.querySelector('.scale-95').classList.remove('scale-95');
+}
+
+export function hideError() {
+    const errorModal = document.getElementById('errorModal');
+    errorModal.classList.add('opacity-0', 'pointer-events-none');
+    errorModal.querySelector('div').classList.add('scale-95');
+}
+
+// Update the close button handler to also handle refresh
+document.getElementById('closeErrorModal')?.addEventListener('click', () => {
+    hideError();
+});

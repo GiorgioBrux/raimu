@@ -33,9 +33,9 @@ export class HomeHandler {
                 const modal = new ModalManager(modalContainer);
                 this.serviceManager.setService('modalManager', modal);
 
-                this.serviceManager.getService('modalManager').onSubmit = async (userName, roomName, maxParticipants) => {
+                this.serviceManager.getService('modalManager').onSubmit = async (userName, roomName) => {
                     try {
-                      const { localStream } = await this.serviceManager.getService('roomManager').createRoom(userName, maxParticipants, roomName);
+                      const { localStream } = await this.serviceManager.getService('roomManager').createRoom(userName, roomName);
                       logger.info({
                         hasVideo: localStream?.getVideoTracks().length > 0,
                         hasAudio: localStream?.getAudioTracks().length > 0

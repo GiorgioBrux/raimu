@@ -7,6 +7,7 @@ import {
     getConnectionInfo, 
     handleConnectionError 
 } from '../utils/roomUtils.js';
+import { showError } from '../ui/home/Modal.js';
 
 /**
  * Manages room state and coordinates WebRTC connections between participants.
@@ -118,7 +119,7 @@ export class RoomManager {
      * @returns {Promise<{localStream: MediaStream}>}
      * @throws {Error} If room creation fails
      */
-    async createRoom(userName, maxParticipants, roomName = null) {
+    async createRoom(userName, roomName = null) {
         try {
             await this.disconnectIfNeeded();
 
@@ -131,7 +132,7 @@ export class RoomManager {
                 await this.initializeConnection(this.userId);
             }
 
-            log.info({ roomName: this.roomName, maxParticipants: maxParticipants, userId: this.userId }, 'Creating room');
+            log.info({ roomName: this.roomName, userId: this.userId }, 'Creating room');
             
             // Notify WebSocket server about new room
             this.ws.send({
@@ -139,7 +140,6 @@ export class RoomManager {
                 roomName: this.roomName,
                 userId: this.userId,
                 userName: this.userName,
-                maxParticipants: maxParticipants
             });
             
             // Make sure we return the local stream
@@ -147,7 +147,11 @@ export class RoomManager {
                 localStream: this.webrtc.localStream  // Make sure this is set
             };
         } catch (error) {
-            handleConnectionError('Failed to create room', error);
+            log.error({ error }, 'Failed to create room');
+            showError(
+                'Failed to Create Room',
+                error.message || 'Please check your connection and try again.'
+            );
             throw error;
         }
     }
@@ -276,6 +280,25 @@ export class RoomManager {
                 connectionState: this.isConnected,
                 webrtcState: this.webrtc?.peer?.disconnected ? 'disconnected' : 'connected'
             }, 'Failed to join room');
+            
+            let errorMessage = 'Failed to Join Room';
+            let errorDetails = '';
+            
+            // Handle specific error cases
+            if (error.name === 'NotAllowedError') {
+                errorMessage = 'Camera/Microphone Access Denied';
+                errorDetails = 'Please allow access to your camera and microphone to join the room.';
+            } else if (error.name === 'NotFoundError') {
+                errorMessage = 'Camera/Microphone Not Found';
+                errorDetails = 'Please make sure your camera and microphone are properly connected.';
+            } else if (error.name === 'NotReadableError') {
+                errorMessage = 'Media Device Error';
+                errorDetails = 'Your camera or microphone may be in use by another application.';
+            } else {
+                errorDetails = error.message || 'Please check your connection and try again.';
+            }
+            
+            showError(errorMessage, errorDetails);
             throw error;
         }
     }
@@ -294,9 +317,32 @@ export class RoomManager {
      * @private
      */
     async initializeConnection(id, constraints = null) {
-        await this.webrtc.initialize(id, constraints);
-        this._setupWebRTCCallbacks();
-        this.isConnected = true;
+        try {
+            await this.webrtc.initialize(id, constraints);
+            this._setupWebRTCCallbacks();
+            this.isConnected = true;
+        } catch (error) {
+            log.error({ error }, 'Failed to initialize WebRTC connection');
+            let errorMessage = 'Connection Error';
+            let errorDetails = '';
+            let shouldRefresh = false;
+            
+            if (error.name === 'NotAllowedError') {
+                errorMessage = 'Permission Denied';
+                errorDetails = 'Please allow access to your camera and microphone.';
+                shouldRefresh = true;
+            } else if (error.name === 'NotFoundError') {
+                errorMessage = 'Devices Not Found';
+                errorDetails = 'Could not find your camera or microphone. Please check your device connections.';
+                shouldRefresh = true;
+            } else {
+                errorDetails = error.message || 'Failed to establish connection. Please try again.';
+                shouldRefresh = true;
+            }
+            
+            showError(errorMessage, errorDetails, shouldRefresh);
+            throw error;
+        }
     }
 
     /**
@@ -444,7 +490,12 @@ export class RoomManager {
                     console.warn('Unknown message type:', data.type);
             }
         } catch (error) {
-            console.error('Error handling message:', error);
+            log.error({ error }, 'Error handling WebSocket message');
+            showError(
+                'Communication Error',
+                'Failed to process server message. Please refresh the page and try again.',
+                true
+            );
         }
     }
 

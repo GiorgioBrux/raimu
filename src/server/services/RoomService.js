@@ -8,9 +8,11 @@ export class RoomService {
     this.roomObservers = new Map(); // Map of PIN -> Set of WebSocket connections
   }
 
-  createRoom(name, creatorId, creatorName, maxParticipants) {
+  createRoom(name, creatorId, creatorName) {
     const id = generateRoomId();
-    const room = new Room(id, name, creatorId, creatorName, generateRoomPIN(), maxParticipants);
+
+    // Participant limit harcoded to 8, see RAIM-4
+    const room = new Room(id, name, creatorId, creatorName, generateRoomPIN(), 8);
     this.rooms.set(id, room);
 
     return room;
@@ -168,10 +170,6 @@ export class RoomService {
   }
 
   validateRoomCreation(data) {
-    if (![2,4,8,16,32,64].includes(data.maxParticipants)) {
-      throw new Error('Invalid maxParticipants value');
-    }
-
     if (!data.userId || !data.userName) {
       throw new Error('Missing required fields');
     }

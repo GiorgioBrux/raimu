@@ -11,7 +11,6 @@ export const messageHandlers = {
         data.roomName,
         data.userId,
         data.userName,
-        data.maxParticipants
       );
 
       room.addParticipant(data.userId, data.userName, ws);

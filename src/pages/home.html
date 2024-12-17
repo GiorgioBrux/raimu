@@ -138,23 +138,6 @@
                             </div>
                             <p class="text-xs text-slate-400">Partecipants will see this name before joining</p>
                         </div>
-
-                        <!-- Max Participants -->
-                        <div class="p-3 bg-slate-800 rounded-xl space-y-2">
-                            <label class="block text-sm text-white">Maximum participants</label>
-                            <select name="maxParticipants" 
-                                    class="w-full px-3 py-2 bg-slate-900 border border-lime-400/10 rounded-lg
-                                           focus:outline-none focus:ring-2 focus:ring-lime-400/50 focus:border-lime-400/30
-                                           text-white text-sm">
-                                <option value="2">2 participants</option>
-                                <option value="4">4 participants</option>
-                                <option value="8">8 participants</option>
-                                <option value="16">16 participants</option>
-                                <option value="32">32 participants</option>
-                                <option value="64">64 participants</option>
-                            </select>
-                            <p class="text-xs text-slate-400">Helps maintain call quality</p>
-                        </div>
                     </div>
                 </div>
 
@@ -168,6 +151,49 @@
                     Create Room
                 </button>
             </form>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div id="errorModal" class="fixed inset-0 bg-slate-950/95 flex items-center justify-center z-50 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-slate-900 border border-red-400/10 rounded-2xl w-full max-w-lg mx-4 
+                    transform transition-all duration-300 scale-95">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-red-400/10 flex items-center justify-between">
+                <h2 class="text-2xl font-bold text-red-400">
+                    Error
+                </h2>
+            </div>
+            
+            <!-- Modal Content -->
+            <div class="p-6">
+                <div class="flex items-start space-x-4">
+                    <div class="flex-shrink-0">
+                        <svg class="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <p id="errorMessage" class="text-white">
+                            An error occurred. Please try again.
+                        </p>
+                        <p id="errorDetails" class="mt-2 text-sm text-slate-400">
+                            <!-- Error details will be inserted here -->
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Action Button -->
+                <button id="errorModalOkBtn"
+                        class="w-full mt-6 px-4 py-3 bg-red-500 hover:bg-red-600 
+                               text-white font-medium rounded-xl
+                               transform transition-all duration-300 
+                               hover:shadow-lg hover:shadow-red-500/25
+                               active:scale-[0.98]">
+                    OK
+                </button>
+            </div>
         </div>
     </div>
 
