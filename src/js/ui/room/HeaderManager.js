@@ -1,3 +1,5 @@
+import { uiLogger as log } from '../../utils/logger.js';
+
 /**
  * @class
  * @classdesc Manages the header of the room UI, updating the room name and PIN display
@@ -28,9 +30,10 @@ export class HeaderManager {
      * @param {string} roomName - The name of the room
      */
     updateRoomName(roomName) {
-        if (this.roomName) {
-            this.roomName.textContent = roomName ? roomName : 'Unnamed Room';
-        }
+      log.debug({ roomName }, 'Updating room name to');
+      if (this.roomName) {
+          this.roomName.textContent = roomName != "null" ? roomName : 'Unnamed Room';
+      }
     }
 
 
