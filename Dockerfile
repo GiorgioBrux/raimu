@@ -16,27 +16,28 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Install Node.js and bun
-RUN apt-get update && apt-get install -y curl unzip git nodejs ffmpeg \
+# Install dependencies in a single RUN to reduce layers
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ffmpeg \
+    nodejs \
     && curl -fsSL https://bun.sh/install | bash \
     && ln -s /root/.bun/bin/bun /usr/local/bin/bun \
-    # Install Caddy
     && curl -o /usr/local/bin/caddy -L "https://caddyserver.com/api/download?os=linux&arch=amd64" \
-    && chmod +x /usr/local/bin/caddy
+    && chmod +x /usr/local/bin/caddy \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy Python requirements and install dependencies
 COPY src/server/python/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy Caddyfile
-COPY Caddyfile /app/Caddyfile
-
-# Copy built files, source and node_modules
+# Copy Caddyfile and built files from builder
+COPY Caddyfile ./Caddyfile
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/package-lock.json ./package-lock.json
 
 # Copy pages and components inside dist
 COPY --from=builder /app/src/pages ./dist/src/pages
