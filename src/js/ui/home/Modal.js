@@ -68,13 +68,6 @@ export class ModalManager {
 
         // Close modal handlers
         this.cancelBtn.addEventListener('click', () => this.hide());
-        
-        // Close on backdrop click
-        this.modal.addEventListener('click', (e) => {
-            if (e.target === this.modal) {
-                this.hide();
-            }
-        });
 
         // Close on Escape key
         document.addEventListener('keydown', (e) => {
