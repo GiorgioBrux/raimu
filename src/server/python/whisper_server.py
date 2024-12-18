@@ -67,8 +67,11 @@ async def transcribe(request: TranscriptionRequest):
             chunk_length_s=30,
             stride_length_s=5,
             num_workers=4,
-            language=request.language,
-            task="transcribe"
+            task="transcribe",
+            generate_kwargs={
+                "language": request.language,
+                "task": "transcribe"
+            }
         )
         
         return {"text": result["text"]}
