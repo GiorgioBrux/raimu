@@ -49,10 +49,12 @@ try:
         # Enable TF32 for better performance on Ampere GPUs
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
+        # Free cache before model load
+        torch.cuda.empty_cache()
     
     tts = F5TTS(
         model_type="F5-TTS",
-        device_map="auto"
+        device=device
     )
     
     logger.info("TTS Model initialized successfully")

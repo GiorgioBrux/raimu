@@ -31,6 +31,7 @@ try:
         low_cpu_mem_usage=True,
         use_safetensors=True,
         device_map="auto",
+        load_in_8bit=True,
         token=os.getenv('HUGGING_FACE_HUB_TOKEN')
     )
     
