@@ -1,76 +1,37 @@
-import { pipeline } from '@huggingface/transformers';
+import fetch from 'node-fetch';
 
 let instance = null;
 
 class TranslationService {
     constructor() {
         if (instance) return instance;
-        this.initialized = false;
-        this.model = null;
+        this.initialized = true;
         instance = this;
     }
 
-    async init() {
-        if (this.initialized) return;
-
-        try {
-            console.log('Initializing Translation Service...');
-            this.model = await pipeline('text-generation', 'CohereForAI/aya-23-35B', {
-                device: 'cuda',
-                torch: true,
-                quantize: true,
-                max_new_tokens: 512
-            });
-            this.initialized = true;
-            console.log('Translation Service initialized successfully');
-        } catch (error) {
-            console.error('Failed to initialize Translation service:', error);
-            throw error;
-        }
-    }
-
     async translate(text, sourceLang) {
-        if (!this.initialized) {
-            await this.init();
-        }
-
         try {
-            const prompt = `Translate the following ${this.getLanguageName(sourceLang)} text to English. Only provide the translation, no explanations:
-${text}`;
-            
-            const result = await this.model(prompt, {
-                temperature: 0.3,
-                do_sample: false
+            const response = await fetch('http://localhost:8003/translate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    text,
+                    source_lang: sourceLang
+                })
             });
 
-            const translation = result[0].generated_text
-                .replace(prompt, '')
-                .trim();
+            if (!response.ok) {
+                throw new Error(`Translation server error: ${response.statusText}`);
+            }
 
-            return translation;
+            const result = await response.json();
+            return result.text;
         } catch (error) {
             console.error('Translation Error:', error);
             return null;
         }
-    }
-
-    getLanguageName(langCode) {
-        const langMap = {
-            'en': 'English',
-            'es': 'Spanish',
-            'fr': 'French',
-            'de': 'German',
-            'it': 'Italian',
-            'pt': 'Portuguese',
-            'nl': 'Dutch',
-            'pl': 'Polish',
-            'ru': 'Russian',
-            'zh': 'Chinese',
-            'ja': 'Japanese',
-            'ko': 'Korean'
-        };
-        
-        return langMap[langCode] || 'English';
     }
 }
 

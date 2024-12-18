@@ -10,6 +10,8 @@ services:
       - TZ=Etc/UTC
       # OpenAI API key for transcription/TTS (optional)
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # Hugging Face token for model access
+      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}
       # Log level: trace, debug, info, warn, error (default: info)
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - NVIDIA_VISIBLE_DEVICES=all
