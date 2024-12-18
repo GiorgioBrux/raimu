@@ -46,7 +46,7 @@ export class WhisperService {
                 return response;
             } else {
                 // Use local Python Whisper server
-                const response = await fetch('http://localhost:8002/transcribe', {
+                const response = await fetch('http://127.0.0.1:8002/transcribe', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
