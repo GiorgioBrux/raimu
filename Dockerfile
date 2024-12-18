@@ -68,6 +68,5 @@ wait' > /app/start.sh && chmod +x /app/start.sh
 CMD ["/app/start.sh"] 
 
 # Add these before any model loading operations
-ENV TRANSFORMERS_CACHE=/root/.cache/huggingface \
-    HF_HOME=/root/.cache/huggingface \
+ENV HF_HOME=/root/.cache/huggingface \
     HUGGINGFACE_HUB_CACHE=/root/.cache/huggingface

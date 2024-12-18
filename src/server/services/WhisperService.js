@@ -41,9 +41,8 @@ export class WhisperService {
                     quantize: true,
                     chunk_length_s: 30,
                     batch_size: 8,
-                    return_timestamps: true,
                     model_kwargs: {
-                        use_flash_attention_2: true,  // Enable Flash Attention 2 for better performance
+                        use_flash_attention_2: true,
                         attn_implementation: "flash_attention_2"
                     }
                 });
