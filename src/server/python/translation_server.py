@@ -23,7 +23,7 @@ try:
     
     logger.info(f"Using device: {device}")
     
-    model_id = "CohereForAI/aya-23-35B"
+    model_id = "CohereForAI/aya-23-8B"
     
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
@@ -31,7 +31,6 @@ try:
         low_cpu_mem_usage=True,
         use_safetensors=True,
         device_map="auto",
-        load_in_8bit=True,
         token=os.getenv('HUGGING_FACE_HUB_TOKEN')
     )
     
