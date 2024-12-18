@@ -36,12 +36,14 @@ export class WhisperService {
             if (!localTranscriber) {
                 console.log('Initializing local Whisper model...');
                 localTranscriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-large-v3', {
-                    device: 'cuda',
-                    quantize: true,
-                    chunk_length_s: 30,
-                    batch_size: 8
+                    quantized: true,
+                    revision: 'main',
+                    config: {
+                        model_type: 'whisper',
+                        use_cache: true
+                    }
                 });
-                console.log('Local Whisper model initialized successfully on GPU');
+                console.log('Local Whisper model initialized successfully');
             }
         } catch (error) {
             console.error('Failed to initialize local Whisper model:', error);
@@ -94,11 +96,9 @@ export class WhisperService {
                 const result = await localTranscriber(samples, {
                     language,
                     task: 'transcribe',
-                    return_timestamps: true,
                     chunk_length_s: 30,
                     stride_length_s: 5,
-                    num_workers: 4,
-                    batch_size: 8
+                    num_workers: 4
                 });
 
                 return result.text;
