@@ -52,6 +52,8 @@ export class RoomStatusManager {
     }
 
     this.currentRoomData = null; // Add this to store room data
+
+    this.setupEventListeners();
   }
 
   async checkRoom(roomCode) {
@@ -227,5 +229,89 @@ export class RoomStatusManager {
 
     // Redirect to the room page (only with roomId in URL)
     window.appRouter.navigate(`/room/${this.currentRoomData.id}`);
+  }
+
+  setupEventListeners() {
+    const pasteButton = document.querySelector('[data-paste-code]');
+    const pasteStatus = document.querySelector('[data-paste-status]');
+    let isPasting = false;
+    let hideTimeout = null;  // Track the current timeout
+    
+    const isValidPIN = (text) => {
+      // Remove any non-digits
+      const digitsOnly = text.replace(/[^0-9]/g, '');
+      // Check if it's exactly 12 digits
+      return digitsOnly.length === 12;
+    };
+
+    const showStatus = (message, isError = false) => {
+      if (pasteStatus) {
+        // Clear any existing timeout
+        if (hideTimeout) {
+          clearTimeout(hideTimeout);
+          hideTimeout = null;
+        }
+
+        pasteStatus.textContent = message;
+        pasteStatus.className = `ml-2 text-sm ${isError ? 'text-red-400' : 'text-lime-400'}`;
+        pasteStatus.classList.remove('hidden');
+        
+        hideTimeout = setTimeout(() => {
+          pasteStatus.classList.add('hidden');
+          hideTimeout = null;
+        }, 2000);
+      }
+    };
+    
+    if (pasteButton) {
+      pasteButton.addEventListener('click', async () => {
+        if (isPasting) return;
+        
+        try {
+          isPasting = true;
+          pasteButton.disabled = true;
+          
+          if (pasteStatus) {
+            pasteStatus.textContent = 'Reading clipboard...';
+            pasteStatus.className = 'ml-2 text-sm text-slate-400';
+            pasteStatus.classList.remove('hidden');
+          }
+
+          const text = await navigator.clipboard.readText();
+          
+          if (!text.trim()) {
+            showStatus('✗ Clipboard is empty', true);
+            return;
+          }
+
+          if (!isValidPIN(text)) {
+            showStatus('✗ Invalid PIN', true);
+            return;
+          }
+
+          // Extract just the digits and group them
+          const code = text.replace(/[^0-9]/g, '');
+          const parts = code.match(/.{1,4}/g);
+          const inputs = document.querySelectorAll('[data-room-code-part]');
+          
+          // First set all values without triggering events
+          inputs.forEach((input, index) => {
+            input.value = parts[index];
+          });
+          
+          // Then trigger a single input event on the last field
+          const lastInput = inputs[inputs.length - 1];
+          lastInput?.dispatchEvent(new Event('input'));
+
+          showStatus('✓ PIN pasted');
+        } catch (err) {
+          showStatus('✗ Could not access clipboard', true);
+          console.error('Failed to paste room code:', err);
+        } finally {
+          isPasting = false;
+          pasteButton.disabled = false;
+        }
+      });
+    }
   }
 } 
