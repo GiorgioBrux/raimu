@@ -18,8 +18,9 @@ WORKDIR /app
 
 # Install Python and other dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 \
+    python3-full \
     python3-pip \
+    python3-venv \
     curl \
     ffmpeg \
     nodejs \
@@ -32,9 +33,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Create and activate virtual environment
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 # Copy Python requirements and install dependencies
 COPY src/server/python/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Copy Caddyfile and built files from builder
 COPY Caddyfile ./Caddyfile
@@ -56,7 +61,7 @@ caddy run --config /app/Caddyfile & \n\
 bun run preview & \n\
 node src/peerServer/index.js & \n\
 node src/server/index.js & \n\
-PYTHONHASHSEED=1 python src/server/python/tts_server.py & \n\
+PYTHONHASHSEED=1 /opt/venv/bin/python src/server/python/tts_server.py & \n\
 node src/js/stunServer/index.js & \n\
 wait' > /app/start.sh && chmod +x /app/start.sh
 
