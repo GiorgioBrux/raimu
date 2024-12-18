@@ -41,7 +41,6 @@ try:
         model=model,
         tokenizer=tokenizer,
         torch_dtype=torch_dtype,
-        device=device,
     )
     
     logger.info("Translation model initialized successfully")

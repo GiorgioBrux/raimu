@@ -52,7 +52,7 @@ try:
     
     tts = F5TTS(
         model_type="F5-TTS",
-        device=device
+        device_map="auto"
     )
     
     logger.info("TTS Model initialized successfully")

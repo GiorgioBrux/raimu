@@ -7,6 +7,7 @@ import numpy as np
 import logging
 import io
 import soundfile as sf
+import base64
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -43,7 +44,8 @@ try:
         tokenizer=processor.tokenizer,
         feature_extractor=processor.feature_extractor,
         torch_dtype=torch_dtype,
-        device=device,
+        chunk_length_s=30,
+        batch_size=8
     )
     
     logger.info("Whisper model initialized successfully")
@@ -54,12 +56,12 @@ except Exception as e:
 @app.post("/transcribe")
 async def transcribe(request: TranscriptionRequest):
     try:
-        # Load audio data
-        audio_data = request.audio_data
+        # Decode base64 audio data
+        audio_bytes = base64.b64decode(request.audio_data)
         
         # Process audio with Whisper
         result = pipe(
-            audio_data,
+            audio_bytes,
             batch_size=8,
             return_timestamps=True,
             chunk_length_s=30,
