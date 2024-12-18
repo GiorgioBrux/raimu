@@ -56,7 +56,6 @@ try:
     tts = F5TTS(
         model_type="F5-TTS",
         device=device,
-        use_fp16=True  # Use FP16 for memory efficiency
     )
     
     logger.info("TTS Model initialized successfully")
