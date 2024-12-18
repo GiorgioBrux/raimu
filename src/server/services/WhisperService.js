@@ -35,16 +35,11 @@ export class WhisperService {
         try {
             if (!localTranscriber) {
                 console.log('Initializing local Whisper model...');
-                localTranscriber = await pipeline('automatic-speech-recognition', 'openai/whisper-large-v3', {
+                localTranscriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-large-v3', {
                     device: 'cuda',
-                    torch: true,
                     quantize: true,
                     chunk_length_s: 30,
-                    batch_size: 8,
-                    model_kwargs: {
-                        use_flash_attention_2: true,
-                        attn_implementation: "flash_attention_2"
-                    }
+                    batch_size: 8
                 });
                 console.log('Local Whisper model initialized successfully on GPU');
             }

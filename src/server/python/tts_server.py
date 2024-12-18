@@ -46,25 +46,14 @@ try:
     logger.info(f"Using device: {device}")
     
     if device == "cuda":
-        # Enable TF32 for better performance on Ampere GPUs (like A100, A6000)
+        # Enable TF32 for better performance on Ampere GPUs
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
-        
-        # Set default tensor type to CUDA
-        torch.set_default_tensor_type('torch.cuda.FloatTensor')
     
     tts = F5TTS(
         model_type="F5-TTS",
         device=device
     )
-    
-    # Move model components to GPU if available
-    if device == "cuda":
-        for component in tts.components:
-            if hasattr(component, 'to'):
-                component.to(device)
-                if hasattr(component, 'half'):
-                    component.half()  # Use FP16 for better memory efficiency
     
     logger.info("TTS Model initialized successfully")
 except Exception as e:

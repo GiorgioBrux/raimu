@@ -31,7 +31,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && curl -o /usr/local/bin/caddy -L "https://caddyserver.com/api/download?os=linux&arch=amd64" \
     && chmod +x /usr/local/bin/caddy \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /root/.cache/* \
+    && rm -rf /tmp/*
 
 # Create and activate virtual environment
 RUN python3 -m venv /opt/venv
@@ -39,7 +41,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy Python requirements and install dependencies
 COPY src/server/python/requirements.txt ./
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt \
+    && rm -rf /root/.cache/pip
 
 # Copy Caddyfile and built files from builder
 COPY Caddyfile ./Caddyfile
