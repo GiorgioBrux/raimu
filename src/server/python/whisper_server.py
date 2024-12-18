@@ -45,7 +45,9 @@ try:
         feature_extractor=processor.feature_extractor,
         torch_dtype=torch_dtype,
         chunk_length_s=30,
-        batch_size=8
+        batch_size=8,
+        stride_length_s=5,
+        return_timestamps=True
     )
     
     logger.info("Whisper model initialized successfully")
@@ -66,10 +68,10 @@ async def transcribe(request: TranscriptionRequest):
             return_timestamps=True,
             chunk_length_s=30,
             stride_length_s=5,
-            num_workers=4,
             generate_kwargs={
                 "language": request.language,
-                "task": "transcribe"
+                "task": "transcribe",
+                "max_length": 448
             }
         )
         
