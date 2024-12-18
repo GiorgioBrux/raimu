@@ -27,7 +27,6 @@ try:
     
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
-        torch_dtype=torch_dtype,
         low_cpu_mem_usage=True,
         use_safetensors=True,
         device_map="auto",
@@ -42,7 +41,7 @@ try:
         "text-generation",
         model=model,
         tokenizer=tokenizer,
-        torch_dtype=torch_dtype,
+        torch_dtype=torch.float16,
     )
     
     logger.info("Translation model initialized successfully")
