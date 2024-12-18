@@ -49,12 +49,14 @@ try:
         # Enable TF32 for better performance on Ampere GPUs
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
-        # Free cache before model load
+        # Set memory efficient options
+        torch.cuda.set_per_process_memory_fraction(0.4)  # Limit to 40% of VRAM
         torch.cuda.empty_cache()
     
     tts = F5TTS(
         model_type="F5-TTS",
-        device=device
+        device=device,
+        use_fp16=True  # Use FP16 for memory efficiency
     )
     
     logger.info("TTS Model initialized successfully")

@@ -31,6 +31,8 @@ try:
         low_cpu_mem_usage=True,
         use_safetensors=True,
         device_map="auto",
+        load_in_8bit=True,
+        torch_dtype=torch.float16,
         token=os.getenv('HUGGING_FACE_HUB_TOKEN')
     )
     
