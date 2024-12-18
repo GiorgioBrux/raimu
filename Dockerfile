@@ -12,12 +12,14 @@ COPY . .
 RUN bun run build
 
 # Runtime stage
-FROM python:3.10-slim
+FROM nvidia/cuda:12.6.3-runtime-ubuntu24.04
 
 WORKDIR /app
 
-# Install dependencies in a single RUN to reduce layers
+# Install Python and other dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
     curl \
     ffmpeg \
     nodejs \

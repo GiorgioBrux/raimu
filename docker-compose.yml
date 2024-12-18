@@ -12,6 +12,8 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       # Log level: trace, debug, info, warn, error (default: info)
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     labels:
       com.github.saltbox.saltbox_managed: true 
       # Frontend
@@ -29,3 +31,10 @@ services:
       traefik.http.services.raimu.loadbalancer.server.port: 4000
     ports:
       - "19302:19302/udp"  # STUN uses UDP
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
