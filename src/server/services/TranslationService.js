@@ -15,7 +15,12 @@ class TranslationService {
 
         try {
             console.log('Initializing Translation Service...');
-            this.model = await pipeline('translation', 'Xenova/nllb-200-distilled-600M');
+            this.model = await pipeline('text-generation', 'CohereForAI/aya-23-35B', {
+                device: 'cuda',
+                torch: true,
+                quantize: true,
+                max_new_tokens: 512
+            });
             this.initialized = true;
             console.log('Translation Service initialized successfully');
         } catch (error) {
@@ -30,41 +35,43 @@ class TranslationService {
         }
 
         try {
-            const sourceNLLB = this.convertToNLLBCode(sourceLang);
+            const prompt = `Translate the following ${this.getLanguageName(sourceLang)} text to English. Only provide the translation, no explanations:
+${text}`;
             
-            const result = await this.model(text, {
-                src_lang: sourceNLLB,
-                tgt_lang: 'eng_Latn'
+            const result = await this.model(prompt, {
+                temperature: 0.3,
+                do_sample: false
             });
 
-            return result[0].translation_text;
+            const translation = result[0].generated_text
+                .replace(prompt, '')
+                .trim();
+
+            return translation;
         } catch (error) {
             console.error('Translation Error:', error);
             return null;
         }
     }
 
-    convertToNLLBCode(langCode) {
-        // Mapping of common ISO codes to NLLB codes
+    getLanguageName(langCode) {
         const langMap = {
-            'en': 'eng_Latn',
-            'es': 'spa_Latn',
-            'fr': 'fra_Latn',
-            'de': 'deu_Latn',
-            'it': 'ita_Latn',
-            'pt': 'por_Latn',
-            'nl': 'nld_Latn',
-            'pl': 'pol_Latn',
-            'ru': 'rus_Cyrl',
-            'zh': 'zho_Hans',
-            'ja': 'jpn_Jpan',
-            'ko': 'kor_Hang'
-            // Add more mappings as needed
+            'en': 'English',
+            'es': 'Spanish',
+            'fr': 'French',
+            'de': 'German',
+            'it': 'Italian',
+            'pt': 'Portuguese',
+            'nl': 'Dutch',
+            'pl': 'Polish',
+            'ru': 'Russian',
+            'zh': 'Chinese',
+            'ja': 'Japanese',
+            'ko': 'Korean'
         };
         
-        return langMap[langCode] || 'eng_Latn';
+        return langMap[langCode] || 'English';
     }
 }
 
-// Export a singleton instance
 export default new TranslationService(); 

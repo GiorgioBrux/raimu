@@ -35,8 +35,19 @@ export class WhisperService {
         try {
             if (!localTranscriber) {
                 console.log('Initializing local Whisper model...');
-                localTranscriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny');
-                console.log('Local Whisper model initialized successfully');
+                localTranscriber = await pipeline('automatic-speech-recognition', 'openai/whisper-large-v3', {
+                    device: 'cuda',
+                    torch: true,
+                    quantize: true,
+                    chunk_length_s: 30,
+                    batch_size: 8,
+                    return_timestamps: true,
+                    model_kwargs: {
+                        use_flash_attention_2: true,  // Enable Flash Attention 2 for better performance
+                        attn_implementation: "flash_attention_2"
+                    }
+                });
+                console.log('Local Whisper model initialized successfully on GPU');
             }
         } catch (error) {
             console.error('Failed to initialize local Whisper model:', error);
@@ -88,7 +99,12 @@ export class WhisperService {
                 
                 const result = await localTranscriber(samples, {
                     language,
-                    task: 'transcribe'
+                    task: 'transcribe',
+                    return_timestamps: true,
+                    chunk_length_s: 30,
+                    stride_length_s: 5,
+                    num_workers: 4,
+                    batch_size: 8
                 });
 
                 return result.text;

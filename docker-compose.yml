@@ -16,6 +16,9 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - TRANSFORMERS_VERBOSITY=info
       - HF_HUB_ENABLE_HF_TRANSFER=1
+      - TRANSFORMERS_CACHE=/root/.cache/huggingface
+      - TORCH_DEVICE=cuda
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
     labels:
       com.github.saltbox.saltbox_managed: true 
       # Frontend
@@ -40,3 +43,6 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+          memory: 12G  # Adjust based on your needs
+    volumes:
+      - /kagi/model_cache:/root/.cache/huggingface  # Cache HuggingFace models
