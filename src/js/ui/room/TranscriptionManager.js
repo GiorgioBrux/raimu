@@ -291,7 +291,7 @@ export class TranscriptionManager {
         }
     }
 
-    sendAudioForTranscription(base64AudioData) {
+    sendAudioForTranscription(base64AudioData, userId) {
         // Only send audio for transcription if enabled and not muted
         if (!this.enabled || this.isAudioMuted()) return;
 
@@ -300,7 +300,8 @@ export class TranscriptionManager {
             audioData: base64AudioData,
             language: this.language,
             roomId: this.roomId,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            userId: userId
         });
     }
 
@@ -331,19 +332,38 @@ export class TranscriptionManager {
         const transcriptionElement = document.createElement('div');
         transcriptionElement.className = 'p-3 bg-slate-800/30 rounded-lg mb-2';
 
+        const headerRow = document.createElement('div');
+        headerRow.className = 'flex justify-between items-center mb-1';
+
+        // Get username from room manager based on userId
+        let username;
+        if (userId === 'local') {
+            username = 'You';
+        } else {
+            const participant = this.roomManager.participants.get(userId);
+            username = participant?.name || 'Unknown User';
+        }
+        
+        const nameEl = document.createElement('span');
+        nameEl.className = 'text-xs text-slate-500';
+        nameEl.textContent = username;
+
         const timeEl = document.createElement('span');
-        timeEl.className = 'text-xs text-slate-500 block mb-1';
+        timeEl.className = 'text-xs text-slate-500';
         const time = new Date(timestamp);
         timeEl.textContent = time.toLocaleTimeString([], { 
             hour: '2-digit', 
             minute: '2-digit' 
         });
 
+        headerRow.appendChild(nameEl);
+        headerRow.appendChild(timeEl);
+
         const transcriptionText = document.createElement('p');
         transcriptionText.className = 'text-sm text-slate-300';
         transcriptionText.textContent = text;
 
-        transcriptionElement.appendChild(timeEl);
+        transcriptionElement.appendChild(headerRow);
         transcriptionElement.appendChild(transcriptionText);
         this.transcriptionText.appendChild(transcriptionElement);
         this.transcriptionText.scrollTop = this.transcriptionText.scrollHeight;

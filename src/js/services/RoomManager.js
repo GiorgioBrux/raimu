@@ -479,7 +479,7 @@ export class RoomManager {
 
                     this.roomUI.transcriptionManager?.addTranscription(
                         displayText,
-                        this.userId,
+                        data.userId,
                         data.timestamp
                     );
                     break;

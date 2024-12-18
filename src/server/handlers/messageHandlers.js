@@ -208,7 +208,8 @@ export const messageHandlers = {
             type: 'transcription',
             text: transcription,
             timestamp: data.timestamp,
-            originalLanguage: data.language
+            originalLanguage: data.language,
+            userId: data.userId
         };
 
         // Only translate and generate TTS if TTS is enabled for this user

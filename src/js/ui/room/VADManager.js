@@ -74,7 +74,9 @@ export class VADManager {
             const wavBuffer = this._encodeWAV(audioData);
             const base64 = this._arrayBufferToBase64(wavBuffer);
             
-            this.transcriptionManager.sendAudioForTranscription(base64);
+            // Extract userId from container ID (format: participant-{userId})
+            const userId = container.id.replace('participant-', '');
+            this.transcriptionManager.sendAudioForTranscription(base64, userId);
           }
         },
         modelURL: "v5",
