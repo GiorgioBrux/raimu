@@ -3,3 +3,7 @@ node_modules
 .venv
 __pycache__
 dist
+# Hugging Face cache
+model_cache/
+.cache/
+node_modules/@huggingface/transformers/.cache/

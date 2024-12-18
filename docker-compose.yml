@@ -17,6 +17,8 @@ services:
       - TRANSFORMERS_VERBOSITY=info
       - HF_HUB_ENABLE_HF_TRANSFER=1
       - TRANSFORMERS_CACHE=/root/.cache/huggingface
+      - HF_HOME=/root/.cache/huggingface
+      - HUGGINGFACE_HUB_CACHE=/root/.cache/huggingface
       - TORCH_DEVICE=cuda
       - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
     labels:
@@ -45,4 +47,4 @@ services:
               capabilities: [gpu]
           memory: 12G  # Adjust based on your needs
     volumes:
-      - /kagi/model_cache:/root/.cache/huggingface  # Cache HuggingFace models
+      - /kagi/model_cache:/root/.cache/huggingface  # Single mount point for all caches
