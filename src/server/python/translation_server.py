@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+from transformers import AutoModelForCausalLM, AutoTokenizer
 import logging
 import os
 
@@ -37,13 +37,6 @@ try:
     
     tokenizer = AutoTokenizer.from_pretrained(model_id, token=os.getenv('HUGGING_FACE_HUB_TOKEN'))
     
-    pipe = pipeline(
-        "text-generation",
-        model=model,
-        tokenizer=tokenizer,
-        torch_dtype=torch.float16,
-    )
-    
     logger.info("Translation model initialized successfully")
 except Exception as e:
     logger.error(f"Error initializing Translation model: {e}")
@@ -70,15 +63,25 @@ def get_language_name(lang_code):
 async def translate(request: TranslationRequest):
     try:
         prompt = f"Translate the following {get_language_name(request.source_lang)} text to English. Only provide the translation, no explanations:\n{request.text}"
-        
-        result = pipe(
-            prompt,
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant that translates text from one language to another. Return the translation only, no explanations or other text."},
+            {"role": "user", "content": prompt}
+        ]
+
+        # Convert to tensor and move to correct device
+        input_ids = tokenizer.apply_chat_template(messages, tokenize=True, add_generation_prompt=True, return_tensors="pt").to(device)
+
+        # Generate using the model directly for more control
+        outputs = model.generate(
+            input_ids,
             max_new_tokens=512,
             temperature=0.3,
-            do_sample=False
+            do_sample=False,
+            pad_token_id=tokenizer.eos_token_id
         )
         
-        translation = result[0]['generated_text'].replace(prompt, '').strip()
+        # Decode only the new tokens (excluding the prompt)
+        translation = tokenizer.decode(outputs[0][input_ids.shape[1]:], skip_special_tokens=True).strip()
         
         return {"text": translation}
             
