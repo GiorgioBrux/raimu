@@ -213,20 +213,19 @@ export const messageHandlers = {
             userId: data.userId
         };
 
-        // Only translate and generate TTS if TTS is enabled for this user
-        if (ws.connectionInfo?.ttsEnabled) {
-            // Translate to English if not already in English
-            if (data.language !== 'en') {
-                const translatedText = await TranslationService.translate(transcription, data.language);
-                if (translatedText) {
-                    response.translatedText = translatedText;
-                }
+        // Translate to English if not already in English
+        if (data.language !== 'en') {
+            const translatedText = await TranslationService.translate(transcription, data.language);
+            if (translatedText) {
+                response.translatedText = translatedText;
             }
+        }
 
-            // Generate TTS audio using the translated or original text
-            const textForTTS = response.translatedText || transcription;
+        // Only generate TTS if TTS is enabled for this user
+        if (ws.connectionInfo?.ttsEnabled && response.translatedText) {
+            // Generate TTS audio using the translated text
             const ttsAudio = await TTSService.synthesizeSpeech(
-                textForTTS,
+                response.translatedText || transcription,
                 'en',
                 data.audioData,
                 transcription

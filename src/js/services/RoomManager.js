@@ -480,7 +480,8 @@ export class RoomManager {
                     this.roomUI.transcriptionManager?.addTranscription(
                         displayText,
                         data.userId,
-                        data.timestamp
+                        data.timestamp,
+                        data.translatedText
                     );
                     break;
                 case 'error':

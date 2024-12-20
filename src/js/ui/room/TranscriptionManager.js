@@ -446,7 +446,7 @@ export class TranscriptionManager {
         };
     }
 
-    addTranscription(text, userId, timestamp) {
+    addTranscription(text, userId, timestamp, translatedText = null) {
         if (!this.hasTranscriptions) {
             const placeholder = this.transcriptionText.querySelector('.opacity-30');
             if (placeholder) {
@@ -491,6 +491,25 @@ export class TranscriptionManager {
 
         transcriptionElement.appendChild(headerRow);
         transcriptionElement.appendChild(transcriptionText);
+
+        // Add translated text if available
+        if (translatedText) {
+            const translationContainer = document.createElement('div');
+            translationContainer.className = 'mt-2 pt-2 border-t border-slate-700/50';
+            
+            const translationLabel = document.createElement('span');
+            translationLabel.className = 'text-xs text-slate-500';
+            translationLabel.textContent = 'English';
+            
+            const translatedTextEl = document.createElement('p');
+            translatedTextEl.className = 'text-sm text-slate-400';
+            translatedTextEl.textContent = translatedText;
+            
+            translationContainer.appendChild(translationLabel);
+            translationContainer.appendChild(translatedTextEl);
+            transcriptionElement.appendChild(translationContainer);
+        }
+
         this.transcriptionText.appendChild(transcriptionElement);
         this.transcriptionText.scrollTop = this.transcriptionText.scrollHeight;
     }
@@ -560,6 +579,22 @@ export class TranscriptionManager {
                 enabled: audioTrack.enabled,
                 shouldBeMuted: isAudioMuted 
             }, 'Updated audio track state');
+        }
+    }
+
+    handleWebSocketMessage(message) {
+        if (message.type === 'transcription') {
+            this.addTranscription(
+                message.text,
+                message.userId,
+                message.timestamp,
+                message.translatedText
+            );
+
+            // Handle TTS audio if present
+            if (message.ttsAudio && this.voiceTTSEnabled.checked) {
+                this.handleTTSAudio(message.ttsAudio);
+            }
         }
     }
 } 
