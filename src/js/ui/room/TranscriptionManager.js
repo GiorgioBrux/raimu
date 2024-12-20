@@ -30,6 +30,10 @@ export class TranscriptionManager {
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         this.originalStream = null;
 
+        // Audio queue system
+        this.audioQueue = [];
+        this.isProcessingQueue = false;
+
         // Initially disable TTS switch
         this.voiceTTSEnabled.disabled = true;
         this.voiceTTSEnabled.checked = false;
@@ -237,6 +241,66 @@ export class TranscriptionManager {
     }
 
     /**
+     * Process the audio queue
+     * @private
+     */
+    async processAudioQueue() {
+        if (this.isProcessingQueue || this.audioQueue.length === 0) return;
+
+        this.isProcessingQueue = true;
+        try {
+            while (this.audioQueue.length > 0) {
+                const { audioData, videoTrack } = this.audioQueue[0];
+                
+                const newStream = new MediaStream();
+                if (videoTrack) {
+                    newStream.addTrack(videoTrack);
+                }
+
+                // Add TTS audio track
+                const source = this.audioContext.createBufferSource();
+                source.buffer = audioData;
+                const streamDest = this.audioContext.createMediaStreamDestination();
+                source.connect(streamDest);
+                newStream.addTrack(streamDest.stream.getAudioTracks()[0]);
+
+                // Update WebRTC stream
+                await this.webrtc.updateLocalStream(newStream);
+                source.start();
+
+                // Wait for this audio to finish before processing next
+                await new Promise(resolve => {
+                    source.onended = () => {
+                        this.audioQueue.shift(); // Remove the processed audio
+                        resolve();
+                    };
+                });
+            }
+        } finally {
+            this.isProcessingQueue = false;
+            
+            // If queue is empty, restore silent stream
+            if (this.audioQueue.length === 0) {
+                const silentStream = new MediaStream();
+                const videoTrack = this.currentStream.getVideoTracks()[0];
+                if (videoTrack) silentStream.addTrack(videoTrack);
+                
+                const ctx = new AudioContext();
+                const oscillator = ctx.createOscillator();
+                oscillator.frequency.value = 0;
+                const gain = ctx.createGain();
+                gain.gain.value = 0;
+                oscillator.connect(gain);
+                const dest = gain.connect(ctx.createMediaStreamDestination());
+                oscillator.start();
+                silentStream.addTrack(dest.stream.getAudioTracks()[0]);
+
+                await this.webrtc.updateLocalStream(silentStream);
+            }
+        }
+    }
+
+    /**
      * Handles incoming TTS audio data by playing it through the local audio context
      * and updating the WebRTC stream that peers receive
      * @param {string} base64Audio - Base64 encoded audio data to be played
@@ -251,41 +315,18 @@ export class TranscriptionManager {
         try {
             const audioData = Uint8Array.from(atob(base64Audio), c => c.charCodeAt(0));
             const audioBuffer = await this.audioContext.decodeAudioData(audioData.buffer);
-
-            const newStream = new MediaStream();
             const videoTrack = this.currentStream.getVideoTracks()[0];
-            if (videoTrack) {
-                newStream.addTrack(videoTrack);
+
+            // Add to queue
+            this.audioQueue.push({
+                audioData: audioBuffer,
+                videoTrack: videoTrack
+            });
+
+            // Start processing queue if not already processing
+            if (!this.isProcessingQueue) {
+                this.processAudioQueue();
             }
-
-            // Add TTS audio track
-            const source = this.audioContext.createBufferSource();
-            source.buffer = audioBuffer;
-            const streamDest = this.audioContext.createMediaStreamDestination();
-            source.connect(streamDest);
-            newStream.addTrack(streamDest.stream.getAudioTracks()[0]);
-
-            // Update only WebRTC stream (what peers receive)
-            await this.webrtc.updateLocalStream(newStream);
-            source.start();
-
-            // When TTS ends, go back to silent track for peers
-            source.onended = () => {
-                const silentStream = new MediaStream();
-                if (videoTrack) silentStream.addTrack(videoTrack);
-                
-                const ctx = new AudioContext();
-                const oscillator = ctx.createOscillator();
-                oscillator.frequency.value = 0;
-                const gain = ctx.createGain();
-                gain.gain.value = 0;
-                oscillator.connect(gain);
-                const dest = gain.connect(ctx.createMediaStreamDestination());
-                oscillator.start();
-                silentStream.addTrack(dest.stream.getAudioTracks()[0]);
-
-                this.webrtc.updateLocalStream(silentStream);
-            };
         } catch (error) {
             console.error('Error handling TTS audio:', error);
         }
