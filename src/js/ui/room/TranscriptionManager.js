@@ -404,6 +404,33 @@ export class TranscriptionManager {
         // Only send audio for transcription if enabled and not muted
         if (!this.enabled || this.isAudioMuted()) return;
 
+        // Check audio duration and energy level before sending
+        try {
+            const audioData = Uint8Array.from(atob(base64AudioData), c => c.charCodeAt(0));
+            const samples = new Float32Array(audioData.buffer);
+            
+            // Calculate RMS energy of the audio
+            let sumSquares = 0;
+            for (let i = 0; i < samples.length; i++) {
+                sumSquares += samples[i] * samples[i];
+            }
+            const rmsEnergy = Math.sqrt(sumSquares / samples.length);
+            
+            // Skip if energy is too low (likely just noise)
+            if (rmsEnergy < 0.01) {  // Adjust this threshold as needed
+                log.debug({ rmsEnergy }, 'Skipping low energy audio');
+                return;
+            }
+
+            // Skip if audio is too short (likely just noise)
+            if (samples.length / 16000 < 0.3) {  // Less than 300ms
+                log.debug({ duration: samples.length / 16000 }, 'Skipping short audio');
+                return;
+            }
+        } catch (error) {
+            log.warn({ error }, 'Error analyzing audio before transcription');
+        }
+
         this.websocket.send({
             type: 'transcriptionRequest',
             audioData: base64AudioData,
