@@ -64,7 +64,7 @@ async def translate(request: TranslationRequest):
     try:
         prompt = f"Translate the following {get_language_name(request.source_lang)} text to English. Only provide the translation, no explanations:\n{request.text}"
         messages = [
-            {"role": "system", "content": "You are a helpful assistant that translates text from one language to another. Return the translation only, no explanations or other text."},
+            {"role": "system", "content": "You are a helpful assistant that translates text from one language to another. Return the translation only, no explanations or other text. If the text provided to you is empty/blank, return an empty string"},
             {"role": "user", "content": prompt}
         ]
 
