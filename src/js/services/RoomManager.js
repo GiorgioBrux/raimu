@@ -481,7 +481,8 @@ export class RoomManager {
                         displayText,
                         data.userId,
                         data.timestamp,
-                        data.translatedText
+                        data.translatedText,
+                        data.originalLanguage
                     );
                     break;
                 case 'error':

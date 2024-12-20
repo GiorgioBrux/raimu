@@ -424,7 +424,7 @@ export class TranscriptionManager {
         this.websocket.send({
             type: 'transcriptionRequest',
             audioData: base64AudioData,
-            language: this.language,
+            language: this.language || 'en',
             roomId: this.roomId,
             timestamp: new Date().toISOString(),
             userId: userId
@@ -446,7 +446,7 @@ export class TranscriptionManager {
         };
     }
 
-    addTranscription(text, userId, timestamp, translatedText = null) {
+    addTranscription(text, userId, timestamp, translatedText = null, originalLanguage = null) {
         if (!this.hasTranscriptions) {
             const placeholder = this.transcriptionText.querySelector('.opacity-30');
             if (placeholder) {
@@ -485,12 +485,26 @@ export class TranscriptionManager {
         headerRow.appendChild(nameEl);
         headerRow.appendChild(timeEl);
 
+        // Create container for original text with language label
+        const originalContainer = document.createElement('div');
+        originalContainer.className = 'mb-1';
+        
+        if (originalLanguage) {
+            const originalLabel = document.createElement('span');
+            originalLabel.className = 'text-xs text-slate-500 mb-1';
+            // Get full language name from code
+            const languageName = this._getLanguageName(originalLanguage);
+            originalLabel.textContent = languageName;
+            originalContainer.appendChild(originalLabel);
+        }
+
         const transcriptionText = document.createElement('p');
         transcriptionText.className = 'text-sm text-slate-300';
         transcriptionText.textContent = text;
+        originalContainer.appendChild(transcriptionText);
 
         transcriptionElement.appendChild(headerRow);
-        transcriptionElement.appendChild(transcriptionText);
+        transcriptionElement.appendChild(originalContainer);
 
         // Add translated text if available
         if (translatedText) {
@@ -512,6 +526,36 @@ export class TranscriptionManager {
 
         this.transcriptionText.appendChild(transcriptionElement);
         this.transcriptionText.scrollTop = this.transcriptionText.scrollHeight;
+    }
+
+    /**
+     * Convert language code to full name
+     * @private
+     */
+    _getLanguageName(code) {
+        const languages = {
+            'en': 'English',
+            'es': 'Spanish',
+            'fr': 'French',
+            'de': 'German',
+            'it': 'Italian',
+            'pt': 'Portuguese',
+            'nl': 'Dutch',
+            'pl': 'Polish',
+            'ru': 'Russian',
+            'ja': 'Japanese',
+            'ko': 'Korean',
+            'zh': 'Chinese',
+            'ar': 'Arabic',
+            'hi': 'Hindi',
+            'tr': 'Turkish',
+            'vi': 'Vietnamese',
+            'th': 'Thai',
+            'id': 'Indonesian',
+            'ms': 'Malay',
+            'fa': 'Persian'
+        };
+        return languages[code] || code.toUpperCase();
     }
 
     isEnabled() {
