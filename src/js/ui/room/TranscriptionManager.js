@@ -245,12 +245,26 @@ export class TranscriptionManager {
      * @private
      */
     async processAudioQueue() {
-        if (this.isProcessingQueue || this.audioQueue.length === 0) return;
+        if (this.isProcessingQueue || this.audioQueue.length === 0) {
+            log.debug({
+                isProcessing: this.isProcessingQueue,
+                queueLength: this.audioQueue.length
+            }, 'Queue processing skipped');
+            return;
+        }
 
         this.isProcessingQueue = true;
+        let currentSource = null;
+        log.debug({ queueLength: this.audioQueue.length }, 'Starting queue processing');
+
         try {
             while (this.audioQueue.length > 0) {
                 const { audioData, videoTrack } = this.audioQueue[0];
+                log.debug({ 
+                    remainingInQueue: this.audioQueue.length,
+                    audioDuration: audioData.duration,
+                    hasVideoTrack: !!videoTrack
+                }, 'Processing next audio in queue');
                 
                 const newStream = new MediaStream();
                 if (videoTrack) {
@@ -258,44 +272,77 @@ export class TranscriptionManager {
                 }
 
                 // Add TTS audio track
-                const source = this.audioContext.createBufferSource();
-                source.buffer = audioData;
+                currentSource = this.audioContext.createBufferSource();
+                currentSource.buffer = audioData;
                 const streamDest = this.audioContext.createMediaStreamDestination();
-                source.connect(streamDest);
+                currentSource.connect(streamDest);
                 newStream.addTrack(streamDest.stream.getAudioTracks()[0]);
 
                 // Update WebRTC stream
+                log.debug('Updating WebRTC stream with new audio');
                 await this.webrtc.updateLocalStream(newStream);
-                source.start();
 
                 // Wait for this audio to finish before processing next
-                await new Promise(resolve => {
-                    source.onended = () => {
-                        this.audioQueue.shift(); // Remove the processed audio
+                await new Promise((resolve) => {
+                    const handleEnded = async () => {
+                        log.debug('Audio clip finished playing');
+                        currentSource.removeEventListener('ended', handleEnded);
+                        // Add a small delay between clips
+                        log.debug('Adding delay between clips');
+                        await new Promise(r => setTimeout(r, 300));
                         resolve();
                     };
+                    currentSource.addEventListener('ended', handleEnded);
+                    log.debug('Starting audio playback');
+                    currentSource.start();
                 });
+
+                // Remove the processed audio after it's done playing
+                log.debug('Removing processed audio from queue');
+                this.audioQueue.shift();
+            }
+        } catch (error) {
+            console.error('Error processing audio queue:', error);
+            log.error({ error }, 'Error in audio queue processing');
+            // If there's an error, clear the queue to prevent getting stuck
+            this.audioQueue = [];
+            if (currentSource) {
+                try {
+                    currentSource.stop();
+                    log.debug('Stopped current audio source after error');
+                } catch (e) {
+                    // Ignore stop errors
+                    log.warn({ error: e }, 'Error stopping audio source');
+                }
             }
         } finally {
             this.isProcessingQueue = false;
+            log.debug('Queue processing finished');
             
             // If queue is empty, restore silent stream
             if (this.audioQueue.length === 0) {
-                const silentStream = new MediaStream();
-                const videoTrack = this.currentStream.getVideoTracks()[0];
-                if (videoTrack) silentStream.addTrack(videoTrack);
-                
-                const ctx = new AudioContext();
-                const oscillator = ctx.createOscillator();
-                oscillator.frequency.value = 0;
-                const gain = ctx.createGain();
-                gain.gain.value = 0;
-                oscillator.connect(gain);
-                const dest = gain.connect(ctx.createMediaStreamDestination());
-                oscillator.start();
-                silentStream.addTrack(dest.stream.getAudioTracks()[0]);
+                try {
+                    log.debug('Restoring silent stream');
+                    const silentStream = new MediaStream();
+                    const videoTrack = this.currentStream.getVideoTracks()[0];
+                    if (videoTrack) silentStream.addTrack(videoTrack);
+                    
+                    const ctx = new AudioContext();
+                    const oscillator = ctx.createOscillator();
+                    oscillator.frequency.value = 0;
+                    const gain = ctx.createGain();
+                    gain.gain.value = 0;
+                    oscillator.connect(gain);
+                    const dest = gain.connect(ctx.createMediaStreamDestination());
+                    oscillator.start();
+                    silentStream.addTrack(dest.stream.getAudioTracks()[0]);
 
-                await this.webrtc.updateLocalStream(silentStream);
+                    await this.webrtc.updateLocalStream(silentStream);
+                    log.debug('Silent stream restored successfully');
+                } catch (error) {
+                    console.error('Error restoring silent stream:', error);
+                    log.error({ error }, 'Failed to restore silent stream');
+                }
             }
         }
     }
@@ -310,12 +357,27 @@ export class TranscriptionManager {
         if (!this.currentStream || 
             !this.voiceTTSEnabled.checked || 
             !this.webrtc ||
-            this.isAudioMuted()) return;
+            this.isAudioMuted()) {
+            log.debug({
+                hasCurrentStream: !!this.currentStream,
+                ttsEnabled: this.voiceTTSEnabled.checked,
+                hasWebRTC: !!this.webrtc,
+                isAudioMuted: this.isAudioMuted()
+            }, 'TTS audio handling skipped');
+            return;
+        }
 
         try {
+            log.debug('Processing new TTS audio');
             const audioData = Uint8Array.from(atob(base64Audio), c => c.charCodeAt(0));
             const audioBuffer = await this.audioContext.decodeAudioData(audioData.buffer);
             const videoTrack = this.currentStream.getVideoTracks()[0];
+
+            log.debug({ 
+                audioDuration: audioBuffer.duration,
+                currentQueueLength: this.audioQueue.length,
+                isProcessing: this.isProcessingQueue
+            }, 'Adding audio to queue');
 
             // Add to queue
             this.audioQueue.push({
@@ -325,10 +387,14 @@ export class TranscriptionManager {
 
             // Start processing queue if not already processing
             if (!this.isProcessingQueue) {
-                this.processAudioQueue();
+                log.debug('Starting queue processing');
+                await this.processAudioQueue();
+            } else {
+                log.debug('Queue is already being processed');
             }
         } catch (error) {
             console.error('Error handling TTS audio:', error);
+            log.error({ error }, 'Failed to handle TTS audio');
         }
     }
 
