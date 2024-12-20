@@ -30,16 +30,20 @@ export class VADManager {
     }
     
     try {
+      // Get the VAD stream if available
+      const vadStream = stream.vadStream || stream;
+      
       log.debug({ 
         containerId: container.id,
-        hasAudioTrack: !!stream.getAudioTracks().length,
-        audioTrack: stream.getAudioTracks()[0] ? {
-          id: stream.getAudioTracks()[0].id,
-          enabled: stream.getAudioTracks()[0].enabled,
-          readyState: stream.getAudioTracks()[0].readyState,
-          constraints: stream.getAudioTracks()[0].getConstraints()
+        hasAudioTrack: !!vadStream.getAudioTracks().length,
+        audioTrack: vadStream.getAudioTracks()[0] ? {
+          id: vadStream.getAudioTracks()[0].id,
+          enabled: vadStream.getAudioTracks()[0].enabled,
+          readyState: vadStream.getAudioTracks()[0].readyState,
+          constraints: vadStream.getAudioTracks()[0].getConstraints()
         } : null,
-        existingInstance: !!this.instances.get(container.id)
+        existingInstance: !!this.instances.get(container.id),
+        isVADStream: !!stream.vadStream
       }, 'Setting up VAD');
 
       // Ensure cleanup of existing instance
@@ -52,13 +56,13 @@ export class VADManager {
 
       // Create a new VAD instance with debounced speech events
       const vad = await MicVAD.new({
-        stream: stream,
+        stream: vadStream,
         onSpeechStart: () => {
           // Only trigger speaking if not muted and no recent speech start
           if (!this.muted.get(container.id)) {
             log.debug({ 
               containerId: container.id,
-              audioTrackId: stream.getAudioTracks()[0]?.id
+              audioTrackId: vadStream.getAudioTracks()[0]?.id
             }, 'Speech started');
             onSpeakingChange(container, true);
           }
