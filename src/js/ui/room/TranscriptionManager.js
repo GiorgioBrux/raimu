@@ -489,7 +489,7 @@ export class TranscriptionManager {
         const originalContainer = document.createElement('div');
         originalContainer.className = 'mb-1';
         
-        if (originalLanguage) {
+        if (originalLanguage && originalLanguage !== 'en') {
             const originalLabel = document.createElement('span');
             originalLabel.className = 'text-xs text-slate-500 mb-1';
             // Get full language name from code
