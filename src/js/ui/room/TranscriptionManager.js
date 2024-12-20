@@ -211,33 +211,35 @@ export class TranscriptionManager {
             }))
         }, 'Setting up VAD with stream');
 
-        // First destroy existing VAD instance
-        if (vadManager.instances.has(container.id)) {
-            const existingVAD = vadManager.instances.get(container.id);
-            await existingVAD.destroy();
-            vadManager.instances.delete(container.id);
-            log.debug({ containerId: container.id }, 'Destroyed old VAD instance');
+        try {
+            // Create a clone of the stream for VAD
+            const vadStream = stream.clone();
+            
+            // Set initial mute state before setting up VAD
+            const audioTrack = vadStream.getAudioTracks()[0];
+            if (audioTrack) {
+                const isMuted = vadManager.muted.get(container.id) ?? false;
+                audioTrack.enabled = !isMuted;
+                log.debug({ isMuted }, 'Setting initial VAD stream mute state');
+            }
+            
+            // Setup new VAD - the VADManager will handle cleanup of existing instance
+            await vadManager.setupVAD(
+                vadStream,
+                container,
+                ParticipantVideo.updateSpeakingIndicators
+            );
+            
+            log.debug({ containerId: container.id }, 'VAD setup completed');
+        } catch (error) {
+            log.error({ error, containerId: container.id }, 'Failed to setup VAD with stream');
+            // Cleanup the cloned stream on error
+            try {
+                stream.getTracks().forEach(track => track.stop());
+            } catch (e) {
+                log.warn({ error: e }, 'Error cleaning up stream after VAD setup failure');
+            }
         }
-        
-        // Create a clone of the stream for VAD
-        const vadStream = stream.clone();
-        
-        // Set initial mute state before setting up VAD
-        const audioTrack = vadStream.getAudioTracks()[0];
-        if (audioTrack) {
-            const isMuted = vadManager.muted.get(container.id) ?? false;
-            audioTrack.enabled = !isMuted;
-            log.debug({ isMuted }, 'Setting initial VAD stream mute state');
-        }
-        
-        // Setup new VAD
-        await vadManager.setupVAD(
-            vadStream,
-            container,
-            ParticipantVideo.updateSpeakingIndicators
-        );
-        
-        log.debug({ containerId: container.id }, 'VAD setup completed');
     }
 
     /**
