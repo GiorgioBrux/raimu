@@ -181,19 +181,67 @@ export class WebRTCService {
             aspectRatio: { ideal: 1.7777777778 }
           },
           audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
+            echoCancellation: { ideal: true },
+            noiseSuppression: { ideal: true },
+            autoGainControl: { ideal: true },
+            channelCount: { ideal: 1 },
+            sampleRate: { ideal: 48000 },
+            sampleSize: { ideal: 16 },
+            latency: { ideal: 0.01 },
+            suppressLocalAudioPlayback: true
           }
         };
 
         try {
           this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+          
+          // Apply audio processing
+          const audioContext = new AudioContext();
+          const source = audioContext.createMediaStreamSource(this.localStream);
+          
+          // Create and configure dynamics compressor
+          const compressor = audioContext.createDynamicsCompressor();
+          compressor.threshold.value = -50;
+          compressor.knee.value = 40;
+          compressor.ratio.value = 12;
+          compressor.attack.value = 0;
+          compressor.release.value = 0.25;
+          
+          // Create gain node for volume control
+          const gainNode = audioContext.createGain();
+          gainNode.gain.value = 0.8; // Slightly reduce volume
+          
+          // Create and configure noise gate
+          const noiseGate = audioContext.createGain();
+          noiseGate.gain.value = 1.0;
+          
+          // Connect the nodes
+          source.connect(compressor);
+          compressor.connect(gainNode);
+          gainNode.connect(noiseGate);
+          
+          // Create output stream
+          const destination = audioContext.createMediaStreamDestination();
+          noiseGate.connect(destination);
+          
+          // Replace audio track with processed one
+          const [oldTrack] = this.localStream.getAudioTracks();
+          if (oldTrack) {
+            this.localStream.removeTrack(oldTrack);
+            oldTrack.stop();
+          }
+          this.localStream.addTrack(destination.stream.getAudioTracks()[0]);
+          
+          log.debug('Applied audio processing chain');
         } catch (mediaError) {
           log.warn({ error: mediaError }, 'Failed with initial constraints, trying fallback');
           this.localStream = await navigator.mediaDevices.getUserMedia({
             video: true,
-            audio: true
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            }
           });
         }
 
