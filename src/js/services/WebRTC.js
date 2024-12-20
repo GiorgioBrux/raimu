@@ -191,26 +191,36 @@ export class WebRTCService {
         };
 
         try {
-          this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+          // Get the raw stream first
+          const rawStream = await navigator.mediaDevices.getUserMedia(constraints);
           
-          // Create a clone of the original stream for VAD
-          this.vadStream = this.localStream.clone();
+          // Create a clone for VAD before any processing
+          this.vadStream = rawStream.clone();
           
-          // Apply audio processing only to the WebRTC stream
+          // Create a new stream for WebRTC with processed audio
+          this.localStream = new MediaStream();
+          
+          // Add video track directly
+          const videoTrack = rawStream.getVideoTracks()[0];
+          if (videoTrack) {
+            this.localStream.addTrack(videoTrack);
+          }
+          
+          // Process audio track
           const audioContext = new AudioContext();
-          const source = audioContext.createMediaStreamSource(this.localStream);
+          const source = audioContext.createMediaStreamSource(rawStream);
           
           // Create and configure dynamics compressor
           const compressor = audioContext.createDynamicsCompressor();
-          compressor.threshold.value = -24;  // Less aggressive compression
+          compressor.threshold.value = -24;
           compressor.knee.value = 30;
-          compressor.ratio.value = 6;  // Less aggressive ratio
+          compressor.ratio.value = 6;
           compressor.attack.value = 0.003;
           compressor.release.value = 0.25;
           
           // Create gain node for volume control
           const gainNode = audioContext.createGain();
-          gainNode.gain.value = 0.95;  // Slightly reduce volume
+          gainNode.gain.value = 0.95;
           
           // Connect the nodes
           source.connect(compressor);
@@ -220,15 +230,22 @@ export class WebRTCService {
           const destination = audioContext.createMediaStreamDestination();
           gainNode.connect(destination);
           
-          // Replace audio track with processed one
-          const [oldTrack] = this.localStream.getAudioTracks();
-          if (oldTrack) {
-            this.localStream.removeTrack(oldTrack);
-            oldTrack.stop();
-          }
+          // Add processed audio track to localStream
           this.localStream.addTrack(destination.stream.getAudioTracks()[0]);
           
-          log.debug('Applied audio processing chain');
+          // Stop the raw stream's tracks since we've cloned what we need
+          rawStream.getTracks().forEach(track => {
+            if (track.kind === 'audio') {
+              track.stop();
+            }
+          });
+          
+          log.debug({
+            hasVadStream: !!this.vadStream,
+            vadAudioTrack: this.vadStream?.getAudioTracks()[0]?.id,
+            localAudioTrack: this.localStream?.getAudioTracks()[0]?.id
+          }, 'Applied audio processing chain');
+          
         } catch (mediaError) {
           log.warn({ error: mediaError }, 'Failed with initial constraints, trying fallback');
           this.localStream = await navigator.mediaDevices.getUserMedia({
@@ -250,7 +267,14 @@ export class WebRTCService {
           }))
         }, 'Media initialized');
       }
-      return this.vadStream || this.localStream;  // Return VAD stream if available, otherwise local stream
+      
+      // Return the appropriate stream based on the context
+      const stream = new MediaStream();
+      // Add tracks from localStream
+      this.localStream.getTracks().forEach(track => stream.addTrack(track));
+      // Add vadStream as a property
+      stream.vadStream = this.vadStream;
+      return stream;
     } catch (error) {
       log.error({ error }, 'Failed to access media devices');
       throw error;
