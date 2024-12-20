@@ -424,7 +424,7 @@ export class TranscriptionManager {
         this.websocket.send({
             type: 'transcriptionRequest',
             audioData: base64AudioData,
-            language: this.language || 'en',
+            language: userId === 'local' ? this.language || 'en' : 'en', // Only local user should have language set
             roomId: this.roomId,
             timestamp: new Date().toISOString(),
             userId: userId
