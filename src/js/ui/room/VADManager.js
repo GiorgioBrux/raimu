@@ -38,23 +38,19 @@ export class VADManager {
           enabled: stream.getAudioTracks()[0].enabled,
           readyState: stream.getAudioTracks()[0].readyState,
           constraints: stream.getAudioTracks()[0].getConstraints()
-        } : null,
-        existingInstance: !!this.instances.get(container.id)
+        } : null
       }, 'Setting up VAD');
 
-      // Ensure cleanup of existing instance
+      // Reuse existing VAD instance if possible
       if (this.instances.has(container.id)) {
         log.debug({ containerId: container.id }, 'Destroying existing VAD instance');
-        const existingVAD = this.instances.get(container.id);
-        await existingVAD.destroy();
-        this.instances.delete(container.id);
+        await this.instances.get(container.id).destroy();
       }
 
-      // Create a new VAD instance with debounced speech events
       const vad = await MicVAD.new({
         stream: stream,
         onSpeechStart: () => {
-          // Only trigger speaking if not muted and no recent speech start
+          // Only trigger speaking if not muted
           if (!this.muted.get(container.id)) {
             log.debug({ 
               containerId: container.id,
@@ -71,11 +67,9 @@ export class VADManager {
           onSpeakingChange(container, false);
           
           // Only process audio for transcription if not muted and transcription manager exists
-          // and this is still the active VAD instance for this container
           if (!this.muted.get(container.id) && 
               this.transcriptionManager && 
-              !this.transcriptionManager.isAudioMuted() &&
-              this.instances.get(container.id) === vad) {  // Check if this is still the active instance
+              !this.transcriptionManager.isAudioMuted()) {
             log.debug({ containerId: container.id }, 'Processing audio for transcription');
             const wavBuffer = this._encodeWAV(audioData);
             const base64 = this._arrayBufferToBase64(wavBuffer);
