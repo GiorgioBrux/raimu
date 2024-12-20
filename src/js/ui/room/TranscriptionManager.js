@@ -581,20 +581,4 @@ export class TranscriptionManager {
             }, 'Updated audio track state');
         }
     }
-
-    handleWebSocketMessage(message) {
-        if (message.type === 'transcription') {
-            this.addTranscription(
-                message.text,
-                message.userId,
-                message.timestamp,
-                message.translatedText
-            );
-
-            // Handle TTS audio if present
-            if (message.ttsAudio && this.voiceTTSEnabled.checked) {
-                this.handleTTSAudio(message.ttsAudio);
-            }
-        }
-    }
 } 
