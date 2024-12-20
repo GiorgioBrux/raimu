@@ -214,7 +214,7 @@ export const messageHandlers = {
         };
 
         // Translate to English if not already in English
-        if (data.language !== 'en') {
+        if (data.language !== 'en' && data.language !== null) {
             const translatedText = await TranslationService.translate(transcription, data.language);
             if (translatedText) {
                 response.translatedText = translatedText;
