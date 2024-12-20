@@ -1,3 +1,4 @@
+import { WebSocket } from 'ws';
 import WhisperService from '../services/WhisperService.js';
 import TTSService from '../services/TTSService.js';
 import TranslationService from '../services/TranslationService.js';
