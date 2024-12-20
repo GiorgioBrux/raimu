@@ -392,7 +392,10 @@ export class TranscriptionManager {
 
     sendAudioForTranscription(base64AudioData, userId) {
         // Only send audio for transcription if enabled and not muted
-        if (!this.enabled || this.isAudioMuted()) return;
+        if (!this.enabled) return;
+
+        // Return if audio is muted and user is local
+        if (this.isAudioMuted() && userId === 'local') return;
 
         // Check audio duration and energy level before sending
         try {
