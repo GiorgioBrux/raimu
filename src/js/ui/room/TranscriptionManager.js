@@ -489,7 +489,7 @@ export class TranscriptionManager {
         const originalContainer = document.createElement('div');
         originalContainer.className = 'mb-1';
         
-        if (originalLanguage && originalLanguage !== 'en') {
+        if (originalLanguage && originalLanguage !== 'en' && userId === 'local') {
             const originalLabel = document.createElement('span');
             originalLabel.className = 'text-xs text-slate-500 mb-1';
             // Get full language name from code
@@ -507,7 +507,7 @@ export class TranscriptionManager {
         transcriptionElement.appendChild(originalContainer);
 
         // Add translated text if available
-        if (translatedText) {
+        if (translatedText && userId === 'local') {
             const translationContainer = document.createElement('div');
             translationContainer.className = 'mt-2 pt-2 border-t border-slate-700/50';
             
