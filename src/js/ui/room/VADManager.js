@@ -69,8 +69,7 @@ export class VADManager {
     onSpeakingChange(container, false);
     
     if (!this.muted.get(container.id) && 
-        this.transcriptionManager && 
-        !this.transcriptionManager.isAudioMuted()) {
+        this.transcriptionManager) {
       await this._processAudioForTranscription(container.id, audioData);
     }
   }
