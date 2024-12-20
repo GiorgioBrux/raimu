@@ -210,14 +210,6 @@ export class TranscriptionManager {
                 readyState: t.readyState
             }))
         }, 'Setting up VAD with stream');
-
-        // First destroy existing VAD instance
-        if (vadManager.instances.has(container.id)) {
-            const existingVAD = vadManager.instances.get(container.id);
-            await existingVAD.destroy();
-            vadManager.instances.delete(container.id);
-            log.debug({ containerId: container.id }, 'Destroyed old VAD instance');
-        }
         
         // Create a clone of the stream for VAD
         const vadStream = stream.clone();
@@ -515,7 +507,7 @@ export class TranscriptionManager {
 
         if (vadManager && localVideo) {
             // Update VAD's mute state
-            vadManager.muted.set(localVideo.id, isMuted);
+            vadManager.updateMuteState(localVideo.id, isMuted);
 
             // Update the current stream being used for VAD
             const stream = this.voiceTTSEnabled.checked ? this.originalStream : this.currentStream;
@@ -525,9 +517,6 @@ export class TranscriptionManager {
                     audioTrack.enabled = !isMuted;
                 }
             }
-
-            // Reinitialize VAD with current stream and mute state
-            this.setupVADWithStream(vadManager, localVideo, stream);
         }
     }
 

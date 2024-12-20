@@ -10,18 +10,105 @@ export class VADManager {
    * Creates a new VADManager instance.
    */
   constructor(transcriptionManager) {
+    /** @type {Map<string, { vad: MicVAD, stream: MediaStream }>} VAD instances and their streams */
     this.instances = new Map();
+    
+    /** @type {Map<string, boolean>} Mute states for each participant */
     this.muted = new Map();
+    
+    /** @type {TranscriptionManager} Reference to transcription manager */
     this.transcriptionManager = transcriptionManager;
-    // Share the AudioContext with TranscriptionManager
+    
+    /** @type {AudioContext} Shared audio context */
     this.audioContext = transcriptionManager.audioContext;
   }
 
   /**
+   * Creates a new VAD instance for a participant
+   * @private
+   */
+  async _createVADInstance(stream, container, onSpeakingChange) {
+    try {
+      const vad = await MicVAD.new({
+        stream,
+        onSpeechStart: () => this._handleSpeechStart(container, onSpeakingChange),
+        onSpeechEnd: (audioData) => this._handleSpeechEnd(container, audioData, onSpeakingChange),
+        modelURL: "v5",
+        baseAssetPath: "/",
+        onnxWASMBasePath: "/",
+        minSpeechFrames: 0,
+      });
+
+      await vad.start();
+      return vad;
+    } catch (error) {
+      log.error({ error, containerId: container.id }, 'Failed to create VAD instance');
+      throw error;
+    }
+  }
+
+  /**
+   * Handles speech start event
+   * @private
+   */
+  _handleSpeechStart(container, onSpeakingChange) {
+    if (!this.muted.get(container.id)) {
+      log.debug({ containerId: container.id }, 'Speech started');
+      onSpeakingChange(container, true);
+    } else {
+      log.debug({ containerId: container.id }, 'Speech started but muted');
+    }
+  }
+
+  /**
+   * Handles speech end event
+   * @private
+   */
+  async _handleSpeechEnd(container, audioData, onSpeakingChange) {
+    log.debug({ containerId: container.id }, 'Speech ended');
+    onSpeakingChange(container, false);
+    
+    if (!this.muted.get(container.id) && 
+        this.transcriptionManager && 
+        !this.transcriptionManager.isAudioMuted()) {
+      await this._processAudioForTranscription(container.id, audioData);
+    }
+  }
+
+  /**
+   * Process audio data for transcription
+   * @private
+   */
+  async _processAudioForTranscription(containerId, audioData) {
+    log.debug({ containerId }, 'Processing audio for transcription');
+    const wavBuffer = this._encodeWAV(audioData);
+    const base64 = this._arrayBufferToBase64(wavBuffer);
+    
+    // Extract userId from container ID (format: participant-{userId})
+    const userId = containerId.replace('participant-', '');
+    await this.transcriptionManager.sendAudioForTranscription(base64, userId);
+  }
+
+  /**
+   * Safely destroys a VAD instance
+   * @private
+   */
+  async _destroyVADInstance(containerId) {
+    const instance = this.instances.get(containerId);
+    if (instance) {
+      try {
+        await instance.vad.destroy();
+        instance.stream.getTracks().forEach(track => track.stop());
+        this.instances.delete(containerId);
+        log.debug({ containerId }, 'VAD instance destroyed');
+      } catch (error) {
+        log.error({ error, containerId }, 'Error destroying VAD instance');
+      }
+    }
+  }
+
+  /**
    * Sets up VAD for a participant's stream.
-   * @param {MediaStream} stream - The participant's media stream
-   * @param {HTMLElement} container - The participant's video container element
-   * @param {Function} onSpeakingChange - Callback function when speaking state changes
    */
   async setupVAD(stream, container, onSpeakingChange) {
     if (!stream || !container) {
@@ -41,69 +128,45 @@ export class VADManager {
         } : null
       }, 'Setting up VAD');
 
-      // Reuse existing VAD instance if possible
-      if (this.instances.has(container.id)) {
-        log.debug({ containerId: container.id }, 'Destroying existing VAD instance');
-        await this.instances.get(container.id).destroy();
-      }
+      // Clean up existing instance if any
+      await this._destroyVADInstance(container.id);
 
-      const vad = await MicVAD.new({
-        stream: stream,
-        onSpeechStart: () => {
-          // Only trigger speaking if not muted
-          if (!this.muted.get(container.id)) {
-            log.debug({ 
-              containerId: container.id,
-              audioTrackId: stream.getAudioTracks()[0]?.id
-            }, 'Speech started');
-            onSpeakingChange(container, true);
-          }
-          else {
-            log.debug({ containerId: container.id }, 'Speech started but muted');
-          }
-        },
-        onSpeechEnd: async (audioData) => {
-          log.debug({ containerId: container.id }, 'Speech ended');
-          onSpeakingChange(container, false);
-          
-          // Only process audio for transcription if not muted and transcription manager exists
-          if (!this.muted.get(container.id) && 
-              this.transcriptionManager && 
-              !this.transcriptionManager.isAudioMuted()) {
-            log.debug({ containerId: container.id }, 'Processing audio for transcription');
-            const wavBuffer = this._encodeWAV(audioData);
-            const base64 = this._arrayBufferToBase64(wavBuffer);
-            
-            // Extract userId from container ID (format: participant-{userId})
-            const userId = container.id.replace('participant-', '');
-            this.transcriptionManager.sendAudioForTranscription(base64, userId);
-          }
-        },
-        modelURL: "v5",
-        baseAssetPath: "/",
-        onnxWASMBasePath: "/",
-        minSpeechFrames: 0,
-      });
-
-      await vad.start();
-      this.instances.set(container.id, vad);
-      this.muted.set(container.id, false);  // Initialize as unmuted
+      // Create new VAD instance with cloned stream
+      const vadStream = stream.clone();
+      const vad = await this._createVADInstance(vadStream, container, onSpeakingChange);
+      
+      // Store instance with its stream
+      this.instances.set(container.id, { vad, stream: vadStream });
+      
+      // Initialize mute state
+      const isMuted = this.muted.get(container.id) ?? false;
+      this.updateMuteState(container.id, isMuted);
+      
       log.debug({ containerId: container.id }, 'VAD initialized');
     } catch (error) {
       log.error({ error, containerId: container.id }, 'Failed to setup VAD');
+      throw error;
     }
   }
 
   /**
    * Updates the mute state for a participant.
-   * @param {string} containerId - The ID of the participant's container
-   * @param {boolean} isMuted - Whether the participant is muted
    */
   updateMuteState(containerId, isMuted) {
     log.debug({ containerId, isMuted }, 'Updating mute state');
     this.muted.set(containerId, isMuted);
+
+    // Update stream state
+    const instance = this.instances.get(containerId);
+    if (instance) {
+      const audioTrack = instance.stream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !isMuted;
+      }
+    }
+
+    // Update UI if muted
     if (isMuted) {
-      // Force speaking state to false when muted
       const container = document.getElementById(containerId);
       if (container) {
         ParticipantVideo.updateSpeakingIndicators(container, false);
@@ -113,27 +176,17 @@ export class VADManager {
 
   /**
    * Cleans up VAD instances.
-   * @param {string} [participantId] - Optional participant ID to clean up specific instance
    */
-  cleanup(participantId = null) {
+  async cleanup(participantId = null) {
     if (participantId) {
       log.debug({ participantId }, 'Cleaning up VAD instance');
-      const vad = this.instances.get(participantId);
-      if (vad) {
-        vad.destroy();
-        this.instances.delete(participantId);
-        this.muted.delete(participantId);
-      }
+      await this._destroyVADInstance(participantId);
+      this.muted.delete(participantId);
     } else {
       log.debug('Cleaning up all VAD instances');
-      this.instances.forEach(async (vad, id) => {
-        try {
-          await vad.destroy();
-          log.debug({ participantId: id }, 'VAD instance destroyed');
-        } catch (e) {
-          log.warn({ error: e, participantId: id }, 'Error cleaning up VAD instance');
-        }
-      });
+      for (const [id] of this.instances) {
+        await this._destroyVADInstance(id);
+      }
       this.instances.clear();
       this.muted.clear();
     }
