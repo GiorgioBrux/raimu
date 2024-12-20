@@ -235,7 +235,7 @@ export const messageHandlers = {
             }
         }
         
-        roomService.broadcastToRoom(data.roomId, response);        
+        ws.send(JSON.stringify(response));
     } catch (error) {
         console.error({ error }, 'Transcription request failed');
         ws.send(JSON.stringify({
