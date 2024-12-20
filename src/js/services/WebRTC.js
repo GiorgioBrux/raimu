@@ -195,42 +195,54 @@ export class WebRTCService {
         try {
           this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
           
-          // Apply audio processing
-          const audioContext = new AudioContext();
+          // Create a new audio context
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          
+          // Create source from the stream
           const source = audioContext.createMediaStreamSource(this.localStream);
           
           // Create and configure dynamics compressor
           const compressor = audioContext.createDynamicsCompressor();
-          compressor.threshold.value = -50;
-          compressor.knee.value = 40;
-          compressor.ratio.value = 12;
-          compressor.attack.value = 0;
-          compressor.release.value = 0.25;
+          compressor.threshold.setValueAtTime(-50, audioContext.currentTime);
+          compressor.knee.setValueAtTime(40, audioContext.currentTime);
+          compressor.ratio.setValueAtTime(12, audioContext.currentTime);
+          compressor.attack.setValueAtTime(0, audioContext.currentTime);
+          compressor.release.setValueAtTime(0.25, audioContext.currentTime);
           
           // Create gain node for volume control
           const gainNode = audioContext.createGain();
-          gainNode.gain.value = 0.8; // Slightly reduce volume
+          gainNode.gain.setValueAtTime(0.8, audioContext.currentTime);
           
-          // Create and configure noise gate
+          // Create noise gate
           const noiseGate = audioContext.createGain();
-          noiseGate.gain.value = 1.0;
+          noiseGate.gain.setValueAtTime(1.0, audioContext.currentTime);
           
-          // Connect the nodes
-          source.connect(compressor);
-          compressor.connect(gainNode);
-          gainNode.connect(noiseGate);
-          
-          // Create output stream
+          // Create destination for the processed audio
           const destination = audioContext.createMediaStreamDestination();
-          noiseGate.connect(destination);
           
-          // Replace audio track with processed one
-          const [oldTrack] = this.localStream.getAudioTracks();
-          if (oldTrack) {
-            this.localStream.removeTrack(oldTrack);
-            oldTrack.stop();
+          // Connect the audio processing chain
+          source
+            .connect(compressor)
+            .connect(gainNode)
+            .connect(noiseGate)
+            .connect(destination);
+          
+          // Get the original video track
+          const videoTrack = this.localStream.getVideoTracks()[0];
+          
+          // Create a new MediaStream with the processed audio and original video
+          const processedStream = new MediaStream();
+          
+          // Add the processed audio track
+          processedStream.addTrack(destination.stream.getAudioTracks()[0]);
+          
+          // Add the original video track if it exists
+          if (videoTrack) {
+            processedStream.addTrack(videoTrack);
           }
-          this.localStream.addTrack(destination.stream.getAudioTracks()[0]);
+          
+          // Replace the local stream with the processed stream
+          this.localStream = processedStream;
           
           log.debug('Applied audio processing chain');
         } catch (mediaError) {
