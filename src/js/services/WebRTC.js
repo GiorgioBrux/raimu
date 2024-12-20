@@ -181,44 +181,48 @@ export class WebRTCService {
             aspectRatio: { ideal: 1.7777777778 }
           },
           audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            channelCount: 1,
-            sampleRate: 48000,
-            latency: 0.01
+            echoCancellation: { ideal: true },
+            noiseSuppression: { ideal: true },
+            autoGainControl: { ideal: true },
+            channelCount: { ideal: 1 },
+            sampleRate: { ideal: 48000 },
+            sampleSize: { ideal: 16 },
+            latency: { ideal: 0.01 },
+            suppressLocalAudioPlayback: true
           }
         };
 
         try {
           this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
           
-          // Create a clone of the original stream for VAD
-          this.vadStream = this.localStream.clone();
-          
-          // Apply audio processing only to the WebRTC stream
+          // Apply audio processing
           const audioContext = new AudioContext();
           const source = audioContext.createMediaStreamSource(this.localStream);
           
           // Create and configure dynamics compressor
           const compressor = audioContext.createDynamicsCompressor();
-          compressor.threshold.value = -24;  // Less aggressive compression
-          compressor.knee.value = 30;
-          compressor.ratio.value = 6;  // Less aggressive ratio
-          compressor.attack.value = 0.003;
+          compressor.threshold.value = -50;
+          compressor.knee.value = 40;
+          compressor.ratio.value = 12;
+          compressor.attack.value = 0;
           compressor.release.value = 0.25;
           
           // Create gain node for volume control
           const gainNode = audioContext.createGain();
-          gainNode.gain.value = 0.95;  // Slightly reduce volume
+          gainNode.gain.value = 0.8; // Slightly reduce volume
+          
+          // Create and configure noise gate
+          const noiseGate = audioContext.createGain();
+          noiseGate.gain.value = 1.0;
           
           // Connect the nodes
           source.connect(compressor);
           compressor.connect(gainNode);
+          gainNode.connect(noiseGate);
           
           // Create output stream
           const destination = audioContext.createMediaStreamDestination();
-          gainNode.connect(destination);
+          noiseGate.connect(destination);
           
           // Replace audio track with processed one
           const [oldTrack] = this.localStream.getAudioTracks();
@@ -239,7 +243,6 @@ export class WebRTCService {
               autoGainControl: true
             }
           });
-          this.vadStream = this.localStream.clone();
         }
 
         log.info({
@@ -250,7 +253,7 @@ export class WebRTCService {
           }))
         }, 'Media initialized');
       }
-      return this.vadStream || this.localStream;  // Return VAD stream if available, otherwise local stream
+      return this.localStream;
     } catch (error) {
       log.error({ error }, 'Failed to access media devices');
       throw error;
