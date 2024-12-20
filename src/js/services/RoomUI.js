@@ -108,7 +108,7 @@ export class RoomUI {
   handleLeaveRoom() {
     this.cleanup();
     this.roomManager.leaveRoom();
-    window.appRouter.navigate('/');
+    window.location.href = '/';
   }
 
   /**
