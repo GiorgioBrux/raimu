@@ -4,3 +4,4 @@ soundfile==0.12.1
 tqdm==4.66.2
 hf_transfer
 git+https://github.com/SWivid/F5-TTS.git
+sentencepiece
