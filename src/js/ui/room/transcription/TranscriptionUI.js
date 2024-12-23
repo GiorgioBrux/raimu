@@ -46,6 +46,12 @@ export class TranscriptionUI {
 
         // Update the transcription toggle
         this.transcriptionEnabled.checked = enabled;
+
+        if(userName === undefined) {
+            // This is the update we get when we join a room with transcription enabled
+            this.addSystemMessage(`Transcription was already enabled when you joined the room`);
+            return;
+        }
         
         // Show message about who changed the transcription state
         if (userId !== this.roomManager.userId) {
@@ -147,7 +153,7 @@ export class TranscriptionUI {
         transcriptionElement.appendChild(originalContainer);
 
         // Add translated text if available
-        if (translatedText && userId === 'local') {
+        if (translatedText) {
             const translationContainer = document.createElement('div');
             translationContainer.className = 'mt-2 pt-2 border-t border-slate-700/50';
             

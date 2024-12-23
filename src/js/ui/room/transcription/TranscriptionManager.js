@@ -220,6 +220,11 @@ export class TranscriptionManager {
      * Handles incoming TTS audio
      */
     async handleTTSAudio(base64Audio) {
+        log.debug('Handling TTS audio');
+        log.debug({
+            isTTSEnabled: this.ui.isTTSEnabled(),
+            isAudioMuted: this.streamManager.isAudioMuted()
+        }, 'TTS audio handling');
         if (!this.ui.isTTSEnabled() || this.streamManager.isAudioMuted()) return;
         await this.tts.handleTTSAudio(base64Audio, this.streamManager.isAudioMuted());
     }
