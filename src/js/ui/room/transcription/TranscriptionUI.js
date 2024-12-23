@@ -28,6 +28,15 @@ export class TranscriptionUI {
             });
         });
 
+        // Set up language change handler
+        this.transcriptionLang.addEventListener('change', () => {
+            const language = this.transcriptionLang.value;
+            this.roomManager.ws.send({
+                type: 'languageChanged',
+                language: language
+            });
+        });
+
         // Set up TTS toggle handler
         this.voiceTTSEnabled.addEventListener('change', () => {
             const enabled = this.voiceTTSEnabled.checked;
@@ -67,6 +76,24 @@ export class TranscriptionUI {
     }
 
     /**
+     * Handles language change updates from the server
+     */
+    handleLanguageChanged(data) {
+        const { userId, userName, language } = data;
+        
+        // Don't show message for own language changes
+        if (userId === this.roomManager.userId) {
+            return;
+        }
+
+        // Get the language name from the select options
+        const languageOption = this.transcriptionLang.querySelector(`option[value="${language}"]`);
+        const languageName = languageOption ? languageOption.textContent : language;
+
+        this.addSystemMessage(`${userName} is now speaking in ${languageName}`);
+    }
+
+    /**
      * Adds a system message to the transcription panel
      */
     addSystemMessage(message) {
@@ -86,9 +113,17 @@ export class TranscriptionUI {
     }
 
     /**
+     * Gets the display name for a language code
+     */
+    _getLanguageName(langCode) {
+        const option = this.transcriptionLang.querySelector(`option[value="${langCode}"]`);
+        return option ? option.textContent : langCode;
+    }
+
+    /**
      * Adds a transcription message to the UI
      */
-    addTranscription(text, userId, timestamp, translatedText = null, originalLanguage = null) {
+    addTranscription(text, userId, timestamp, translatedText = null, originalLanguage = null, translatedLanguage = null) {
         // Ignore transcriptions if transcription is disabled
         if (!this.transcriptionEnabled.checked) {
             return;
@@ -136,11 +171,11 @@ export class TranscriptionUI {
         const originalContainer = document.createElement('div');
         originalContainer.className = 'mb-1';
         
-        if (originalLanguage && originalLanguage !== 'en') {
+        if (originalLanguage) {
             const originalLabel = document.createElement('span');
             originalLabel.className = 'text-xs text-slate-500 mb-1';
             const languageName = this._getLanguageName(originalLanguage);
-            originalLabel.textContent = languageName;
+            originalLabel.textContent = `Original (${languageName})`;
             originalContainer.appendChild(originalLabel);
         }
 
@@ -159,7 +194,9 @@ export class TranscriptionUI {
             
             const translationLabel = document.createElement('span');
             translationLabel.className = 'text-xs text-slate-500';
-            translationLabel.textContent = 'English';
+            const translatedToLang = translatedLanguage || this.transcriptionLang.value;
+            const translatedLanguageName = this._getLanguageName(translatedToLang);
+            translationLabel.textContent = `Translated to ${translatedLanguageName}`;
             
             const translatedTextEl = document.createElement('p');
             translatedTextEl.className = 'text-sm text-slate-400';
@@ -190,36 +227,6 @@ export class TranscriptionUI {
             this.voiceTTSEnabled.parentElement?.classList.add('opacity-50', 'cursor-not-allowed');
             log.debug('Disabled TTS switch');
         }
-    }
-
-    /**
-     * Convert language code to full name
-     * @private
-     */
-    _getLanguageName(code) {
-        const languages = {
-            'en': 'English',
-            'es': 'Spanish',
-            'fr': 'French',
-            'de': 'German',
-            'it': 'Italian',
-            'pt': 'Portuguese',
-            'nl': 'Dutch',
-            'pl': 'Polish',
-            'ru': 'Russian',
-            'ja': 'Japanese',
-            'ko': 'Korean',
-            'zh': 'Chinese',
-            'ar': 'Arabic',
-            'hi': 'Hindi',
-            'tr': 'Turkish',
-            'vi': 'Vietnamese',
-            'th': 'Thai',
-            'id': 'Indonesian',
-            'ms': 'Malay',
-            'fa': 'Persian'
-        };
-        return languages[code] || code.toUpperCase();
     }
 
     /**

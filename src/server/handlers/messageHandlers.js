@@ -204,6 +204,28 @@ export const messageHandlers = {
     }
   },
 
+  languageChanged: (ws, data, { roomService }) => {
+    try {
+      const room = roomService.getRoomById(ws.connectionInfo.roomId);
+      if (!room) {
+        throw new Error('Room not found');
+      }
+
+      // Update the user's language preference in their connection info
+      ws.connectionInfo = {
+        ...ws.connectionInfo,
+        language: data.language
+      };
+      
+    } catch (error) {
+      console.error('Error updating language preference:', error);
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: 'Failed to update language preference'
+      }));
+    }
+  },
+
   transcriptionRequest: async (ws, data, { roomService }) => {
     try {
         const room = roomService.getRoomById(ws.connectionInfo.roomId);
@@ -220,46 +242,57 @@ export const messageHandlers = {
         const audioBuffer = Buffer.from(data.audioData, 'base64');
         
         // Get transcription in original language
-        const language = data.language || 'en';
-        const transcription = await WhisperService.transcribe(audioBuffer, language);
+        const speakerLanguage = data.language || 'en';
+        const transcription = await WhisperService.transcribe(audioBuffer, speakerLanguage);
 
-        // Prepare response object
-        const response = {
+        // Get all unique languages that participants have selected
+        const participantLanguages = new Set();
+        for (const [_, participant] of room.participants) {
+            const lang = participant.ws.connectionInfo?.language || 'en';
+            if (lang !== speakerLanguage) {
+                participantLanguages.add(lang);
+            }
+        }
+
+        // Translate to each required language
+        const translations = new Map();
+        for (const targetLang of participantLanguages) {
+            const translatedText = await TranslationService.translate(transcription, speakerLanguage, targetLang);
+            translations.set(targetLang, translatedText);
+        }
+
+        // Send personalized messages to each participant
+        for (const [participantId, participant] of room.participants) {
+            // Skip the speaker
+            if (participantId === ws.connectionInfo.userId) continue;
+
+            const participantLang = participant.ws.connectionInfo?.language || 'en';
+            const response = {
+                type: 'transcription',
+                text: transcription,
+                timestamp: data.timestamp,
+                originalLanguage: speakerLanguage,
+                userId: ws.connectionInfo.userId
+            };
+
+            // If participant's language is different from speaker's, add translation
+            if (participantLang !== speakerLanguage) {
+                response.translatedText = translations.get(participantLang);
+                response.translatedLanguage = participantLang;
+            }
+
+            participant.ws.send(JSON.stringify(response));
+        }
+
+        // Send original message back to speaker
+        ws.send(JSON.stringify({
             type: 'transcription',
             text: transcription,
             timestamp: data.timestamp,
-            originalLanguage: language,
+            originalLanguage: speakerLanguage,
             userId: ws.connectionInfo.userId
-        };
+        }));
 
-        // Translate to English if not already in English
-        if (language !== 'en' && language !== null) {
-            const translatedText = await TranslationService.translate(transcription, language);
-            if (translatedText) {
-                response.translatedText = translatedText;
-            }
-            console.log('Transcription in original language:', transcription);
-            console.log('Transcription in translated language:', response.translatedText);
-        }
-
-        console.log('Skipping user:', ws.connectionInfo.userId);
-        roomService.broadcastToRoom(room.id, response, ws);
-
-        // Generate TTS if enabled for this user
-        if (ws.connectionInfo?.ttsEnabled && (language === 'en' || response.translatedText)) {
-            const ttsAudio = await TTSService.synthesizeSpeech(
-                response.translatedText || transcription,
-                'en',
-                data.audioData,
-                transcription
-            );
-            if (ttsAudio) {
-                response.ttsAudio = Buffer.from(ttsAudio).toString('base64');
-            }
-        }
-        
-        // Send response with audio to the user who requested it
-        ws.send(JSON.stringify(response));
     } catch (error) {
         console.error({ error }, 'Transcription request failed');
         ws.send(JSON.stringify({

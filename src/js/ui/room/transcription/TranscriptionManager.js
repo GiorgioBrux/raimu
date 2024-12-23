@@ -235,4 +235,11 @@ export class TranscriptionManager {
     addTranscription(text, userId, timestamp, translatedText = null, originalLanguage = null) {
         this.ui.addTranscription(text, userId, timestamp, translatedText, originalLanguage);
     }
+
+    /**
+     * Handles language change messages
+     */
+    handleLanguageChanged(data) {
+        this.ui.handleLanguageChanged(data);
+    }
 } 
