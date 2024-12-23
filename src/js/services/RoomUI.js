@@ -10,6 +10,7 @@ import { uiLogger as log } from '../utils/logger.js';
 import { ParticipantMuteManager } from '../ui/room/ParticipantMuteManager.js';
 import { ChatManager } from '../ui/room/ChatManager.js';
 import { TranscriptionManager } from '../ui/room/TranscriptionManager.js';
+import { InfoModals } from '../ui/room/InfoModals.js';
 
 /**
  * Manages the user interface components for a video chat room
@@ -31,6 +32,9 @@ export class RoomUI {
 
     /** @type {ParticipantMuteManager} Mute manager instance */
     this.muteManager = new ParticipantMuteManager();
+
+    /** @type {InfoModals} Info modals manager */
+    this.infoModals = new InfoModals();
   }
 
   /**
@@ -65,6 +69,9 @@ export class RoomUI {
         this.roomManager
       );
       this.vadManager = new VADManager(this.transcriptionManager);
+
+      // Initialize info modals
+      this.infoModals.initialize();
 
       this.setupEventListeners();
       this.initialized = true;
@@ -272,6 +279,7 @@ export class RoomUI {
     log.debug('Cleaning up Room UI');
     this.vadManager.cleanup();
     this.muteManager.cleanup();
+    this.infoModals.destroy();
   }
 
   /**

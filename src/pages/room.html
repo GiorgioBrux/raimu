@@ -126,21 +126,32 @@
             <h3 class="text-sm font-medium text-gray-400">Transcription</h3>
             <div class="flex flex-wrap items-center gap-3">
               <!-- Language selector -->
-              <select id="transcriptionLang" 
-                      class="bg-slate-800/50 border border-white/10 rounded-lg px-2 py-1 text-sm text-slate-300
-                             focus:outline-none focus:ring-2 focus:ring-lime-500/50">
-                <option value="en">English</option>
-                <option value="es">Spanish</option>
-                <option value="fr">French</option>
-                <option value="de">German</option>
-                <option value="it">Italian</option>
-                <option value="pt">Portuguese</option>
-              </select>
-              <!-- Enable/Disable switches -->
               <div class="flex items-center gap-2">
+                <span class="text-xs text-slate-400">I speak:</span>
+                <select id="transcriptionLang" 
+                        class="bg-slate-800/50 border border-white/10 rounded-lg px-2 py-1 text-sm text-slate-300
+                               focus:outline-none focus:ring-2 focus:ring-lime-500/50">
+                  <option value="en">English</option>
+                  <option value="es">Spanish</option>
+                  <option value="fr">French</option>
+                  <option value="de">German</option>
+                  <option value="it">Italian</option>
+                  <option value="pt">Portuguese</option>
+                </select>
+              </div>
+              <!-- Enable/Disable switches -->
+              <div class="flex items-center gap-4">
                 <!-- Transcription toggle -->
-                <div class="flex items-center gap-2 relative group">
-                  <span class="text-xs text-slate-400">Transcribe</span>
+                <div class="flex items-center gap-1.5">
+                  <div class="flex items-center gap-1">
+                    <span class="text-xs text-slate-400">Transcribe</span>
+                    <button class="info-icon p-1 hover:bg-white/5 rounded-full transition-colors" data-modal-type="transcription">
+                      <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                    </button>
+                  </div>
                   <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" id="transcriptionEnabled" class="sr-only peer">
                     <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer 
@@ -150,9 +161,18 @@
                                 peer-checked:bg-lime-500"></div>
                   </label>
                 </div>
+
                 <!-- Voice Translation toggle -->
-                <div class="flex items-center gap-2 relative group">
-                  <span class="text-xs text-slate-400">Voice TTS</span>
+                <div class="flex items-center gap-1.5">
+                  <div class="flex items-center gap-1">
+                    <span class="text-xs text-slate-400">Voice TTS</span>
+                    <button class="info-icon p-1 hover:bg-white/5 rounded-full transition-colors" data-modal-type="tts">
+                      <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                    </button>
+                  </div>
                   <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" id="voiceTTSEnabled" class="sr-only peer">
                     <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer 
@@ -182,9 +202,10 @@
                 <div class="bg-slate-700/50 h-6 w-1/3 rounded"></div>
                 <div class="bg-slate-700/50 h-6 w-3/5 rounded"></div>
                 <div class="text-sm text-slate-400 italic text-center mt-2">
-                  Enable transcription to see the conversation converted to text in real-time.
-                  What you say will be translated to english, while what others say will be shown as is. 
-                  <br>
+                  Enable transcription to see everyone's speech converted to text in real-time.
+                  Non-English speech will be automatically translated to English.
+                  <br><br>
+                  Only one person needs to enable transcription for the whole room.
                 </div>
               </div>
             </div>
@@ -341,6 +362,146 @@
     <div class="bg-slate-800 border border-lime-400/10 rounded-2xl shadow-lg p-6 max-w-2xl w-full mx-4">
         <!-- MediaSettings will be injected here -->
         <div id="roomMediaSettings"></div>
+    </div>
+  </div>
+
+  <!-- Transcription Info Modal -->
+  <div id="transcriptionInfoModal" 
+       class="fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="bg-slate-800 border border-lime-400/10 rounded-2xl shadow-lg p-6 max-w-2xl w-full mx-4">
+      <!-- Header with icon -->
+      <div class="flex items-center gap-3 mb-4">
+        <h2 class="text-xl font-bold text-white">Room Transcription</h2>
+        <div class="w-10 h-10 rounded-lg bg-lime-500/10 flex items-center justify-center">
+          <svg class="w-5 h-5 text-lime-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+          </svg>
+        </div>
+      </div>
+      
+      <!-- Main description -->
+      <div class="space-y-4">
+        <p class="text-slate-300">
+          When you enable transcription, you become the transcription host for the entire room. Everyone's voice will be transcribed and displayed in real-time.
+        </p>
+
+        <!-- Processing info -->
+        <div class="flex items-start gap-2 text-slate-300">
+          <svg class="w-5 h-5 text-lime-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+          <p>The audio is securely processed on our servers and immediately deleted after transcription.</p>
+        </div>
+
+        <!-- Translation info -->
+        <div class="flex items-start gap-2 text-slate-300">
+          <svg class="w-5 h-5 text-lime-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
+          </svg>
+          <p>For non-English speakers, their speech will be automatically translated to the English.</p>
+        </div>
+
+        <!-- Host note -->
+        <div class="flex items-start gap-2 text-amber-400/90 bg-amber-500/5 p-3 rounded-lg border border-amber-400/10">
+          <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <p>As the host, only you can disable transcription. If you leave the room, transcription will stop for everyone.</p>
+        </div>
+      </div>
+
+      <!-- Button -->
+      <div class="mt-6 flex justify-end">
+        <button class="close-modal bg-lime-500 hover:bg-lime-600 text-white font-medium py-2 px-6 rounded-xl
+                     transition-all duration-300 hover:scale-[1.02]">
+          Got it
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TTS Info Modal -->
+  <div id="ttsInfoModal" 
+       class="fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="bg-slate-800 border border-lime-400/10 rounded-2xl shadow-lg p-6 max-w-2xl w-full mx-4">
+      <!-- Header with icon -->
+      <div class="flex items-center gap-3 mb-4">
+        <h2 class="text-xl font-bold text-white">Voice Translation</h2>
+        <div class="w-10 h-10 rounded-lg bg-lime-500/10 flex items-center justify-center">
+          <svg class="w-5 h-5 text-lime-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+        </div>
+      </div>
+      
+      <!-- Main description -->
+      <div class="space-y-4">
+        <p class="text-slate-300">
+          When enabled, your voice will be transformed into a universal translator. Instead of hearing your actual voice, others will hear an AI voice clone speaking in English.
+        </p>
+
+        <!-- How it works -->
+        <div class="flex items-start gap-2 text-slate-300">
+          <svg class="w-5 h-5 text-lime-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+          <p>Your speech is first transcribed, translated to English if needed, then converted to speech using an AI model that mimics your voice. Others will hear this translated version with a slight delay.</p>
+        </div>
+
+        <!-- Translation info -->
+        <div class="flex items-start gap-2 text-slate-300">
+          <svg class="w-5 h-5 text-lime-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
+          </svg>
+          <p>This enables seamless communication across language barriers - you speak your language, they hear English.</p>
+        </div>
+
+        <!-- Visual indicator info -->
+        <div class="flex items-start gap-2 text-slate-300">
+          <svg class="w-5 h-5 text-lime-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+          </svg>
+          <div>
+            <p class="mb-2">When someone has TTS enabled, you'll see this indicator on their video:</p>
+            <div class="flex items-center gap-2 bg-slate-900/50 p-2 rounded-lg">
+              <div class="w-8 h-8 rounded-lg bg-lime-500/10 flex items-center justify-center">
+                <svg class="w-5 h-5 text-lime-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+              </div>
+              <span class="text-sm text-slate-400">Voice Translation Active</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Note about delay -->
+        <div class="flex items-start gap-2 text-amber-400/90 bg-amber-500/5 p-3 rounded-lg border border-amber-400/10">
+          <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <p>There will be a slight delay (1-2 seconds) while your speech is processed. This is normal and allows for an accurate translation and voice clone.</p>
+        </div>
+      </div>
+
+      <!-- Button -->
+      <div class="mt-6 flex justify-end">
+        <button class="close-modal bg-lime-500 hover:bg-lime-600 text-white font-medium py-2 px-6 rounded-xl
+                     transition-all duration-300 hover:scale-[1.02]">
+          Got it
+        </button>
+      </div>
     </div>
   </div>
 
