@@ -130,7 +130,7 @@ export class TranscriptionUI {
         const originalContainer = document.createElement('div');
         originalContainer.className = 'mb-1';
         
-        if (originalLanguage && originalLanguage !== 'en' && userId === 'local') {
+        if (originalLanguage && originalLanguage !== 'en') {
             const originalLabel = document.createElement('span');
             originalLabel.className = 'text-xs text-slate-500 mb-1';
             const languageName = this._getLanguageName(originalLanguage);
