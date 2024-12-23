@@ -47,7 +47,7 @@ export class TranscriptionUI {
         // Update the transcription toggle
         this.transcriptionEnabled.checked = enabled;
 
-        if(userName === undefined) {
+        if(!userName) {
             // This is the update we get when we join a room with transcription enabled
             this.addSystemMessage(`Transcription was already enabled when you joined the room`);
             return;
