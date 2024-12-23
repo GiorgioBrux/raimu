@@ -9,7 +9,7 @@ class TranslationService {
         instance = this;
     }
 
-    async translate(text, sourceLang) {
+    async translate(text, sourceLang, targetLang) {
         try {
             const response = await fetch('http://127.0.0.1:8003/translate', {
                 method: 'POST',
@@ -18,7 +18,8 @@ class TranslationService {
                 },
                 body: JSON.stringify({
                     text,
-                    source_lang: sourceLang
+                    source_lang: sourceLang,
+                    target_lang: targetLang
                 })
             });
 
