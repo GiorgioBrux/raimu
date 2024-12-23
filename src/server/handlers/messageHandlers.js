@@ -54,6 +54,14 @@ export const messageHandlers = {
         observingPin: null
       };
 
+      // Send current transcription state to the joining user
+      if (room.transcriptionEnabled) {
+        ws.send(JSON.stringify({
+          type: 'transcriptionEnabled',
+          enabled: true
+        }));
+      }
+
       // Notify others in the room
       roomService.broadcastToRoom(data.roomId, {
         type: 'userJoined',
@@ -198,37 +206,47 @@ export const messageHandlers = {
 
   transcriptionRequest: async (ws, data, { roomService }) => {
     try {
+        const room = roomService.getRoomById(ws.connectionInfo.roomId);
+        if (!room) {
+            throw new Error('Room not found');
+        }
+
+        // Only allow transcription if it's enabled for the room
+        if (!room.transcriptionEnabled) {
+            throw new Error('Transcription is not enabled for this room');
+        }
+
         // Convert base64 to buffer
         const audioBuffer = Buffer.from(data.audioData, 'base64');
         
         // Get transcription in original language
-        const transcription = await WhisperService.transcribe(audioBuffer, data.language);
+        const language = data.language || 'en';
+        const transcription = await WhisperService.transcribe(audioBuffer, language);
 
         // Prepare response object
         const response = {
             type: 'transcription',
             text: transcription,
             timestamp: data.timestamp,
-            originalLanguage: data.language,
-            userId: data.userId
+            originalLanguage: language,
+            userId: ws.connectionInfo.userId
         };
 
         // Translate to English if not already in English
-        if (data.language !== 'en' && data.language !== null) {
-            const translatedText = await TranslationService.translate(transcription, data.language);
+        if (language !== 'en' && language !== null) {
+            const translatedText = await TranslationService.translate(transcription, language);
             if (translatedText) {
                 response.translatedText = translatedText;
             }
+            console.log('Transcription in original language:', transcription);
+            console.log('Transcription in translated language:', response.translatedText);
         }
 
-        // Debug condition on next line
-        console.log('TTS enabled:', ws.connectionInfo?.ttsEnabled);
-        console.log('Translated text:', response.translatedText);
-        console.log('User ID:', response.userId);
+        console.log('Skipping user:', ws.connectionInfo.userId);
+        roomService.broadcastToRoom(room.id, response, ws);
 
-        // Only generate TTS if TTS is enabled. Skip if the user is not the local user, we don't want to what other people say in TTS.
-        if (ws.connectionInfo?.ttsEnabled && (data.language === 'en' || response.translatedText) && response.userId === 'local') {
-            // Generate TTS audio using the translated text
+        // Generate TTS if enabled for this user
+        if (ws.connectionInfo?.ttsEnabled && (language === 'en' || response.translatedText)) {
             const ttsAudio = await TTSService.synthesizeSpeech(
                 response.translatedText || transcription,
                 'en',
@@ -240,13 +258,49 @@ export const messageHandlers = {
             }
         }
         
+        // Send response with audio to the user who requested it
         ws.send(JSON.stringify(response));
     } catch (error) {
         console.error({ error }, 'Transcription request failed');
         ws.send(JSON.stringify({
             type: 'error',
-            message: 'Transcription failed'
+            message: error.message
         }));
+    }
+  },
+
+  transcriptionEnabled: (ws, data, { roomService }) => {
+    try {
+      const room = roomService.getRoomById(ws.connectionInfo.roomId);
+      if (!room) {
+        throw new Error('Room not found');
+      }
+
+      if(room.transcriptionEnabled === data.enabled) {
+        // It's already in the desired state
+        return;
+      }
+
+      // Update room's transcription status
+      room.transcriptionEnabled = data.enabled;
+
+      // Get user's name for the UI message
+      const userName = room.participants.get(ws.connectionInfo.userId)?.name || 'Unknown User';
+
+      // Broadcast transcription status change to all participants
+      roomService.broadcastToRoom(room.id, {
+        type: 'transcriptionEnabled',
+        enabled: data.enabled,
+        userId: ws.connectionInfo.userId,
+        userName: userName
+      });
+      
+    } catch (error) {
+      console.error('Error updating transcription status:', error);
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: error.message
+      }));
     }
   }
 };

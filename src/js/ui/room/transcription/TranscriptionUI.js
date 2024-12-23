@@ -12,17 +12,82 @@ export class TranscriptionUI {
         this.transcriptionText = elements.transcriptionText;
         this.roomManager = roomManager;
         this.hasTranscriptions = false;
+        this.isTranscriptionHost = false;
 
         // Initially disable TTS switch
         this.voiceTTSEnabled.disabled = true;
         this.voiceTTSEnabled.checked = false;
         this.voiceTTSEnabled.parentElement?.classList.add('opacity-50', 'cursor-not-allowed');
+
+        // Set up transcription toggle handler
+        this.transcriptionEnabled.addEventListener('change', () => {
+            const enabled = this.transcriptionEnabled.checked;
+            this.roomManager.ws.send({
+                type: 'transcriptionEnabled',
+                enabled: enabled
+            });
+        });
+
+        // Set up TTS toggle handler
+        this.voiceTTSEnabled.addEventListener('change', () => {
+            const enabled = this.voiceTTSEnabled.checked;
+            this.roomManager.ws.send({
+                type: 'TTSStatus',
+                enabled: enabled
+            });
+        });
+    }
+
+    /**
+     * Handles transcription status updates from the server
+     */
+    handleTranscriptionStatusUpdate(data) {
+        const { enabled, userId, userName } = data;
+
+        // Update the transcription toggle
+        this.transcriptionEnabled.checked = enabled;
+        
+        // Show message about who changed the transcription state
+        if (userId !== this.roomManager.userId) {
+            if (enabled) {
+                this.addSystemMessage(`${userName} enabled transcription for everyone`);
+            } else {
+                this.addSystemMessage(`${userName} disabled transcription`);
+            }
+        }
+
+        // Update TTS state (only enable if transcription is enabled)
+        this.updateTTSState(enabled);
+    }
+
+    /**
+     * Adds a system message to the transcription panel
+     */
+    addSystemMessage(message) {
+        if (!this.hasTranscriptions) {
+            const placeholder = this.transcriptionText.querySelector('.opacity-30');
+            if (placeholder) {
+                placeholder.remove();
+            }
+            this.hasTranscriptions = true;
+        }
+
+        const messageElement = document.createElement('div');
+        messageElement.className = 'p-1 text-center text-sm text-slate-400 italic';
+        messageElement.textContent = message;
+        this.transcriptionText.appendChild(messageElement);
+        this.transcriptionText.scrollTop = this.transcriptionText.scrollHeight;
     }
 
     /**
      * Adds a transcription message to the UI
      */
     addTranscription(text, userId, timestamp, translatedText = null, originalLanguage = null) {
+        // Ignore transcriptions if transcription is disabled
+        if (!this.transcriptionEnabled.checked) {
+            return;
+        }
+
         if (!this.hasTranscriptions) {
             const placeholder = this.transcriptionText.querySelector('.opacity-30');
             if (placeholder) {
@@ -39,7 +104,7 @@ export class TranscriptionUI {
 
         // Get username from room manager based on userId
         let username;
-        if (userId === 'local') {
+        if (userId === 'local' || userId === this.roomManager.userId) {
             username = 'You';
         } else {
             const participant = this.roomManager.participants.get(userId);

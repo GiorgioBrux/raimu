@@ -21,7 +21,7 @@ export class AudioProcessor {
         this.websocket.send({
             type: 'transcriptionRequest',
             audioData: base64AudioData,
-            language: userId === 'local' ? language || 'en' : 'en',
+            language: userId === 'local' ? language || 'en' : null,
             roomId: this.roomId,
             timestamp: new Date().toISOString(),
             userId: userId

@@ -465,6 +465,11 @@ export class RoomManager {
                 case 'trackStateChange':
                     this.eventHandler.handleTrackStateChange(data);
                     break;
+                case 'transcriptionEnabled':
+                    if (this.roomUI?.transcriptionManager?.ui) {
+                        this.roomUI.transcriptionManager.ui.handleTranscriptionStatusUpdate(data);
+                    }
+                    break;
                 case 'transcription':
                     // Handle TTS audio if available
                     if (data.ttsAudio && this.roomUI?.transcriptionManager) {
@@ -472,18 +477,15 @@ export class RoomManager {
                     }
 
                     // Display transcription with translation if available
-                    let displayText = data.text;
-                    // if (data.translatedText) {
-                    //     displayText += `\n(English: ${data.translatedText})`;
-                    // }
-
-                    this.roomUI.transcriptionManager?.addTranscription(
-                        displayText,
-                        data.userId,
-                        data.timestamp,
-                        data.translatedText,
-                        data.originalLanguage
-                    );
+                    if (this.roomUI?.transcriptionManager) {
+                        this.roomUI.transcriptionManager.addTranscription(
+                            data.text,
+                            data.userId,
+                            data.timestamp,
+                            data.translatedText,
+                            data.originalLanguage
+                        );
+                    }
                     break;
                 case 'error':
                     this.eventHandler.handleError(data);

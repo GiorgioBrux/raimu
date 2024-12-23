@@ -85,7 +85,11 @@ export class VADManager {
     
     // Extract userId from container ID (format: participant-{userId})
     const userId = containerId.replace('participant-', '');
-    await this.transcriptionManager.sendAudioForTranscription(base64, userId);
+
+    // Only send our own transcription
+    if (userId === 'local') {
+      await this.transcriptionManager.sendAudioForTranscription(base64, userId);
+    }
   }
 
   /**

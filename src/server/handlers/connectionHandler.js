@@ -28,6 +28,7 @@ export function handleConnection(ws, services) {
     // Handle participant disconnect
     if (ws.connectionInfo.roomId && ws.connectionInfo.userId) {
       console.log(`User ${ws.connectionInfo.userId} disconnected from room ${ws.connectionInfo.roomId}`);
+
       const wasRoomRemoved = services.roomService.removeParticipant(
         ws.connectionInfo.roomId, 
         ws.connectionInfo.userId
