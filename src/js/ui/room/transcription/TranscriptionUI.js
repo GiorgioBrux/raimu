@@ -1,0 +1,174 @@
+import { uiLogger as log } from '../../../utils/logger.js';
+
+/**
+ * Manages the transcription UI elements and display
+ */
+export class TranscriptionUI {
+    constructor(uiElements, roomManager) {
+        const elements = uiElements.getElements();
+        this.transcriptionEnabled = elements.transcriptionEnabled;
+        this.transcriptionLang = elements.transcriptionLang;
+        this.voiceTTSEnabled = elements.voiceTTSEnabled;
+        this.transcriptionText = elements.transcriptionText;
+        this.roomManager = roomManager;
+        this.hasTranscriptions = false;
+
+        // Initially disable TTS switch
+        this.voiceTTSEnabled.disabled = true;
+        this.voiceTTSEnabled.checked = false;
+        this.voiceTTSEnabled.parentElement?.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+
+    /**
+     * Adds a transcription message to the UI
+     */
+    addTranscription(text, userId, timestamp, translatedText = null, originalLanguage = null) {
+        if (!this.hasTranscriptions) {
+            const placeholder = this.transcriptionText.querySelector('.opacity-30');
+            if (placeholder) {
+                placeholder.remove();
+            }
+            this.hasTranscriptions = true;
+        }
+
+        const transcriptionElement = document.createElement('div');
+        transcriptionElement.className = 'p-3 bg-slate-800/30 rounded-lg mb-2';
+
+        const headerRow = document.createElement('div');
+        headerRow.className = 'flex justify-between items-center mb-1';
+
+        // Get username from room manager based on userId
+        let username;
+        if (userId === 'local') {
+            username = 'You';
+        } else {
+            const participant = this.roomManager.participants.get(userId);
+            username = participant?.name || 'Unknown User';
+        }
+        
+        const nameEl = document.createElement('span');
+        nameEl.className = 'text-xs text-slate-500';
+        nameEl.textContent = username;
+
+        const timeEl = document.createElement('span');
+        timeEl.className = 'text-xs text-slate-500';
+        const time = new Date(timestamp);
+        timeEl.textContent = time.toLocaleTimeString([], { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+
+        headerRow.appendChild(nameEl);
+        headerRow.appendChild(timeEl);
+
+        // Create container for original text with language label
+        const originalContainer = document.createElement('div');
+        originalContainer.className = 'mb-1';
+        
+        if (originalLanguage && originalLanguage !== 'en' && userId === 'local') {
+            const originalLabel = document.createElement('span');
+            originalLabel.className = 'text-xs text-slate-500 mb-1';
+            const languageName = this._getLanguageName(originalLanguage);
+            originalLabel.textContent = languageName;
+            originalContainer.appendChild(originalLabel);
+        }
+
+        const transcriptionText = document.createElement('p');
+        transcriptionText.className = 'text-sm text-slate-300';
+        transcriptionText.textContent = text;
+        originalContainer.appendChild(transcriptionText);
+
+        transcriptionElement.appendChild(headerRow);
+        transcriptionElement.appendChild(originalContainer);
+
+        // Add translated text if available
+        if (translatedText && userId === 'local') {
+            const translationContainer = document.createElement('div');
+            translationContainer.className = 'mt-2 pt-2 border-t border-slate-700/50';
+            
+            const translationLabel = document.createElement('span');
+            translationLabel.className = 'text-xs text-slate-500';
+            translationLabel.textContent = 'English';
+            
+            const translatedTextEl = document.createElement('p');
+            translatedTextEl.className = 'text-sm text-slate-400';
+            translatedTextEl.textContent = translatedText;
+            
+            translationContainer.appendChild(translationLabel);
+            translationContainer.appendChild(translatedTextEl);
+            transcriptionElement.appendChild(translationContainer);
+        }
+
+        this.transcriptionText.appendChild(transcriptionElement);
+        this.transcriptionText.scrollTop = this.transcriptionText.scrollHeight;
+    }
+
+    /**
+     * Updates the TTS switch state based on transcription state
+     */
+    updateTTSState(transcriptionEnabled) {
+        if (transcriptionEnabled) {
+            this.voiceTTSEnabled.disabled = false;
+            this.voiceTTSEnabled.parentElement?.classList.remove('opacity-50', 'cursor-not-allowed');
+            log.debug('Enabled TTS switch');
+        } else {
+            if (this.voiceTTSEnabled.checked) {
+                this.voiceTTSEnabled.click();
+            }
+            this.voiceTTSEnabled.disabled = true;
+            this.voiceTTSEnabled.parentElement?.classList.add('opacity-50', 'cursor-not-allowed');
+            log.debug('Disabled TTS switch');
+        }
+    }
+
+    /**
+     * Convert language code to full name
+     * @private
+     */
+    _getLanguageName(code) {
+        const languages = {
+            'en': 'English',
+            'es': 'Spanish',
+            'fr': 'French',
+            'de': 'German',
+            'it': 'Italian',
+            'pt': 'Portuguese',
+            'nl': 'Dutch',
+            'pl': 'Polish',
+            'ru': 'Russian',
+            'ja': 'Japanese',
+            'ko': 'Korean',
+            'zh': 'Chinese',
+            'ar': 'Arabic',
+            'hi': 'Hindi',
+            'tr': 'Turkish',
+            'vi': 'Vietnamese',
+            'th': 'Thai',
+            'id': 'Indonesian',
+            'ms': 'Malay',
+            'fa': 'Persian'
+        };
+        return languages[code] || code.toUpperCase();
+    }
+
+    /**
+     * Gets the current selected language
+     */
+    getSelectedLanguage() {
+        return this.transcriptionLang.value;
+    }
+
+    /**
+     * Gets the transcription enabled state
+     */
+    isTranscriptionEnabled() {
+        return this.transcriptionEnabled.checked;
+    }
+
+    /**
+     * Gets the TTS enabled state
+     */
+    isTTSEnabled() {
+        return this.voiceTTSEnabled.checked;
+    }
+} 

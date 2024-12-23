@@ -9,7 +9,7 @@ import { PanelManager } from '../ui/room/PanelManager.js';
 import { uiLogger as log } from '../utils/logger.js';
 import { ParticipantMuteManager } from '../ui/room/ParticipantMuteManager.js';
 import { ChatManager } from '../ui/room/ChatManager.js';
-import { TranscriptionManager } from '../ui/room/TranscriptionManager.js';
+import { TranscriptionManager } from '../ui/room/transcription/TranscriptionManager.js';
 import { InfoModals } from '../ui/room/InfoModals.js';
 
 /**

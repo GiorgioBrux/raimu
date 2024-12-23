@@ -221,8 +221,13 @@ export const messageHandlers = {
             }
         }
 
+        // Debug condition on next line
+        console.log('TTS enabled:', ws.connectionInfo?.ttsEnabled);
+        console.log('Translated text:', response.translatedText);
+        console.log('User ID:', response.userId);
+
         // Only generate TTS if TTS is enabled. Skip if the user is not the local user, we don't want to what other people say in TTS.
-        if (ws.connectionInfo?.ttsEnabled && response.translatedText && response.userId === 'local') {
+        if (ws.connectionInfo?.ttsEnabled && (data.language === 'en' || response.translatedText) && response.userId === 'local') {
             // Generate TTS audio using the translated text
             const ttsAudio = await TTSService.synthesizeSpeech(
                 response.translatedText || transcription,
