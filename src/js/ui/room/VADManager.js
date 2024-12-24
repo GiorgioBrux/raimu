@@ -48,13 +48,27 @@ export class VADManager {
   }
 
   /**
+   * Handles speaking state changes from both VAD and TTS
+   */
+  handleSpeakingChange(container, isSpeaking) {
+    if (!container) return;
+    
+    // Don't show speaking state if muted
+    if (this.muted.get(container.id) && isSpeaking) {
+      return;
+    }
+
+    ParticipantVideo.updateSpeakingIndicators(container, isSpeaking);
+  }
+
+  /**
    * Handles speech start event
    * @private
    */
   _handleSpeechStart(container, onSpeakingChange) {
     if (!this.muted.get(container.id)) {
       log.debug({ containerId: container.id }, 'Speech started');
-      onSpeakingChange(container, true);
+      this.handleSpeakingChange(container, true);
     } else {
       log.debug({ containerId: container.id }, 'Speech started but muted');
     }
@@ -66,7 +80,7 @@ export class VADManager {
    */
   async _handleSpeechEnd(container, audioData, onSpeakingChange) {
     log.debug({ containerId: container.id }, 'Speech ended');
-    onSpeakingChange(container, false);
+    this.handleSpeakingChange(container, false);
     
     if (!this.muted.get(container.id) && 
         this.transcriptionManager) {

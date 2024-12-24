@@ -473,7 +473,7 @@ export class RoomManager {
                 case 'transcription':
                     // Handle TTS audio if available
                     if (data.ttsAudio && this.roomUI?.transcriptionManager) {
-                        this.roomUI.transcriptionManager.handleTTSAudio(data.ttsAudio);
+                        this.roomUI.transcriptionManager.handleTTSAudio(data.ttsAudio, data.userId);
                     }
 
                     // Display transcription with translation if available

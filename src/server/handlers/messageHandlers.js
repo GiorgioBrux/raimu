@@ -254,11 +254,19 @@ export const messageHandlers = {
             }
         }
 
-        // Translate to each required language
+        // Translate to each required language and generate TTS
         const translations = new Map();
+        const ttsAudios = new Map();
+        
         for (const targetLang of participantLanguages) {
             const translatedText = await TranslationService.translate(transcription, speakerLanguage, targetLang);
             translations.set(targetLang, translatedText);
+            
+            // Only generate TTS if the speaker has TTS enabled
+            if (ws.connectionInfo.ttsEnabled) {
+                const ttsAudio = await TTSService.textToSpeech(translatedText, targetLang);
+                ttsAudios.set(targetLang, ttsAudio);
+            }
         }
 
         // Send personalized messages to each participant
@@ -279,6 +287,18 @@ export const messageHandlers = {
             if (participantLang !== speakerLanguage) {
                 response.translatedText = translations.get(participantLang);
                 response.translatedLanguage = participantLang;
+            }
+
+            // If speaker has TTS enabled, add the appropriate TTS audio
+            if (ws.connectionInfo.ttsEnabled) {
+                if (participantLang === speakerLanguage) {
+                    // For participants who speak the same language as the speaker,
+                    // generate TTS in that language from the original text
+                    response.ttsAudio = await TTSService.textToSpeech(transcription, speakerLanguage);
+                } else {
+                    // For others, use the pre-generated TTS in their language
+                    response.ttsAudio = ttsAudios.get(participantLang);
+                }
             }
 
             participant.ws.send(JSON.stringify(response));

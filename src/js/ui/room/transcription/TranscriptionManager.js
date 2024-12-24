@@ -21,8 +21,9 @@ export class TranscriptionManager {
         this.websocket = websocket;
         this.tts = new TTSManager(websocket);
         this.audioProcessor = new AudioProcessor(websocket, roomId);
-        this.streamManager = new StreamManager();
         this.roomManager = roomManager;
+        this.currentStream = null;
+        this.webrtc = null;
 
         this.setupEventListeners();
         log.debug('TranscriptionManager initialized');
@@ -41,24 +42,15 @@ export class TranscriptionManager {
         // Handle TTS toggle
         elements.voiceTTSEnabled.addEventListener('change', async () => {
             const enabled = elements.isTTSEnabled();
-            const currentMuteState = this.streamManager.isAudioMuted();
-            log.debug({ enabled, currentMuteState }, 'TTS toggle');
             
-            if (this.streamManager.getCurrentStream() && this.streamManager.webrtc) {
-                const roomUI = this.roomManager?.roomUI;
-                const vadManager = roomUI?.vadManager;
-                const localVideo = roomUI?.uiElements.getElements().localVideo;
-                const videoElement = localVideo?.querySelector('video');
-                const videoTrack = this.streamManager.getCurrentStream().getVideoTracks()[0];
-                const isVideoEnabled = videoTrack?.enabled ?? false;
-
+            if (this.currentStream && this.webrtc) {
                 if (enabled) {
-                    await this.enableTTS(videoElement, isVideoEnabled, currentMuteState, vadManager, localVideo);
+                    // Create silent stream for peers when TTS is enabled
+                    await this.createSilentStream();
                 } else {
-                    await this.disableTTS(videoElement, isVideoEnabled, currentMuteState, vadManager, localVideo);
+                    // Restore original stream when TTS is disabled
+                    await this.webrtc.updateLocalStream(this.currentStream);
                 }
-            } else {
-                log.warn('No current stream or WebRTC when toggling TTS');
             }
             
             this.websocket.send({
@@ -68,68 +60,19 @@ export class TranscriptionManager {
         });
     }
 
-    async enableTTS(videoElement, isVideoEnabled, currentMuteState, vadManager, localVideo) {
-        // Store a fresh stream for VAD and local display
-        const originalStream = await this.streamManager.createNewStream(
-            this.streamManager.getCurrentStream().getVideoTracks()[0]
-        );
-        this.tts.setOriginalStream(originalStream);
-        
-        // Update stream states
-        this.streamManager._updateStreamStates(originalStream, isVideoEnabled, currentMuteState);
-
-        // Update local video display with original stream
-        if (videoElement) {
-            videoElement.srcObject = originalStream;
-        }
-
-        // Create and set up silent stream for peers
-        const silentStream = await this.createSilentStream(isVideoEnabled);
-        await this.streamManager.updateWebRTCStream(silentStream, currentMuteState);
-        
-        // Use original stream for VAD
-        this.streamManager.setCurrentStream(originalStream);
-
-        // Setup VAD with new stream
-        if (vadManager && localVideo) {
-            await this.setupVAD(vadManager, localVideo, originalStream, currentMuteState);
-        }
-    }
-
-    async disableTTS(videoElement, isVideoEnabled, currentMuteState, vadManager, localVideo) {
-        // Clean up original stream
-        this.tts.cleanup();
-
-        // Get fresh stream with current settings
-        const newStream = await this.streamManager.createNewStream(
-            this.streamManager.getCurrentStream().getVideoTracks()[0]
-        );
-        
-        // Update stream states
-        this.streamManager._updateStreamStates(newStream, isVideoEnabled, currentMuteState);
-
-        // Update local video element with new stream
-        if (videoElement) {
-            videoElement.srcObject = newStream;
-        }
-
-        await this.streamManager.updateWebRTCStream(newStream, currentMuteState);
-        this.streamManager.setCurrentStream(newStream);
-
-        // Reinitialize VAD with new stream
-        if (vadManager && localVideo) {
-            await this.setupVAD(vadManager, localVideo, newStream, currentMuteState);
-        }
-    }
-
-    async createSilentStream(isVideoEnabled) {
+    /**
+     * Creates and sets a silent stream for WebRTC
+     */
+    async createSilentStream() {
         const silentStream = new MediaStream();
-        const originalVideoTrack = this.streamManager.getCurrentStream().getVideoTracks()[0];
-        if (originalVideoTrack) {
-            silentStream.addTrack(originalVideoTrack);
-            originalVideoTrack.enabled = isVideoEnabled;
+        
+        // Keep the video track from the current stream
+        const videoTrack = this.currentStream.getVideoTracks()[0];
+        if (videoTrack) {
+            silentStream.addTrack(videoTrack);
         }
         
+        // Create silent audio track
         const ctx = new AudioContext();
         const oscillator = ctx.createOscillator();
         oscillator.frequency.value = 0;
@@ -140,66 +83,33 @@ export class TranscriptionManager {
         oscillator.start();
         silentStream.addTrack(dest.stream.getAudioTracks()[0]);
 
-        return silentStream;
-    }
-
-    async setupVAD(vadManager, container, stream, isMuted) {
-        log.debug({
-            containerId: container.id,
-            streamTracks: stream.getTracks().map(t => ({
-                kind: t.kind,
-                enabled: t.enabled,
-                id: t.id,
-                readyState: t.readyState
-            }))
-        }, 'Setting up VAD with stream');
-        
-        vadManager.muted.set(container.id, isMuted);
-
-        // Get the videoGrid from roomUI, with fallback to ParticipantVideo's static method
-        const onSpeakingChange = this.roomManager?.roomUI?.videoGrid?.updateSpeakingIndicators?.bind(this.roomManager.roomUI.videoGrid) || 
-            ParticipantVideo.updateSpeakingIndicators;
-
-        await vadManager.setupVAD(
-            stream, 
-            container,
-            onSpeakingChange
-        );
+        // Update the WebRTC stream
+        await this.webrtc.updateLocalStream(silentStream);
     }
 
     /**
      * Sets up the current stream and WebRTC instance
      */
     setCurrentStream(stream, webrtc) {
-        this.streamManager.setCurrentStream(stream);
-        this.streamManager.setWebRTC(webrtc);
-        this.tts.setStreams(stream, webrtc);
-        
-        // Set up track state change handler
-        this.streamManager.setupTrackStateHandler(this.handleMuteStateChange.bind(this));
-    }
+        this.currentStream = stream;
+        this.webrtc = webrtc;
 
-    /**
-     * Handles mute state changes
-     */
-    handleMuteStateChange(isMuted) {
-        const roomUI = this.roomManager?.roomUI;
-        const vadManager = roomUI?.vadManager;
-        const localVideo = roomUI?.uiElements.getElements().localVideo;
+        // If TTS is already enabled, create silent stream
+        if (this.ui.isTTSEnabled()) {
+            this.createSilentStream();
+        }
 
-        if (vadManager && localVideo) {
-            // Update VAD's mute state
-            vadManager.updateMuteState(localVideo.id, isMuted);
-
-            // Update the current stream being used for VAD
-            const stream = this.ui.isTTSEnabled() ? this.tts.originalStream : this.streamManager.getCurrentStream();
-            if (stream) {
-                const audioTrack = stream.getAudioTracks()[0];
-                if (audioTrack) {
-                    audioTrack.enabled = !isMuted;
+        // Set up speaking state change handler for TTS
+        this.tts.onSpeakingStateChange = (userId, isSpeaking) => {
+            const roomUI = this.roomManager?.roomUI;
+            const vadManager = roomUI?.vadManager;
+            if (vadManager) {
+                const participantContainer = document.getElementById(`participant-${userId}`);
+                if (participantContainer) {
+                    vadManager.handleSpeakingChange(participantContainer, isSpeaking);
                 }
             }
-        }
+        };
     }
 
     /**
@@ -207,7 +117,6 @@ export class TranscriptionManager {
      */
     sendAudioForTranscription(base64AudioData, userId) {
         if (!this.ui.isTranscriptionEnabled()) return;
-        if (this.streamManager.isAudioMuted() && userId === 'local') return;
 
         this.audioProcessor.sendAudioForTranscription(
             base64AudioData, 
@@ -219,14 +128,9 @@ export class TranscriptionManager {
     /**
      * Handles incoming TTS audio
      */
-    async handleTTSAudio(base64Audio) {
+    async handleTTSAudio(base64Audio, userId) {
         log.debug('Handling TTS audio');
-        log.debug({
-            isTTSEnabled: this.ui.isTTSEnabled(),
-            isAudioMuted: this.streamManager.isAudioMuted()
-        }, 'TTS audio handling');
-        if (!this.ui.isTTSEnabled() || this.streamManager.isAudioMuted()) return;
-        await this.tts.handleTTSAudio(base64Audio, this.streamManager.isAudioMuted());
+        await this.tts.handleTTSAudio(base64Audio, userId);
     }
 
     /**

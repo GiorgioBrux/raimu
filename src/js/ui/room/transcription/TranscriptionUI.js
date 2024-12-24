@@ -220,8 +220,14 @@ export class TranscriptionUI {
             this.voiceTTSEnabled.parentElement?.classList.remove('opacity-50', 'cursor-not-allowed');
             log.debug('Enabled TTS switch');
         } else {
+            // When transcription is disabled, turn off TTS if it was on
             if (this.voiceTTSEnabled.checked) {
-                this.voiceTTSEnabled.click();
+                this.voiceTTSEnabled.checked = false;
+                // Send TTS status update
+                this.roomManager.ws.send({
+                    type: 'TTSStatus',
+                    enabled: false
+                });
             }
             this.voiceTTSEnabled.disabled = true;
             this.voiceTTSEnabled.parentElement?.classList.add('opacity-50', 'cursor-not-allowed');
