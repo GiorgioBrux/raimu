@@ -27,7 +27,6 @@ We believe in doing one thing exceptionally well. Raimu offers crystal-clear vid
 - Peer-to-peer video and audio communication
 - Optional AI features for transcription and voice synthesis
 - No data storage - everything is processed in real-time
-- Open source and transparent
 
 ### ⚡ Technically Beautiful
 Built with modern web technologies:
@@ -36,3 +35,7 @@ Built with modern web technologies:
 - TTS for voice synthesis
 - Real-time WebSocket signaling
 - Tailwind CSS for a responsive, clean interface
+
+---
+
+© 2024 Raimu. All rights reserved.
