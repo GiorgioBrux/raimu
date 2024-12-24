@@ -18,10 +18,10 @@ class TTSService {
             if (transcribedAudio && transcribedText) {
                 requestBody.reference_audio = transcribedAudio;
                 requestBody.reference_text = transcribedText;
-                log.info('Using reference audio and text for TTS');
+                console.log('Using reference audio and text for TTS');
             }
             else {
-                log.info('No reference data for TTS');
+                console.log('No reference data for TTS');
             }
 
             const response = await fetch(this.pythonServiceUrl, {
