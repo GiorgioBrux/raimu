@@ -293,10 +293,16 @@ export const messageHandlers = {
             if (ws.connectionInfo.ttsEnabled) {
                 if (participantLang === speakerLanguage) {
                     // For participants who speak the same language as the speaker,
-                    // generate TTS in that language from the original text
-                    response.ttsAudio = await TTSService.synthesizeSpeech(transcription, speakerLanguage);
+                    // use voice cloning with the original audio
+                    response.ttsAudio = await TTSService.synthesizeSpeech(
+                        transcription, 
+                        speakerLanguage,
+                        data.audioData,  // original audio for voice cloning
+                        transcription    // original text for alignment
+                    );
                 } else {
                     // For others, use the pre-generated TTS in their language
+                    // without voice cloning since we're translating
                     response.ttsAudio = ttsAudios.get(participantLang);
                 }
             }

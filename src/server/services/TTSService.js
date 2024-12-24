@@ -8,17 +8,28 @@ class TTSService {
 
     async synthesizeSpeech(text, language = 'en', transcribedAudio = null, transcribedText = null) {
         try {
+            // Prepare request body, only including reference data if both are provided
+            const requestBody = {
+                text,
+                language
+            };
+
+            // Only add reference data if both audio and text are provided
+            if (transcribedAudio && transcribedText) {
+                requestBody.reference_audio = transcribedAudio;
+                requestBody.reference_text = transcribedText;
+                log.info('Using reference audio and text for TTS');
+            }
+            else {
+                log.info('No reference data for TTS');
+            }
+
             const response = await fetch(this.pythonServiceUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    text,
-                    language,
-                    reference_audio: transcribedAudio,  // base64 audio from transcription
-                    reference_text: transcribedText     // original transcribed text
-                })
+                body: JSON.stringify(requestBody)
             });
 
             if (!response.ok) {

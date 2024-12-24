@@ -67,7 +67,7 @@ except Exception as e:
 async def text_to_speech(request: TTSRequest):
     temp_ref = None
     try:
-        logger.info(f"Received TTS request: text='{request.text}', language={request.language}")
+        logger.info(f"Received TTS request: text='{request.text}', language={request.language}, is_reference_audio={request.reference_audio is not None}, is_reference_text={request.reference_text is not None}")
         
         if request.reference_audio:
             # Create temp file
