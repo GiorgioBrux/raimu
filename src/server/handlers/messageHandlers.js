@@ -264,7 +264,7 @@ export const messageHandlers = {
             
             // Only generate TTS if the speaker has TTS enabled
             if (ws.connectionInfo.ttsEnabled) {
-                const ttsAudio = await TTSService.textToSpeech(translatedText, targetLang);
+                const ttsAudio = await TTSService.synthesizeSpeech(translatedText, targetLang);
                 ttsAudios.set(targetLang, ttsAudio);
             }
         }
@@ -294,7 +294,7 @@ export const messageHandlers = {
                 if (participantLang === speakerLanguage) {
                     // For participants who speak the same language as the speaker,
                     // generate TTS in that language from the original text
-                    response.ttsAudio = await TTSService.textToSpeech(transcription, speakerLanguage);
+                    response.ttsAudio = await TTSService.synthesizeSpeech(transcription, speakerLanguage);
                 } else {
                     // For others, use the pre-generated TTS in their language
                     response.ttsAudio = ttsAudios.get(participantLang);
