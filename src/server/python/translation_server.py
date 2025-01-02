@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
 import torch
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, pipeline
 import logging
 import os
 
@@ -40,7 +40,7 @@ try:
     
     logger.info(f"Using device: {device}")
     
-    model_id = "facebook/nllb-200-distilled-600M"
+    model_id = "facebook/nllb-200-distilled-1.3B"
     
     model = AutoModelForSeq2SeqLM.from_pretrained(
         model_id,
@@ -80,24 +80,19 @@ async def translate(request: TranslationRequest):
         source_lang_code = LANG_CODE_MAP.get(request.source_lang, 'eng_Latn')
         target_lang_code = LANG_CODE_MAP.get(request.target_lang, 'eng_Latn')
         
-        # Tokenize input text
-        inputs = tokenizer(request.text, return_tensors="pt").to(device)
-        
-        # Force the model to generate in the target language
-        forced_bos_token_id = tokenizer.lang_code_to_id[target_lang_code]
-        
-        # Generate translation
-        outputs = model.generate(
-            **inputs,
-            forced_bos_token_id=forced_bos_token_id,
+        # Create translation pipeline
+        translator = pipeline(
+            'translation',
+            model=model,
+            tokenizer=tokenizer,
+            src_lang=source_lang_code,
+            tgt_lang=target_lang_code,
             max_length=256,
-            num_beams=5,
-            length_penalty=1.0,
-            early_stopping=True
         )
         
-        # Decode the generated tokens
-        translation = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        # Translate
+        output = translator(request.text)
+        translation = output[0]['translation_text']
         
         return {"text": translation}
             
