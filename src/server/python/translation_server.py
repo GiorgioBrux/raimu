@@ -42,6 +42,9 @@ try:
     
     model_id = "facebook/nllb-200-distilled-1.3B"
     
+    # Clear cache
+    torch.cuda.empty_cache()
+
     model = AutoModelForSeq2SeqLM.from_pretrained(
         model_id,
         torch_dtype=torch_dtype,

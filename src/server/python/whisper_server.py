@@ -21,6 +21,9 @@ class TranscriptionRequest(BaseModel):
 
 # Initialize Whisper
 try:
+    # Clear cache
+    torch.cuda.empty_cache()
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
     
@@ -45,7 +48,7 @@ try:
         feature_extractor=processor.feature_extractor,
         torch_dtype=torch_dtype,
         chunk_length_s=30,
-        batch_size=8,
+        batch_size=6,
         stride_length_s=5,
         return_timestamps=True
     )
@@ -64,7 +67,7 @@ async def transcribe(request: TranscriptionRequest):
         # Process audio with Whisper
         result = pipe(
             audio_bytes,
-            batch_size=8,
+            batch_size=6,
             return_timestamps=True,
             chunk_length_s=30,
             stride_length_s=5,
