@@ -37,7 +37,14 @@ class TTSService {
             }
 
             const audioBuffer = await response.arrayBuffer();
-            return audioBuffer;
+            console.log("Audio buffer length:", audioBuffer.byteLength);
+            
+            // Convert ArrayBuffer to Base64
+            const audioArray = new Uint8Array(audioBuffer);
+            const base64Audio = Buffer.from(audioArray).toString('base64');
+            console.log("Base64 audio length:", base64Audio.length);
+            
+            return base64Audio;
         } catch (error) {
             console.error('TTS Error:', error);
             return null;

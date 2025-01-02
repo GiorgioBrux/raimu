@@ -6,7 +6,9 @@ import { uiLogger as log } from '../../../utils/logger.js';
 export class TTSManager {
     constructor(websocket) {
         this.websocket = websocket;
-        this.audioContext = new AudioContext();
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+            sampleRate: 44100  // Match the model's sample rate
+        });
         this.audioQueue = [];
         this.isPlaying = false;
         this.onSpeakingStateChange = null;
@@ -44,17 +46,31 @@ export class TTSManager {
                 view[i] = audioData.charCodeAt(i);
             }
 
-            // Decode audio data
-            const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+            // Decode audio data with proper error handling
+            let audioBuffer;
+            try {
+                audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                console.log('Audio buffer decoded:', {
+                    duration: audioBuffer.duration,
+                    numberOfChannels: audioBuffer.numberOfChannels,
+                    sampleRate: audioBuffer.sampleRate,
+                    length: audioBuffer.length
+                });
+            } catch (decodeError) {
+                console.error('Error decoding audio:', decodeError);
+                throw decodeError;
+            }
 
             // Notify that user started speaking
             if (this.onSpeakingStateChange) {
                 this.onSpeakingStateChange(userId, true);
             }
 
-            // Play the audio
+            // Create and configure source
             const source = this.audioContext.createBufferSource();
             source.buffer = audioBuffer;
+            
+            // Connect directly to destination without additional processing
             source.connect(this.audioContext.destination);
             
             // When audio finishes
