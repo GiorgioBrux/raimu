@@ -48,8 +48,8 @@ try:
         torch.cuda.set_per_process_memory_fraction(0.4)  # Limit to 40% of VRAM
         torch.cuda.empty_cache()
     
-    model = ParlerTTSForConditionalGeneration.from_pretrained("parler-tts/parler-tts-large-v1", revision= "refs/pr/9").to(device)
-    tokenizer = AutoTokenizer.from_pretrained("parler-tts/parler-tts-large-v1")
+    model = ParlerTTSForConditionalGeneration.from_pretrained("parler-tts/parler-tts-mini-v1").to(device)
+    tokenizer = AutoTokenizer.from_pretrained("parler-tts/parler-tts-mini-v1")
     
     logger.info("TTS Model initialized successfully")
 except Exception as e:
@@ -58,10 +58,10 @@ except Exception as e:
 
 # Define voice descriptions for different styles
 VOICE_DESCRIPTIONS = {
-    "default": "A clear and professional speaker with a natural tone, speaking at a moderate pace with good articulation.",
-    "friendly": "A warm and friendly speaker with an engaging tone, speaking expressively at a comfortable pace.",
-    "formal": "A formal and authoritative speaker with precise pronunciation, maintaining a professional demeanor.",
-    "casual": "A relaxed and casual speaker with a conversational style, speaking naturally and informally."
+    "default": "A clear and professional speaker with a natural tone, speaking at a moderate pace with good articulation. The speaker is a native and is male.",
+    "friendly": "A warm and friendly speaker with an engaging tone, speaking expressively at a comfortable pace. The speaker is a native and is male.",
+    "formal": "A formal and authoritative speaker with precise pronunciation, maintaining a professional demeanor. The speaker is a native and is male.",
+    "casual": "A relaxed and casual speaker with a conversational style, speaking naturally and informally. The speaker is a native and is male."
 }
 
 @app.post("/tts")
