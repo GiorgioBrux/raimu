@@ -6,3 +6,4 @@ hf_transfer
 #git+https://github.com/SWivid/F5-TTS.git
 sentencepiece
 git+https://github.com/huggingface/parler-tts.git
+accelerate>=0.26.0

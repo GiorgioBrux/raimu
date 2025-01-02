@@ -34,7 +34,7 @@ class LoggerProgress:
 # Initialize TTS model
 try:
     # Check for CUDA availability
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     logger.info(f"Using device: {device}")
     
     if device.startswith("cuda"):
