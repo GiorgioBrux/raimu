@@ -195,7 +195,7 @@ export class RoomUI {
    * @param {MediaStream} stream - The local media stream to set up
    * @returns {void}
    */
-  setLocalStream(stream) {
+  async setLocalStream(stream) {
     if (!this.initialized) {
         log.warn('Attempted to set local stream before initialization');
         return;
@@ -220,6 +220,7 @@ export class RoomUI {
     if (existingContainer) {
         const video = existingContainer.querySelector('video');
         if (video) {
+            // Keep using original stream for video display
             video.srcObject = stream;
             ParticipantVideo.updateMediaState(
                 existingContainer,
@@ -228,11 +229,21 @@ export class RoomUI {
             );
             this.vadManager.updateMuteState(existingContainer.id, !isAudioEnabled);
             log.debug({ containerId: existingContainer.id }, 'Setting up VAD for existing local participant');
-            this.vadManager.setupVAD(
-                stream, 
+            // Use the WebRTC stream returned from VAD setup only for transmission
+            const webrtcStream = await this.vadManager.setupVAD(
+                stream.clone(), // Clone the stream for VAD to avoid modifying original
                 existingContainer,
                 ParticipantVideo.updateSpeakingIndicators
             );
+            if (webrtcStream) {
+                // Copy video track from original stream to WebRTC stream
+                const originalVideoTrack = stream.getVideoTracks()[0];
+                if (originalVideoTrack) {
+                    webrtcStream.addTrack(originalVideoTrack);
+                }
+                // Update the WebRTC service with the new stream
+                await this.roomManager.webrtc.updateLocalStream(webrtcStream);
+            }
             return;
         }
     }
@@ -250,7 +261,7 @@ export class RoomUI {
     
     video.muted = true; // Ensure muted for iOS Safari
     try {
-       video.play();
+        video.play();
     } catch (error) {
         log.warn({ error }, 'Auto-play failed, will retry after user interaction');
         // Add click handler to try playing again
@@ -269,6 +280,21 @@ export class RoomUI {
     
     if (container) {
         this.vadManager.updateMuteState(container.id, !isAudioEnabled);
+        // Use the WebRTC stream returned from VAD setup only for transmission
+        const webrtcStream = await this.vadManager.setupVAD(
+            stream.clone(), // Clone the stream for VAD to avoid modifying original
+            container,
+            ParticipantVideo.updateSpeakingIndicators
+        );
+        if (webrtcStream) {
+            // Copy video track from original stream to WebRTC stream
+            const originalVideoTrack = stream.getVideoTracks()[0];
+            if (originalVideoTrack) {
+                webrtcStream.addTrack(originalVideoTrack);
+            }
+            // Update the WebRTC service with the new stream
+            await this.roomManager.webrtc.updateLocalStream(webrtcStream);
+        }
     }
   }
 

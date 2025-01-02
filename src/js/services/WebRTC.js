@@ -195,6 +195,20 @@ export class WebRTCService {
         try {
           this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
           
+          // Make sure audio track is initially enabled so VAD can process it
+          const audioTrack = this.localStream.getAudioTracks()[0];
+          if (audioTrack) {
+            // We need the track enabled for VAD to process it, but we'll control transmission differently
+            audioTrack.enabled = true;
+            log.debug({
+              trackId: audioTrack.id,
+              enabled: audioTrack.enabled,
+              muted: audioTrack.muted,
+              readyState: audioTrack.readyState,
+              constraints: audioTrack.getConstraints()
+            }, 'Audio track initialized');
+          }
+          
           // Create a new audio context
           const audioContext = new (window.AudioContext || window.webkitAudioContext)();
           
