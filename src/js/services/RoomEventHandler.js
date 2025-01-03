@@ -206,10 +206,21 @@ export class RoomEventHandler {
      * @private
      */
     _addParticipant(userId, userName) {
+        if(userId == null) {
+            log.error('userId is null');
+            return;
+        }
+        
+        if(userName == null) {
+            log.error('userName is null');
+            return;
+        }
+
         this.roomManager.participants.set(userId, {
             id: userId,
-            name: userName || 'Anonymous'  // Fallback to 'Anonymous' if name is null
+            name: userName
         });
+        log.debug({ userId, userName }, 'Participant added to room');
         this.roomManager.onParticipantListUpdate?.();
     }
 
