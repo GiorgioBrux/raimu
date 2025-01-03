@@ -14,7 +14,8 @@ export const messageHandlers = {
         data.userName,
       );
 
-      room.addParticipant(data.userId, data.userName, ws);
+      // Add participant with voice sample
+      room.addParticipant(data.userId, data.userName, ws, data.voiceSample);
       
       console.log('Created room:', room.id);
       
@@ -45,7 +46,7 @@ export const messageHandlers = {
         throw new Error('Room not found');
       }
 
-      roomService.addParticipant(data.roomId, data.userId, data.userName, ws);
+      roomService.addParticipant(data.roomId, data.userId, data.userName, ws, data.voiceSample);
       
       // Update connection info when joining
       ws.connectionInfo = {
@@ -253,6 +254,9 @@ export const messageHandlers = {
             participantLanguageMap.set(lang, (participantLanguageMap.get(lang) || 0) + 1);
         }
 
+        // Get speaker's voice sample for TTS
+        const voiceSample = room.getParticipantVoiceSample(ws.connectionInfo.userId);
+
         // Prepare translations and TTS for each required language
         const translations = new Map();
         const ttsAudios = new Map();
@@ -265,14 +269,14 @@ export const messageHandlers = {
                 translations.set(targetLang, translatedText);
             }
             
-            // Generate TTS if speaker has it enabled
-            if (ws.connectionInfo.ttsEnabled) {
+            // Generate TTS if speaker has it enabled and we have their voice sample
+            if (ws.connectionInfo.ttsEnabled && voiceSample) {
                 try {
                     const textForTTS = targetLang === speakerLanguage ? transcription : translations.get(targetLang);
                     const ttsAudio = await TTSService.synthesizeSpeech(
                         textForTTS,
                         targetLang,
-                        data.audioData // Original audio for voice cloning
+                        voiceSample // Use stored voice sample instead of current audio
                     );
                     ttsAudios.set(targetLang, ttsAudio);
                 } catch (error) {

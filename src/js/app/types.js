@@ -3,6 +3,7 @@ import { RoomManager } from '../services/RoomManager.js';
 import { ModalManager } from '../ui/home/Modal.js';
 import { RoomUI } from '../services/RoomUI.js';
 import { MediaSettings } from '../ui/components/mediaSettings/index.js';
+import { VoiceSampler } from '../ui/components/voiceSampler/VoiceSampler.js';
 
 /**
  * @typedef {Object} PageHandler
@@ -18,6 +19,7 @@ import { MediaSettings } from '../ui/components/mediaSettings/index.js';
  * @property {ModalManager|null} modalManager - Modal UI manager
  * @property {RoomUI|null} roomUI - Room UI manager
  * @property {MediaSettings|null} mediaSettings - Media settings manager
+ * @property {VoiceSampler|null} voiceSampler - Voice sampler
  */
 
 /**

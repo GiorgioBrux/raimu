@@ -116,10 +116,11 @@ export class RoomManager {
      * Creates a new room with the given user name
      * @param {string} userName - Name of the user creating the room
      * @param {string} [roomName=null] - Optional custom room name
+     * @param {string} [voiceSample=null] - Base64 encoded voice sample
      * @returns {Promise<{localStream: MediaStream}>}
      * @throws {Error} If room creation fails
      */
-    async createRoom(userName, roomName = null) {
+    async createRoom(userName, roomName = null, voiceSample = null) {
         try {
             await this.disconnectIfNeeded();
 
@@ -140,6 +141,7 @@ export class RoomManager {
                 roomName: this.roomName,
                 userId: this.userId,
                 userName: this.userName,
+                voiceSample: voiceSample // Include voice sample in room creation
             });
             
             // Make sure we return the local stream
@@ -159,10 +161,12 @@ export class RoomManager {
     /**
      * Joins an existing room
      * @param {string} roomId - ID of the room to join
+     * @param {Object} [mediaSettings=null] - Optional media device settings
+     * @param {string} [voiceSample=null] - Base64 encoded voice sample
      * @returns {Promise<{roomId: string, localStream: MediaStream}>}
      * @throws {Error} If joining room fails
      */
-    async joinRoom(roomId, mediaSettings = null) {
+    async joinRoom(roomId, mediaSettings = null, voiceSample = null) {
         try {
             log.debug({ 
                 joiningRoomId: roomId,
@@ -236,7 +240,8 @@ export class RoomManager {
                 type: 'joinRoom',
                 roomId: this.roomId,
                 userId: this.userId,
-                userName: this.userName
+                userName: this.userName,
+                voiceSample: voiceSample // Include voice sample when joining
             });
 
             // Connect to each participant with better error handling

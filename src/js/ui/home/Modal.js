@@ -10,16 +10,19 @@ export class ModalManager {
      * @param {Function} onSubmit - The function to call when the form is submitted
      */
     constructor(modalContainer, onSubmit = null) {
-
         this.modal = modalContainer;
         this.form = this.modal.querySelector('form');
         this.cancelBtn = this.modal.querySelector('#cancelCreateRoom');
         this.generateBtn = this.modal.querySelector('#generateRoomName');
         this.userNameInput = this.modal.querySelector('#userName');
         this.roomNameInput = this.form.querySelector('input[name="roomName"]');
+        this.submitBtn = this.form.querySelector('button[type="submit"]');
         
         this.onSubmit = onSubmit; // Optional callback for form submission
+        this.hasValidVoiceSample = false;
+        
         this.setupListeners();
+        this.updateSubmitButton();
     }
 
     setupListeners() {
@@ -28,15 +31,25 @@ export class ModalManager {
             return;
         }
 
+        // Listen for voice sample validity changes
+        document.addEventListener('voiceSampleValidityChange', (event) => {
+            this.hasValidVoiceSample = event.detail.isValid;
+            this.updateSubmitButton();
+        });
+
+        // Listen for username changes
+        this.userNameInput.addEventListener('input', () => {
+            this.updateSubmitButton();
+        });
+
         this.form.addEventListener('submit', async (e) => {
             logger.debug('Home page form submitted');
             e.preventDefault();
-            const submitBtn = this.form.querySelector('button[type="submit"]');
-            const originalText = submitBtn.textContent;
+            const originalText = this.submitBtn.textContent;
             
             try {
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Connecting...';
+                this.submitBtn.disabled = true;
+                this.submitBtn.textContent = 'Connecting...';
                 
                 await this.onSubmit?.(
                     this.userNameInput.value,
@@ -45,11 +58,11 @@ export class ModalManager {
                 
                 this.hide();
             } catch (error) {
-                console.error('Form submission error:', error);
-                alert('Failed to create room. Please try again.');
+                logger.error({ error }, 'Form submission error');
+                alert(error.message || 'Failed to create room. Please try again.');
             } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = originalText;
+                this.submitBtn.disabled = !this.isFormValid();
+                this.submitBtn.textContent = originalText;
             }
         });
 
@@ -75,6 +88,25 @@ export class ModalManager {
         });
     }
 
+    isFormValid() {
+        return this.userNameInput.value.trim().length > 0 && this.hasValidVoiceSample;
+    }
+
+    updateSubmitButton() {
+        if (this.submitBtn) {
+            const isValid = this.isFormValid();
+            this.submitBtn.disabled = !isValid;
+            
+            if (isValid) {
+                this.submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                this.submitBtn.classList.add('hover:bg-lime-500');
+            } else {
+                this.submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                this.submitBtn.classList.remove('hover:bg-lime-500');
+            }
+        }
+    }
+
     /**
      * Shows the modal by adding visibility classes and focusing the username input
      */
@@ -82,6 +114,7 @@ export class ModalManager {
         this.modal.classList.add('opacity-100', 'pointer-events-auto');
         this.modal.classList.remove('opacity-0', 'pointer-events-none');
         this.userNameInput.focus();
+        this.updateSubmitButton();
     }
 
     /**
@@ -91,6 +124,8 @@ export class ModalManager {
         this.modal.classList.remove('opacity-100', 'pointer-events-auto');
         this.modal.classList.add('opacity-0', 'pointer-events-none');
         this.form.reset();
+        this.hasValidVoiceSample = false;
+        this.updateSubmitButton();
     }
 
     /**

@@ -99,8 +99,12 @@ export class RoomHandler {
             const mediaSettings = this.serviceManager.getService('mediaSettings');
             const settings = mediaSettings ? await mediaSettings.getSettings() : null;
             
-            // Pass settings to joinRoom
-            const { localStream } = await roomManager.joinRoom(roomId, settings);
+            // Get voice sample from localStorage
+            const voiceSampleData = localStorage.getItem('lastVoiceSample');
+            const voiceSample = voiceSampleData ? JSON.parse(voiceSampleData).audio : null;
+            
+            // Pass settings and voice sample to joinRoom
+            const { localStream } = await roomManager.joinRoom(roomId, settings, voiceSample);
             logger.debug('Setting up local stream');
             roomUI.setLocalStream(localStream);
         } else {

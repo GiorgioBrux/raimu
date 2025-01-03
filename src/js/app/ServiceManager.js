@@ -19,7 +19,8 @@ export class ServiceManager {
             roomManager: null,
             modalManager: null,
             roomUI: null,
-            mediaSettings: null
+            mediaSettings: null,
+            voiceSampler: null
         };
     }
 
@@ -65,6 +66,7 @@ export class ServiceManager {
             this.services.ws?.disconnect(),
             this.services.roomUI?.cleanup(),
             this.services.mediaSettings?.destroy(),
+            this.services.voiceSampler?.destroy(),
             // Add stream cleanup
             async () => {
                 const roomManager = this.services.roomManager;

@@ -1,5 +1,6 @@
 import { ModalManager } from '../../ui/home/Modal.js';
 import { ErrorModal } from '../../ui/room/ErrorModal.js';
+import { VoiceSampler } from '../../ui/components/voiceSampler/VoiceSampler.js';
 import { appLogger as logger } from '../../utils/logger.js';
 import { router } from '../../router/index.js';
 
@@ -10,6 +11,7 @@ export class HomeHandler {
     constructor(serviceManager) {
         this.serviceManager = serviceManager;
         this.modal = null;
+        this.voiceSampler = null;
     }
 
     async initialize() {
@@ -17,7 +19,6 @@ export class HomeHandler {
             logger.debug('Initializing home page');
             // Check for existing session
             sessionStorage.setItem('lastPath', window.location.pathname);
-
 
             const pin = sessionStorage.getItem('PIN');
             const roomId = sessionStorage.getItem('roomId');
@@ -33,19 +34,29 @@ export class HomeHandler {
                 const modal = new ModalManager(modalContainer);
                 this.serviceManager.setService('modalManager', modal);
 
+                // Initialize voice sampler
+                this.voiceSampler = new VoiceSampler();
+                this.serviceManager.setService('voiceSampler', this.voiceSampler);
+                logger.debug('Voice sampler initialized');
+
                 this.serviceManager.getService('modalManager').onSubmit = async (userName, roomName) => {
                     try {
-                      const { localStream } = await this.serviceManager.getService('roomManager').createRoom(userName, roomName);
-                      logger.info({
-                        hasVideo: localStream?.getVideoTracks().length > 0,
-                        hasAudio: localStream?.getAudioTracks().length > 0
-                      }, 'Room created');
-                      sessionStorage.setItem('userName', userName);
+                        const voiceSample = await this.voiceSampler.getVoiceSample();
+                        if (!voiceSample) {
+                            throw new Error('Please record a voice sample of at least 10 seconds before creating the room');
+                        }
+
+                        const { localStream } = await this.serviceManager.getService('roomManager').createRoom(userName, roomName, voiceSample);
+                        logger.info({
+                            hasVideo: localStream?.getVideoTracks().length > 0,
+                            hasAudio: localStream?.getAudioTracks().length > 0
+                        }, 'Room created');
+                        sessionStorage.setItem('userName', userName);
                     } catch (error) {
-                      logger.error({ error }, 'Failed to create room');
-                      alert('Failed to create room. Please try again.');
+                        logger.error({ error }, 'Failed to create room');
+                        throw error; // Let the modal handle the error display
                     }
-                  };
+                };
             }
             else {
                 throw new Error('Cannot find modal container');
@@ -54,7 +65,6 @@ export class HomeHandler {
             this.setupCreateRoomHandler();
         } catch (error) {
             logger.error({ error }, 'Failed to initialize home page');
-            logger.error('Failed to initialize home page');
         }
     }
 

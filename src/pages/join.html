@@ -43,16 +43,21 @@
           <!-- Step 1: Name Input -->
           <div class="bg-slate-900/50 backdrop-blur-sm border border-lime-400/10 rounded-2xl p-6">
             <h2 class="text-xl font-semibold text-lime-300 mb-4">Your Info</h2>
-            <div>
-              <label for="displayName" class="block text-sm font-medium text-slate-400 mb-2">
-                Display Name
-              </label>
-              <input type="text" id="displayName" 
-                     class="w-full px-3 py-2.5 bg-slate-800/50 border border-lime-400/10 rounded-lg 
-                            focus:outline-none focus:ring-2 focus:ring-lime-400/50 focus:border-lime-400/30
-                            text-white placeholder-slate-500"
-                     placeholder="Enter your display name"
-                     required>
+            <div class="space-y-4">
+              <div>
+                <label for="displayName" class="block text-sm font-medium text-slate-400 mb-2">
+                  Display Name
+                </label>
+                <input type="text" id="displayName" 
+                       class="w-full px-3 py-2.5 bg-slate-800/50 border border-lime-400/10 rounded-lg 
+                              focus:outline-none focus:ring-2 focus:ring-lime-400/50 focus:border-lime-400/30
+                              text-white placeholder-slate-500"
+                       placeholder="Enter your display name"
+                       required>
+              </div>
+              
+              <!-- Voice Sample -->
+              <div id="joinRoomVoiceSample"></div>
             </div>
           </div>
 

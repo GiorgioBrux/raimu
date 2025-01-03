@@ -26,7 +26,7 @@ export class RoomService {
     return this.rooms.get(roomId);
   }
 
-  addParticipant(roomId, userId, userName, ws) {
+  addParticipant(roomId, userId, userName, ws, voiceSample = null) {
     const room = this.rooms.get(roomId);
     if (!room) {
       throw new Error('Room not found');
@@ -36,7 +36,7 @@ export class RoomService {
       throw new Error('Room is full');
     }
 
-    room.addParticipant(userId, userName, ws);
+    room.addParticipant(userId, userName, ws, voiceSample);
     this.notifyObservers(room);
     return room;
   }
@@ -50,10 +50,19 @@ export class RoomService {
 
     // Clean up empty rooms
     if (room.participants.size === 0) {
+      console.log('Cleaning up empty room:', {
+        roomId,
+        PIN: room.PIN,
+        createdAt: room.createdAt,
+        activeTime: Date.now() - room.createdAt.getTime()
+      });
+
       room.active = false;
       this.notifyObservers(room);
       this.notifyRoomClosed(room);
       this.rooms.delete(roomId);
+
+      console.log('Room deleted, current room count:', this.rooms.size);
       return true; // Room was removed
     }
     return false; // Room still exists

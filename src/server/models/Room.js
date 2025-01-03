@@ -5,55 +5,101 @@ export class Room {
     this.createdAt = new Date();
     this.createdBy = {
       id: creatorId,
-      name: creatorName
+      name: creatorName,
     };
-    this.participants = new Map();  // Map of userId -> participant data
-    this.active = true;
-    this.maxParticipants = maxParticipants;
     this.PIN = PIN;
+    this.maxParticipants = maxParticipants;
+    this.active = true;
+    this.transcriptionEnabled = false;
+    this.participants = new Map(); // Map of userId -> { id, name, ws, joinedAt, voiceSample }
+    this.observers = new Set();
   }
 
-  addParticipant(userId, userName, ws) {
-    console.log('Adding participant:', {
+  /**
+   * Adds a participant to the room
+   * @param {string} userId - User ID
+   * @param {string} userName - User's display name
+   * @param {WebSocket} ws - WebSocket connection
+   * @param {string} [voiceSample] - Base64 encoded voice sample for TTS
+   */
+  addParticipant(userId, userName, ws, voiceSample = null) {
+    console.log("Adding participant:", {
       userId,
       userName,
-      currentParticipants: this.participants.size
+      currentParticipants: this.participants.size,
+      isSampleProvided: voiceSample !== null,
     });
-    
+
     if (this.participants.size >= this.maxParticipants) {
-      throw new Error('Room is full');
+      throw new Error("Room is full");
     }
-    
-    this.participants.set(userId, { 
+
+    this.participants.set(userId, {
       id: userId,
-      name: userName, 
-      ws,
-      joinedAt: new Date()
+      name: userName,
+      ws: ws,
+      joinedAt: new Date(),
+      voiceSample: voiceSample,
     });
-    
-    console.log('Participant added, new count:', this.participants.size);
+
+    console.log("Participant added, new count:", this.participants.size);
   }
 
-  removeParticipant(userId) {
-    this.participants.delete(userId);
+  /**
+   * Gets a participant's voice sample
+   * @param {string} userId - User ID
+   * @returns {string|null} Base64 encoded voice sample or null if not found
+   */
+  getParticipantVoiceSample(userId) {
+    return this.participants.get(userId)?.voiceSample || null;
   }
 
+  /**
+   * Gets a list of all participants
+   * @returns {Array<{id: string, name: string, joinedAt: Date}>}
+   */
   getParticipantsList() {
-    console.log('Getting participants list:', {
+    console.log("Getting participants list:", {
       size: this.participants.size,
-      participants: Array.from(this.participants.values()).map(p => ({
+      participants: Array.from(this.participants.values()).map((p) => ({
         id: p.id,
-        name: p.name
-      }))
+        name: p.name,
+      })),
     });
-    
-    return Array.from(this.participants.values()).map(p => ({
+
+    return Array.from(this.participants.values()).map((p) => ({
       id: p.id,
       name: p.name,
-      joinedAt: p.joinedAt
+      joinedAt: p.joinedAt,
     }));
   }
 
+  /**
+   * Removes a participant from the room
+   * @param {string} userId - User ID to remove
+   * @returns {boolean} True if participant was removed
+   */
+  removeParticipant(userId) {
+    console.log("Removing participant:", {
+      userId,
+      currentParticipants: this.participants.size,
+    });
+
+    const wasRemoved = this.participants.delete(userId);
+
+    console.log("Participant removed:", {
+      userId,
+      wasRemoved,
+      newParticipantCount: this.participants.size,
+    });
+
+    return wasRemoved;
+  }
+
+  /**
+   * Converts room data to JSON
+   * @returns {Object}
+   */
   toJSON() {
     return {
       id: this.id,
@@ -64,7 +110,8 @@ export class Room {
       participantCount: this.participants.size,
       maxParticipants: this.maxParticipants,
       active: this.active,
-      participants: this.getParticipantsList()
+      transcriptionEnabled: this.transcriptionEnabled,
+      participants: this.getParticipantsList(),
     };
   }
-} 
+}

@@ -50,6 +50,9 @@ export class MediaSettings {
     });
     this.audioTest = new AudioTest(this.elements);
 
+    // Initialize resize observer for decorative section
+    this.setupResizeObserver();
+
     this.init();
   }
 
@@ -68,8 +71,82 @@ export class MediaSettings {
       testLoadingSpinner: this.container.querySelector('[data-test-loading]'),
       closeButton: this.container.querySelector('[data-modal-close]'),
       micControl: this.container.querySelector('#toggleMic'),
-      cameraControl: this.container.querySelector('#toggleCamera')
+      cameraControl: this.container.querySelector('#toggleCamera'),
+      decorativeSection: this.container.querySelector('[data-decorative-section]')
     };
+  }
+
+  setupResizeObserver() {
+    if (!this.elements.decorativeSection) {
+      logger.debug('No decorative section found');
+      return;
+    }
+
+    let timeout;
+    let isProcessing = false;
+
+    this.resizeObserver = new ResizeObserver(entries => {
+      if (isProcessing) return;
+
+      // Clear any pending timeout
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+
+      // Debounce the resize handling
+      timeout = setTimeout(() => {
+        isProcessing = true;
+
+        try {
+          const container = entries[0];
+          const mainContent = this.container.querySelector('.flex.flex-col.gap-6');
+          
+          const elementInfo = {
+            containerHeight: this.container.offsetHeight,
+            mainContentHeight: mainContent?.offsetHeight || 0,
+            decorativeSectionHeight: this.elements.decorativeSection.offsetHeight,
+            windowHeight: window.innerHeight
+          };
+          logger.debug('Height measurements: ' + JSON.stringify(elementInfo));
+
+          if (!mainContent) {
+            logger.debug('Main content section not found');
+            isProcessing = false;
+            return;
+          }
+
+          // Use offsetHeight for more reliable measurements
+          const mainContentHeight = mainContent.offsetHeight;
+          const containerHeight = this.container.offsetHeight;
+          const availableSpace = containerHeight - mainContentHeight;
+
+          // Show only if we have significant space
+          const SPACE_THRESHOLD = 300;
+          
+          logger.debug('Space calculation: ' + JSON.stringify({
+            containerHeight,
+            mainContentHeight,
+            availableSpace,
+            threshold: SPACE_THRESHOLD,
+            shouldShow: availableSpace > SPACE_THRESHOLD
+          }));
+
+          if (availableSpace > SPACE_THRESHOLD) {
+            logger.debug('Showing decorative section - available space: ' + availableSpace + 'px');
+            this.elements.decorativeSection.style.display = 'block';
+          } else {
+            logger.debug('Hiding decorative section - not enough space: ' + availableSpace + 'px');
+            this.elements.decorativeSection.style.display = 'none';
+          }
+        } catch (error) {
+          logger.error('Error in resize observer:', error);
+        }
+
+        isProcessing = false;
+      }, 200);
+    });
+
+    this.resizeObserver.observe(this.container);
   }
 
   async init() {
@@ -215,5 +292,8 @@ export class MediaSettings {
     this.streamManager.destroy();
     this.audioMeter.destroy();
     this.audioTest.destroy();
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
   }
 } 

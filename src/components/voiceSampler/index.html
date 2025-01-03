@@ -1,0 +1,65 @@
+<div class="p-3 bg-slate-800 rounded-xl space-y-2">
+    <label class="block text-sm text-white">Voice Sample</label>
+    <p class="text-xs text-slate-400">Please read this paragraph in your natural speaking voice and pace:</p>
+    <div class="p-3 bg-slate-900 rounded-lg">
+        <p class="text-sm text-slate-300 italic leading-relaxed">
+            "Imagine you're walking through a peaceful garden on a bright spring morning. The sun is warm, and a gentle breeze carries the sweet scent of blooming flowers. As you walk along the winding path, you notice butterflies dancing from flower to flower, while birds sing their cheerful melodies in the distance. This moment of tranquility reminds you of life's simple pleasures and the beauty that surrounds us every day."
+        </p>
+    </div>
+    <div class="flex items-center gap-3 mt-3">
+        <button type="button" 
+                class="flex-1 px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-lime-400/10 
+                       rounded-lg transition-colors group text-sm flex items-center justify-center gap-2"
+                id="voiceSampleRecord">
+            <svg class="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <circle cx="12" cy="12" r="6" fill="currentColor" stroke="none"/>
+            </svg>
+            <span class="text-slate-300">Record Sample</span>
+        </button>
+        <button type="button"
+                class="px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-lime-400/10 
+                       rounded-lg transition-colors hidden items-center gap-2 text-sm group"
+                id="voiceSamplePlay"
+                title="Click again to stop playback">
+            <!-- Play icon -->
+            <svg class="w-4 h-4 text-lime-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" id="voiceSamplePlayIcon">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <!-- Stop icon (hidden by default) -->
+            <svg class="w-4 h-4 text-lime-400 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" id="voiceSampleStopIcon">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10h6v4H9z" />
+            </svg>
+            <!-- Loading spinner (hidden by default) -->
+            <svg class="w-4 h-4 text-lime-400 animate-spin hidden" fill="none" viewBox="0 0 24 24" id="voiceSamplePlayingIcon">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-slate-300" id="voiceSamplePlayText">Play</span>
+        </button>
+    </div>
+    <div class="flex flex-col gap-1 mt-1" id="voiceSampleStatus">
+        <!-- Initial recording status -->
+        <div class="flex items-center gap-2 hidden" id="voiceSampleInitialStatus">
+            <svg class="w-4 h-4 text-lime-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <span class="text-xs text-lime-400" id="voiceSampleInitialText">Sample recorded</span>
+        </div>
+        <!-- Updated recording status -->
+        <div class="flex items-center gap-2 hidden" id="voiceSampleUpdateStatus">
+            <svg class="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span class="text-xs text-yellow-400" id="voiceSampleUpdateText">Previous sample replaced</span>
+        </div>
+        <!-- Duration warning -->
+        <div class="flex items-center gap-2 hidden" id="voiceSampleDurationWarning">
+            <svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span class="text-xs text-amber-500">Sample too short (minimum 10 seconds required)</span>
+        </div>
+    </div>
+</div>

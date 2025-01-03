@@ -21,6 +21,7 @@ export class RoomStatusManager {
     this.ws = websocketService;
     this.currentRoomCode = null;
     this.messageHandler = this.handleMessage.bind(this);
+    this.hasValidVoiceSample = false;
     // Let's keep the old message handler, restore if the user goes back to home
     this.oldMessageHandler = this.ws.onMessage;
     this.ws.onMessage = this.messageHandler;
@@ -39,6 +40,12 @@ export class RoomStatusManager {
         this.validateJoinButton();
       });
     }
+
+    // Listen for voice sample validity changes
+    document.addEventListener('voiceSampleValidityChange', (event) => {
+      this.hasValidVoiceSample = event.detail.isValid;
+      this.validateJoinButton();
+    });
 
     // Initial validation state
     this.validateJoinButton();
@@ -203,10 +210,25 @@ export class RoomStatusManager {
     if (this.elements.joinButton && this.elements.displayName) {
       const displayName = this.elements.displayName.value.trim();
       const isValidName = displayName.length > 0 && displayName.length <= 30;
+      const canJoin = isValidName && this.hasValidVoiceSample && this.currentRoomData?.active && 
+                     this.currentRoomData?.participantCount < this.currentRoomData?.maxParticipants;
       
-      this.elements.joinButton.disabled = !isValidName;
+      this.elements.joinButton.disabled = !canJoin;
       
-      // Optionally add visual feedback
+      // Update button tooltip based on validation state
+      if (!isValidName) {
+        this.elements.joinButton.title = 'Please enter a valid display name';
+      } else if (!this.hasValidVoiceSample) {
+        this.elements.joinButton.title = 'Please record a voice sample of at least 10 seconds';
+      } else if (this.currentRoomData?.participantCount >= this.currentRoomData?.maxParticipants) {
+        this.elements.joinButton.title = 'Room is full';
+      } else if (!this.currentRoomData?.active) {
+        this.elements.joinButton.title = 'Room is no longer active';
+      } else {
+        this.elements.joinButton.title = 'Join Room';
+      }
+      
+      // Optionally add visual feedback for name
       if (!isValidName && displayName.length > 0) {
         this.elements.displayName.classList.add('border-red-500');
       } else {

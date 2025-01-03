@@ -1,6 +1,7 @@
 import { MediaSettings } from '../../ui/components/mediaSettings/index.js';
 import { RoomCodeInput } from '../../ui/room/RoomCodeInput.js';
 import { RoomStatusManager } from '../../ui/join/RoomStatusManager.js';
+import { VoiceSampler } from '../../ui/components/voiceSampler/VoiceSampler.js';
 import { appLogger as logger } from '../../utils/logger.js';
 import { router } from '../../router/index.js';
 
@@ -17,6 +18,7 @@ export class JoinHandler {
         this.mediaSettings = null;
         this.roomStatus = null;
         this.roomCodeInput = null;
+        this.voiceSampler = null;
     }
 
     /**
@@ -31,6 +33,7 @@ export class JoinHandler {
             }, 'Initial path set');
 
             await this.initializeMediaSettings();
+            await this.initializeVoiceSampler();
             await this.initializeRoomComponents();
 
             logger.debug('Join page initialized');
@@ -57,6 +60,21 @@ export class JoinHandler {
             logger.debug('Media settings initialized');
         } catch (error) {
             logger.error({ error }, 'Failed to initialize media settings');
+            throw error;
+        }
+    }
+
+    /**
+     * Initializes voice sampler component
+     * @private
+     */
+    async initializeVoiceSampler() {
+        try {
+            this.voiceSampler = new VoiceSampler();
+            this.serviceManager.setService('voiceSampler', this.voiceSampler);
+            logger.debug('Voice sampler initialized');
+        } catch (error) {
+            logger.error({ error }, 'Failed to initialize voice sampler');
             throw error;
         }
     }

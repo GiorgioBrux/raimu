@@ -271,6 +271,12 @@ export const router = new Router({
         {
             path: '/',
             component: 'pages/home.html',
+            components: {
+                'createRoomVoiceSample': {
+                    path: 'components/voiceSampler/index.html',
+                    target: '#createRoomVoiceSample'
+                }
+            },
             cache: true,
             metadata: {
                 title: 'Home'
@@ -299,6 +305,10 @@ export const router = new Router({
                 'mediaSettings': {
                     path: 'components/mediaSettings/index.html',
                     target: '#mediaSettings'
+                },
+                'joinRoomVoiceSample': {
+                    path: 'components/voiceSampler/index.html',
+                    target: '#joinRoomVoiceSample'
                 }
             },
             transition: 'fade',
