@@ -202,8 +202,8 @@
                 <div class="bg-slate-700/50 h-6 w-1/3 rounded"></div>
                 <div class="bg-slate-700/50 h-6 w-3/5 rounded"></div>
                 <div class="text-sm text-slate-400 italic text-center mt-2">
-                  Enable transcription to see everyone's speech converted to text in real-time.
-                  Non-English speech will be automatically translated to English.
+                  Enable transcription to see everyone's speech converted to text in your language.
+                  All speech will be automatically translated to your selected language.
                   <br><br>
                   Only one person needs to enable transcription for the whole room.
                 </div>
@@ -401,7 +401,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                           d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
                 </svg>
-                <p>If someone speaks in a different language, their speech will be automatically translated to English for everyone.</p>
+                <p>Everyone will see transcriptions in their own selected language, regardless of what language others are speaking.</p>
             </div>
 
             <!-- Language selection info -->
@@ -410,7 +410,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                           d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
                 </svg>
-                <p>Make sure to select your language from the dropdown menu so your speech can be properly transcribed.</p>
+                <p>Select your language from the dropdown menu - this tells the system what language you're speaking and what language you want to see.</p>
             </div>
         </div>
 
@@ -442,7 +442,7 @@
       <!-- Main description -->
       <div class="space-y-4">
         <p class="text-slate-300">
-          When enabled, your voice will be transformed into a universal translator. Instead of hearing your actual voice, others will hear an AI voice clone speaking in English.
+          When enabled, everyone will hear speech in their own language. The system clones each speaker's voice and uses it to speak the translated text in the listener's language.
         </p>
 
         <!-- How it works -->
@@ -451,7 +451,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                   d="M13 10V3L4 14h7v7l9-11h-7z"/>
           </svg>
-          <p>Your speech is first transcribed, translated to English if needed, then converted to speech using an AI model that mimics your voice. Others will hear this translated version with a slight delay.</p>
+          <p>Your speech is transcribed, translated to each listener's language, then converted to speech using an AI model that preserves your voice. Each person hears you speaking their language with your voice.</p>
         </div>
 
         <!-- Translation info -->
@@ -460,7 +460,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                   d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
           </svg>
-          <p>This enables seamless communication across language barriers - you speak your language, they hear English.</p>
+          <p>This enables truly natural communication - everyone speaks and hears their own language while preserving the speaker's voice characteristics.</p>
         </div>
 
         <!-- Visual indicator info -->
@@ -472,7 +472,7 @@
                   d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
           </svg>
           <div>
-            <p class="mb-2">When someone has TTS enabled, you'll see this indicator on their video:</p>
+            <p class="mb-2">When someone has voice translation enabled, you'll see this indicator:</p>
             <div class="flex items-center gap-2 bg-slate-900/50 p-2 rounded-lg">
               <div class="w-8 h-8 rounded-lg bg-lime-500/10 flex items-center justify-center">
                 <svg class="w-5 h-5 text-lime-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">

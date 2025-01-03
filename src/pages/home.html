@@ -139,23 +139,24 @@
                             <p class="text-xs text-slate-400">Participants will see this name before joining</p>
                         </div>
 
-                        <!-- Voice Cloning Toggle (Disabled) -->
+                        <!-- Voice Cloning Toggle (Always Enabled) -->
                         <div class="p-3 bg-slate-800 rounded-xl">
                             <div class="flex items-center justify-between mb-1">
                                 <div>
                                     <label class="block text-sm text-white mb-0.5">Voice Cloning</label>
                                     <p class="text-xs text-slate-400">Clone voices for text-to-speech</p>
                                 </div>
-                                <div class="relative inline-flex items-center cursor-not-allowed">
-                                    <input type="checkbox" disabled
+                                <div class="relative inline-flex items-center">
+                                    <input type="checkbox" checked disabled
                                            class="sr-only peer">
-                                    <div class="w-11 h-6 bg-slate-700 rounded-full peer 
+                                    <div class="w-11 h-6 bg-lime-500/50 rounded-full peer 
                                                 after:content-[''] after:absolute after:top-0.5 after:left-[2px] 
-                                                after:bg-slate-400 after:border-slate-600 after:border 
-                                                after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                                                after:bg-white after:border-lime-400 after:border 
+                                                after:rounded-full after:h-5 after:w-5 after:transition-all
+                                                peer-checked:after:translate-x-full"></div>
                                 </div>
                             </div>
-                            <p class="text-xs text-slate-500 italic">Disabled for faster performance</p>
+                            <p class="text-xs text-slate-400 italic">Always enabled - customization coming soon</p>
                         </div>
                     </div>
                 </div>
@@ -255,11 +256,11 @@
                                    group-hover:scale-110 transition-transform duration-300">
                             <svg class="w-6 h-6 text-lime-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                      d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
                             </svg>
                         </div>
-                        <h3 class="text-lg font-semibold text-white mb-3">Live Transcription</h3>
-                        <p class="text-slate-400">AI-powered real-time speech transcription</p>
+                        <h3 class="text-lg font-semibold text-white mb-3">Universal Translation</h3>
+                        <p class="text-slate-400">Everyone sees and hears everything in their own language</p>
                     </div>
 
                     <div class="flex flex-col items-center text-center group">
@@ -283,7 +284,7 @@
                             </svg>
                         </div>
                         <h3 class="text-lg font-semibold text-white mb-3">Crystal Clear Quality</h3>
-                        <p class="text-slate-400">HD video and crisp audio</p>
+                        <p class="text-slate-400">HD video and crisp audio streaming</p>
                     </div>
 
                     <div class="flex flex-col items-center text-center group">
@@ -294,8 +295,8 @@
                                       d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
                             </svg>
                         </div>
-                        <h3 class="text-lg font-semibold text-white mb-3">Voice Synthesis</h3>
-                        <p class="text-slate-400">AI-powered text-to-speech for transcriptions</p>
+                        <h3 class="text-lg font-semibold text-white mb-3">Voice Cloning</h3>
+                        <p class="text-slate-400">Hear translations in the speaker's original voice</p>
                     </div>
 
                     <div class="flex flex-col items-center text-center group">
@@ -306,8 +307,8 @@
                                       d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
                             </svg>
                         </div>
-                        <h3 class="text-lg font-semibold text-white mb-3">Multi-Language</h3>
-                        <p class="text-slate-400">Real-time transcription in multiple languages</p>
+                        <h3 class="text-lg font-semibold text-white mb-3">Natural Communication</h3>
+                        <p class="text-slate-400">Speak and listen in your preferred language</p>
                     </div>
                 </div>
 
