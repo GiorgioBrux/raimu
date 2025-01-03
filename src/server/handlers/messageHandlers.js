@@ -245,27 +245,39 @@ export const messageHandlers = {
         const speakerLanguage = data.language || 'en';
         const transcription = await WhisperService.transcribe(audioBuffer, speakerLanguage);
 
-        // Get all unique languages that participants have selected
-        const participantLanguages = new Set();
-        for (const [_, participant] of room.participants) {
+        // Get languages needed by other participants
+        const participantLanguageMap = new Map(); // Map of language -> count of participants
+        for (const [participantId, participant] of room.participants) {
+            if (participantId === ws.connectionInfo.userId) continue; // Skip speaker
             const lang = participant.ws.connectionInfo?.language || 'en';
-            if (lang !== speakerLanguage) {
-                participantLanguages.add(lang);
-            }
+            participantLanguageMap.set(lang, (participantLanguageMap.get(lang) || 0) + 1);
         }
 
-        // Translate to each required language and generate TTS
+        // Prepare translations and TTS for each required language
         const translations = new Map();
         const ttsAudios = new Map();
         
-        for (const targetLang of participantLanguages) {
-            const translatedText = await TranslationService.translate(transcription, speakerLanguage, targetLang);
-            translations.set(targetLang, translatedText);
+        // Only process languages that have participants
+        for (const [targetLang, participantCount] of participantLanguageMap) {
+            // Skip translation if it's the same as speaker's language
+            if (targetLang !== speakerLanguage) {
+                const translatedText = await TranslationService.translate(transcription, speakerLanguage, targetLang);
+                translations.set(targetLang, translatedText);
+            }
             
-            // Only generate TTS if the speaker has TTS enabled
+            // Generate TTS if speaker has it enabled
             if (ws.connectionInfo.ttsEnabled) {
-                const ttsAudio = await TTSService.synthesizeSpeech(translatedText, targetLang);
-                ttsAudios.set(targetLang, ttsAudio);
+                try {
+                    const textForTTS = targetLang === speakerLanguage ? transcription : translations.get(targetLang);
+                    const ttsAudio = await TTSService.synthesizeSpeech(
+                        textForTTS,
+                        targetLang,
+                        data.audioData // Original audio for voice cloning
+                    );
+                    ttsAudios.set(targetLang, ttsAudio);
+                } catch (error) {
+                    console.error(`TTS generation failed for language ${targetLang}:`, error);
+                }
             }
         }
 
@@ -289,24 +301,18 @@ export const messageHandlers = {
                 response.translatedLanguage = participantLang;
             }
 
-            // If speaker has TTS enabled, add the appropriate TTS audio
+            // Add TTS audio if speaker has it enabled and it was generated successfully
             if (ws.connectionInfo.ttsEnabled) {
-                try {
-                    // Always use voice cloning with the original audio, even for translations
-                    response.ttsAudio = await TTSService.synthesizeSpeech(
-                        participantLang === speakerLanguage ? transcription : translations.get(participantLang),
-                        participantLang,
-                        data.audioData  // Always pass the original audio for voice cloning
-                    );
-                } catch (error) {
-                    console.error('TTS generation failed:', error);
+                const ttsAudio = ttsAudios.get(participantLang);
+                if (ttsAudio) {
+                    response.ttsAudio = ttsAudio;
                 }
             }
 
             participant.ws.send(JSON.stringify(response));
         }
 
-        // Send original message back to speaker
+        // Send original message back to speaker (without TTS)
         ws.send(JSON.stringify({
             type: 'transcription',
             text: transcription,
