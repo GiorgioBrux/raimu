@@ -137,32 +137,25 @@ export class AudioProcessor {
                 peakDensity
             }, 'Audio analysis results');
 
-            // Criteria for coughs and random sounds:
-            // 1. High peak density with high energy variation indicates coughs
-            if (peakDensity > 400 && maxEnergyVariation > 0.3) {
-                log.debug({ peakDensity, maxEnergyVariation }, 'Skipping audio with cough-like characteristics');
-                return false;
-            }
-
-            // 2. Very sudden energy variations indicate non-speech sounds
+            // 1. Very sudden energy variations indicate non-speech sounds
             if (maxEnergyVariation > 0.8 && avgEnergyVariation > 0.2) {
                 log.debug({ maxEnergyVariation, avgEnergyVariation }, 'Skipping audio with sudden energy variation');
                 return false;
             }
 
-            // 3. High zero-crossing rate with high peak density indicates noise
+            // 2. High zero-crossing rate with high peak density indicates noise
             if (zeroCrossingRate > 0.3 && peakDensity > 300) {
                 log.debug({ zeroCrossingRate, peakDensity }, 'Skipping noisy audio');
                 return false;
             }
 
-            // 4. Skip if energy is too low
+            // 3. Skip if energy is too low
             if (rmsEnergy < 0.01) {
                 log.debug({ rmsEnergy }, 'Skipping low energy audio');
                 return false;
             }
 
-            // 5. Skip if single very loud peak dominates with high variation
+            // 4. Skip if single very loud peak dominates with high variation
             if (maxPeak > 0.9 && peaks < 10 && maxEnergyVariation > 0.5) {
                 log.debug({ maxPeak, peaks, maxEnergyVariation }, 'Skipping audio with dominant single peak');
                 return false;
