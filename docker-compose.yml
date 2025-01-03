@@ -47,6 +47,6 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-          memory: 12G  # Adjust based on your needs
+          memory: 15G  # Adjust based on your needs
     volumes:
       - /kagi/model_cache:/root/.cache/huggingface  # Single mount point for all caches
