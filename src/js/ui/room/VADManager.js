@@ -65,13 +65,13 @@ export class VADManager {
         modelURL: "v5",
         baseAssetPath: "/",
         onnxWASMBasePath: "/",
-        minSpeechFrames: 2,
+        minSpeechFrames: 4,
         frameSamples: 512,
         positiveSpeechThreshold: 0.8,
         negativeSpeechThreshold: 0.4,
         redemptionFrames: 8,
         preSpeechPadFrames: 25,
-        minSilenceFrames: 10,
+        minSilenceFrames: 12,
         maxSpeechFrames: 2000
       });
 
