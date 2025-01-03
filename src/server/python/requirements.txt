@@ -7,6 +7,6 @@ sentencepiece
 accelerate>=0.26.0
 safetensors==0.5.0
 bitsandbytes==0.45.0
-coqui-tts>=1.2.0
+coqui-tts==0.25.1
 numpy 
 python-multipart
