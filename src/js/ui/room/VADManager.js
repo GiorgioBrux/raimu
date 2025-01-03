@@ -95,9 +95,10 @@ export class VADManager {
       log.debug({ containerId: container.id }, 'Speech started');
       this.handleSpeakingChange(container, true);
       
-      // Enable WebRTC audio track when speech starts
+      // Only control WebRTC track for local participant
       const instance = this.instances.get(container.id);
-      if (instance && instance.webrtcStream) {
+      const isLocalParticipant = container.id === 'participant-local';
+      if (isLocalParticipant && instance && instance.webrtcStream) {
         const audioTrack = instance.webrtcStream.getAudioTracks()[0];
         if (audioTrack) {
           audioTrack.enabled = true;
@@ -117,9 +118,10 @@ export class VADManager {
     log.debug({ containerId: container.id }, 'Speech ended');
     this.handleSpeakingChange(container, false);
     
-    // Disable WebRTC audio track when speech ends
+    // Only control WebRTC track for local participant
     const instance = this.instances.get(container.id);
-    if (instance && instance.webrtcStream) {
+    const isLocalParticipant = container.id === 'participant-local';
+    if (isLocalParticipant && instance && instance.webrtcStream) {
       const audioTrack = instance.webrtcStream.getAudioTracks()[0];
       if (audioTrack) {
         audioTrack.enabled = false;
@@ -156,6 +158,17 @@ export class VADManager {
    * @private
    */
   async _destroyVADInstance(containerId) {
+    // Clean up audio nodes
+    const nodes = this.audioNodes?.get(containerId);
+    if (nodes) {
+      try {
+        nodes.context.close();
+      } catch (e) {
+        log.warn({ error: e }, 'Error closing audio context');
+      }
+      this.audioNodes.delete(containerId);
+    }
+    
     const instance = this.instances.get(containerId);
     if (instance) {
       try {
@@ -252,8 +265,13 @@ export class VADManager {
         }, 'VAD audio track prepared');
 
         // For local participant, maintain original state (VAD will control)
-        webrtcAudioTrack.enabled = pendingState?.audio !== undefined ? pendingState.audio : originalAudioTrack.enabled;
+        // For remote participants, always keep enabled
+        webrtcAudioTrack.enabled = isLocalParticipant ? 
+          (pendingState?.audio !== undefined ? pendingState.audio : originalAudioTrack.enabled) : 
+          true;
         webrtcStream.addTrack(webrtcAudioTrack);
+        
+
         log.debug({ 
           containerId: container.id,
           trackId: webrtcAudioTrack.id,
