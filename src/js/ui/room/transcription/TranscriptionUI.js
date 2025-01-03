@@ -56,6 +56,9 @@ export class TranscriptionUI {
         // Update the transcription toggle
         this.transcriptionEnabled.checked = enabled;
 
+        // Always update TTS state when transcription status changes
+        this.updateTTSState(enabled);
+
         if(!userName) {
             // This is the update we get when we join a room with transcription enabled
             this.addSystemMessage(`Transcription was already enabled when you joined the room`);
@@ -70,9 +73,6 @@ export class TranscriptionUI {
                 this.addSystemMessage(`${userName} disabled transcription`);
             }
         }
-
-        // Update TTS state (only enable if transcription is enabled)
-        this.updateTTSState(enabled);
     }
 
     /**
