@@ -229,6 +229,10 @@ export const messageHandlers = {
 
   transcriptionRequest: async (ws, data, { roomService }) => {
     try {
+        const timings = {
+            start: performance.now()
+        };
+
         const room = roomService.getRoomById(ws.connectionInfo.roomId);
         if (!room) {
             throw new Error('Room not found');
@@ -244,7 +248,9 @@ export const messageHandlers = {
         
         // Get transcription in original language
         const speakerLanguage = data.language || 'en';
+        timings.transcriptionStart = performance.now();
         const transcription = await WhisperService.transcribe(audioBuffer, speakerLanguage);
+        timings.transcriptionEnd = performance.now();
 
         // Get languages needed by other participants
         const participantLanguageMap = new Map(); // Map of language -> count of participants
@@ -261,6 +267,7 @@ export const messageHandlers = {
         const translations = new Map();
         const ttsAudios = new Map();
         
+        timings.translationStart = performance.now();
         // Only process languages that have participants
         for (const [targetLang, participantCount] of participantLanguageMap) {
             // Skip translation if it's the same as speaker's language
@@ -268,9 +275,13 @@ export const messageHandlers = {
                 const translatedText = await TranslationService.translate(transcription, speakerLanguage, targetLang);
                 translations.set(targetLang, translatedText);
             }
+        }
+        timings.translationEnd = performance.now();
             
-            // Generate TTS if speaker has it enabled and we have their voice sample
-            if (ws.connectionInfo.ttsEnabled && voiceSample) {
+        timings.ttsStart = performance.now();
+        // Generate TTS if speaker has it enabled and we have their voice sample
+        if (ws.connectionInfo.ttsEnabled && voiceSample) {
+            for (const [targetLang, participantCount] of participantLanguageMap) {
                 try {
                     const textForTTS = targetLang === speakerLanguage ? transcription : translations.get(targetLang);
                     const ttsAudio = await TTSService.synthesizeSpeech(
@@ -284,6 +295,23 @@ export const messageHandlers = {
                 }
             }
         }
+        timings.ttsEnd = performance.now();
+        timings.end = performance.now();
+
+        // Calculate durations
+        const durations = {
+            transcription: timings.transcriptionEnd - timings.transcriptionStart,
+            translation: timings.translationEnd - timings.translationStart,
+            tts: timings.ttsEnd - timings.ttsStart,
+            total: timings.end - timings.start
+        };
+
+        console.log('Processing times (ms):', {
+            transcription: durations.transcription.toFixed(2),
+            translation: durations.translation.toFixed(2),
+            tts: durations.tts.toFixed(2),
+            total: durations.total.toFixed(2)
+        });
 
         // Send personalized messages to each participant
         for (const [participantId, participant] of room.participants) {
@@ -296,7 +324,8 @@ export const messageHandlers = {
                 text: transcription,
                 timestamp: data.timestamp,
                 originalLanguage: speakerLanguage,
-                userId: ws.connectionInfo.userId
+                userId: ws.connectionInfo.userId,
+                processingTimes: durations
             };
 
             // If participant's language is different from speaker's, add translation
@@ -322,7 +351,8 @@ export const messageHandlers = {
             text: transcription,
             timestamp: data.timestamp,
             originalLanguage: speakerLanguage,
-            userId: ws.connectionInfo.userId
+            userId: ws.connectionInfo.userId,
+            processingTimes: durations
         }));
 
     } catch (error) {
