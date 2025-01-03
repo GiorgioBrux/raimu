@@ -16,11 +16,16 @@ FROM nvidia/cuda:12.6.3-runtime-ubuntu24.04
 
 WORKDIR /app
 
-# Install Python and other dependencies
+# Install Python 3.12 and other dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3-full \
+    software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+    python3.12 \
+    python3.12-venv \
+    python3.12-dev \
     python3-pip \
-    python3-venv \
     curl \
     ffmpeg \
     nodejs \
@@ -35,9 +40,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /root/.cache/* \
     && rm -rf /tmp/*
 
-# Create and activate virtual environment
-RUN python3 -m venv /opt/venv
+# Create and activate virtual environment with Python 3.12
+RUN python3.12 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
+
+# Install pip for Python 3.12 and upgrade it
+RUN /opt/venv/bin/python -m pip install --upgrade pip
 
 # Copy Python requirements and install dependencies
 COPY src/server/python/requirements.txt ./
