@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
 import torch
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, pipeline
+from transformers import AutoModelForCausalLM, AutoTokenizer
 import logging
 import os
 
@@ -17,22 +17,6 @@ class TranslationRequest(BaseModel):
     source_lang: str
     target_lang: str
 
-# Language code mapping for NLLB
-LANG_CODE_MAP = {
-    'en': 'eng_Latn',
-    'es': 'spa_Latn',
-    'fr': 'fra_Latn',
-    'de': 'deu_Latn',
-    'it': 'ita_Latn',
-    'pt': 'por_Latn',
-    'nl': 'nld_Latn',
-    'pl': 'pol_Latn',
-    'ru': 'rus_Cyrl',
-    'zh': 'zho_Hans',
-    'ja': 'jpn_Jpan',
-    'ko': 'kor_Hang'
-}
-
 # Initialize Translation model
 try:
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -40,19 +24,19 @@ try:
     
     logger.info(f"Using device: {device}")
     
-    model_id = "facebook/nllb-200-distilled-1.3B"
+    model_id = "CohereForAI/aya-23-8B"
     
-    # Clear cache
-    torch.cuda.empty_cache()
-
-    model = AutoModelForSeq2SeqLM.from_pretrained(
+    model = AutoModelForCausalLM.from_pretrained(
         model_id,
-        torch_dtype=torch_dtype,
+        low_cpu_mem_usage=True,
+        use_safetensors=True,
         device_map="auto",
-        load_in_8bit=True if torch.cuda.is_available() else False
+        load_in_8bit=True,
+        torch_dtype=torch.float16,
+        token=os.getenv('HUGGING_FACE_HUB_TOKEN')
     )
     
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    tokenizer = AutoTokenizer.from_pretrained(model_id, token=os.getenv('HUGGING_FACE_HUB_TOKEN'))
     
     logger.info("Translation model initialized successfully")
 except Exception as e:
@@ -79,23 +63,29 @@ def get_language_name(lang_code):
 @app.post("/translate")
 async def translate(request: TranslationRequest):
     try:
-        # Convert language codes to NLLB format
-        source_lang_code = LANG_CODE_MAP.get(request.source_lang, 'eng_Latn')
-        target_lang_code = LANG_CODE_MAP.get(request.target_lang, 'eng_Latn')
+        source_lang_name = get_language_name(request.source_lang)
+        target_lang_name = get_language_name(request.target_lang)
         
-        # Create translation pipeline
-        translator = pipeline(
-            'translation',
-            model=model,
-            tokenizer=tokenizer,
-            src_lang=source_lang_code,
-            tgt_lang=target_lang_code,
-            max_length=256,
+        prompt = f"Translate the following {source_lang_name} text to {target_lang_name}. Only provide the translation, no explanations:\n{request.text}"
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant that translates text from one language to another. Return the translation only, no explanations or other text. If the text provided to you is empty/blank, return an empty string"},
+            {"role": "user", "content": prompt}
+        ]
+
+        # Convert to tensor and move to correct device
+        input_ids = tokenizer.apply_chat_template(messages, tokenize=True, add_generation_prompt=True, return_tensors="pt").to(device)
+
+        # Generate using the model directly for more control
+        outputs = model.generate(
+            input_ids,
+            max_new_tokens=512,
+            temperature=0.3,
+            do_sample=False,
+            pad_token_id=tokenizer.eos_token_id
         )
         
-        # Translate
-        output = translator(request.text)
-        translation = output[0]['translation_text']
+        # Decode only the new tokens (excluding the prompt)
+        translation = tokenizer.decode(outputs[0][input_ids.shape[1]:], skip_special_tokens=True).strip()
         
         return {"text": translation}
             
