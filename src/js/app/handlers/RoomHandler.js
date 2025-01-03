@@ -142,16 +142,11 @@ export class RoomHandler {
         };
 
         roomManager.onParticipantJoined = (participant) => {
-            this.participants.add(participant.id);
-            logger.info({ 
-                participant,
-                totalParticipants: this.participants.size 
-            }, 'Participant joined');
 
             // Try to update name in video container if it exists
-            const updated = roomUI.updateParticipantName(participant.id, participant.name);
+            const updated = roomUI.updateParticipantName(participant.userId, participant.userName);
             logger.debug({
-                participantId: participant.id,
+                participantId: participant.userId,
                 nameUpdated: updated
             }, 'Attempted to update participant name in video container');
         };
