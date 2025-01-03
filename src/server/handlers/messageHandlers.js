@@ -230,7 +230,10 @@ export const messageHandlers = {
   transcriptionRequest: async (ws, data, { roomService }) => {
     try {
         const timings = {
-            start: performance.now()
+            start: performance.now(),
+            transcription: { start: 0, end: 0 },
+            translation: { start: 0, end: 0 },
+            tts: { start: 0, end: 0 }
         };
 
         const room = roomService.getRoomById(ws.connectionInfo.roomId);
@@ -248,9 +251,6 @@ export const messageHandlers = {
         
         // Get transcription in original language
         const speakerLanguage = data.language || 'en';
-        timings.transcriptionStart = performance.now();
-        const transcription = await WhisperService.transcribe(audioBuffer, speakerLanguage);
-        timings.transcriptionEnd = performance.now();
 
         // Get languages needed by other participants
         const participantLanguageMap = new Map(); // Map of language -> count of participants
@@ -263,46 +263,82 @@ export const messageHandlers = {
         // Get speaker's voice sample for TTS
         const voiceSample = room.getParticipantVoiceSample(ws.connectionInfo.userId);
 
-        // Prepare translations and TTS for each required language
-        const translations = new Map();
-        const ttsAudios = new Map();
-        
-        timings.translationStart = performance.now();
-        // Only process languages that have participants
-        for (const [targetLang, participantCount] of participantLanguageMap) {
+        // Start transcription
+        timings.transcription.start = performance.now();
+        const transcriptionPromise = WhisperService.transcribe(audioBuffer, speakerLanguage)
+            .then(result => {
+                timings.transcription.end = performance.now();
+                return result;
+            });
+
+        // Prepare translation promises for each required language
+        const translationPromises = [];
+        timings.translation.start = performance.now();
+        for (const [targetLang] of participantLanguageMap) {
             // Skip translation if it's the same as speaker's language
             if (targetLang !== speakerLanguage) {
-                const translatedText = await TranslationService.translate(transcription, speakerLanguage, targetLang);
-                translations.set(targetLang, translatedText);
+                translationPromises.push(
+                    transcriptionPromise
+                        .then(transcription => 
+                            TranslationService.translate(transcription, speakerLanguage, targetLang)
+                                .then(translation => [targetLang, translation])
+                        )
+                );
             }
         }
-        timings.translationEnd = performance.now();
-            
-        timings.ttsStart = performance.now();
-        // Generate TTS if speaker has it enabled and we have their voice sample
+
+        // Prepare TTS promises
+        const ttsPromises = [];
+        timings.tts.start = performance.now();
         if (ws.connectionInfo.ttsEnabled && voiceSample) {
-            for (const [targetLang, participantCount] of participantLanguageMap) {
-                try {
-                    const textForTTS = targetLang === speakerLanguage ? transcription : translations.get(targetLang);
-                    const ttsAudio = await TTSService.synthesizeSpeech(
-                        textForTTS,
-                        targetLang,
-                        voiceSample // Use stored voice sample instead of current audio
-                    );
-                    ttsAudios.set(targetLang, ttsAudio);
-                } catch (error) {
-                    console.error(`TTS generation failed for language ${targetLang}:`, error);
-                }
+            for (const [targetLang] of participantLanguageMap) {
+                ttsPromises.push(
+                    transcriptionPromise
+                        .then(async transcription => {
+                            try {
+                                const textForTTS = targetLang === speakerLanguage ? 
+                                    transcription : 
+                                    await TranslationService.translate(transcription, speakerLanguage, targetLang);
+                                
+                                const ttsAudio = await TTSService.synthesizeSpeech(
+                                    textForTTS,
+                                    targetLang,
+                                    voiceSample
+                                );
+                                return [targetLang, ttsAudio];
+                            } catch (error) {
+                                console.error(`TTS generation failed for language ${targetLang}:`, error);
+                                return [targetLang, null];
+                            }
+                        })
+                );
             }
         }
-        timings.ttsEnd = performance.now();
+
+        // Wait for all operations to complete
+        const [transcription, translationResults, ttsResults] = await Promise.all([
+            transcriptionPromise,
+            Promise.all(translationPromises).then(results => {
+                timings.translation.end = performance.now();
+                return results;
+            }),
+            Promise.all(ttsPromises).then(results => {
+                timings.tts.end = performance.now();
+                return results;
+            })
+        ]);
+
         timings.end = performance.now();
+
+        // Convert arrays to Maps for easier lookup
+        const translations = new Map(translationResults);
+        const ttsAudios = new Map(ttsResults);
 
         // Calculate durations
         const durations = {
-            transcription: timings.transcriptionEnd - timings.transcriptionStart,
-            translation: timings.translationEnd - timings.translationStart,
-            tts: timings.ttsEnd - timings.ttsStart,
+            transcription: timings.transcription.end - timings.transcription.start,
+            translation: timings.translation.end - timings.translation.start,
+            tts: timings.tts.end - timings.tts.start,
             total: timings.end - timings.start
         };
 
