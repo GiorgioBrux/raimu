@@ -48,6 +48,19 @@ export class VADManager {
         onSpeechEnd: (audioData) => this._handleSpeechEnd(container, audioData, onSpeakingChange),
         onVADMisfire: () => {
           log.debug({ containerId: container.id }, 'VAD misfire occurred');
+          // Reset speaking state and WebRTC track on misfire
+          this.handleSpeakingChange(container, false);
+          
+          // Only control WebRTC track for local participant
+          const instance = this.instances.get(container.id);
+          const isLocalParticipant = container.id === 'participant-local';
+          if (isLocalParticipant && instance && instance.webrtcStream) {
+            const audioTrack = instance.webrtcStream.getAudioTracks()[0];
+            if (audioTrack) {
+              audioTrack.enabled = false;
+              log.debug({ containerId: container.id }, 'WebRTC audio track disabled due to VAD misfire');
+            }
+          }
         },
         modelURL: "v5",
         baseAssetPath: "/",
