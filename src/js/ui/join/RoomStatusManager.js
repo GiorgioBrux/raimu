@@ -142,13 +142,18 @@ export class RoomStatusManager {
   }
 
   updateRoomInfo(roomData) {
-    // Store the current room data
-    this.currentRoomData = roomData;
+    if (!this.elements.joinButton) return;
 
-    this.elements.roomName.textContent = roomData.name;
+    this.currentRoomData = roomData;
     
-    // Update participant list with count
-    this.elements.participantList.innerHTML = `
+    // Update room info display
+    if (this.elements.roomName) {
+      this.elements.roomName.textContent = roomData.name || 'Unnamed Room';
+    }
+    
+    if (this.elements.participantList) {
+      const count = roomData.participants?.length || 0;
+      this.elements.participantList.innerHTML = `
         <div class="flex items-center justify-between mb-2">
             <span class="text-slate-300">Current Participants:</span>
             <span class="font-semibold ${roomData.participantCount >= roomData.maxParticipants ? 'text-red-400' : 'text-lime-400'}">
@@ -164,16 +169,24 @@ export class RoomStatusManager {
                 </div>
             `).join('')}
         </div>`;
+    }
     
-    // Update join button state considering both room state and display name
-    const isRoomFull = roomData.participantCount >= roomData.maxParticipants;
+    // Check if room is full
+    const maxParticipants = 8;  // Maximum allowed participants
+    const isRoomFull = (roomData.participants?.length || 0) >= maxParticipants;
+    
+    // Validate display name
     const displayName = this.elements.displayName?.value.trim() || '';
     const isValidName = displayName.length > 0 && displayName.length <= 30;
     
-    this.elements.joinButton.disabled = !roomData.active || isRoomFull || !isValidName;
+    // Disable join button if room is inactive, full, name is invalid, or no valid voice sample
+    this.elements.joinButton.disabled = !roomData.active || isRoomFull || !isValidName || !this.hasValidVoiceSample;
     
     if (isRoomFull) {
         this.updateErrorMessage('Room is full');
+        this.showState('error');
+    } else if (!this.hasValidVoiceSample) {
+        this.updateErrorMessage('Please record a voice sample first');
         this.showState('error');
     }
   }
