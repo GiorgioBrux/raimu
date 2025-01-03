@@ -244,14 +244,35 @@ export class RoomEventHandler {
         const videoTrack = this.roomManager.webrtc.localStream?.getVideoTracks()[0];
         const audioTrack = this.roomManager.webrtc.localStream?.getAudioTracks()[0];
 
+        // For video, use the track's enabled state
         if (videoTrack) {
             this._sendTrackState('video', videoTrack.enabled, targetUserId);
         } else {
             log.warn('No video track found to send state');
         }
 
+        // For audio, we need to handle the initial state carefully
+        // If we're just joining (no VAD yet), we should be unmuted
+        // If VAD is initialized, use its state
+        const vadManager = this.roomUI?.vadManager;
+        const vadInitialized = vadManager?.instances.has('participant-local');
+        
         if (audioTrack) {
-            this._sendTrackState('audio', audioTrack.enabled, targetUserId);
+            // If we're just joining, we're unmuted by default
+            const enabled = vadInitialized ? 
+                !(vadManager.muted.get('participant-local') ?? false) : 
+                true;  // Default to unmuted when joining
+
+            this._sendTrackState('audio', enabled, targetUserId);
+            
+            log.debug({ 
+                vadInitialized,
+                enabled,
+                trackEnabled: audioTrack.enabled,
+                hasVAD: !!vadManager,
+                muted: vadManager?.muted.get('participant-local'),
+                isJoining: !vadInitialized
+            }, 'Sending initial audio state');
         } else {
             log.warn('No audio track found to send state');
         }
@@ -265,6 +286,15 @@ export class RoomEventHandler {
      * @private
      */
     _sendTrackState(trackKind, enabled, targetUserId) {
+        log.debug({
+            trackKind,
+            enabled,
+            targetUserId,
+            hasVAD: !!this.roomUI?.vadManager,
+            vadInitialized: this.roomUI?.vadManager?.instances.has('participant-local'),
+            isInitialState: !this.roomUI?.vadManager?.instances.has('participant-local')
+        }, 'Sending track state');
+
         this.roomManager.ws.send({
             type: 'trackStateChange',
             userId: this.roomManager.userId,

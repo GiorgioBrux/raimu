@@ -139,12 +139,16 @@ export class RoomUI {
 
     const setupCallbacks = (container, stream) => {
       ParticipantVideo.setupStates(container, stream);
-      log.debug({ containerId: container.id }, 'Setting up VAD for participant');
-      this.vadManager.setupVAD(
-        stream, 
-        container, 
-        ParticipantVideo.updateSpeakingIndicators
-      );
+      
+      // Only set up VAD here for remote participants
+      if (participantId !== 'local') {
+        log.debug({ containerId: container.id }, 'Setting up VAD for remote participant');
+        this.vadManager.setupVAD(
+          stream, 
+          container, 
+          ParticipantVideo.updateSpeakingIndicators
+        );
+      }
 
       // Handle remote participant mute controls
       const muteButton = container.querySelector('[data-remote-only]');
@@ -215,69 +219,54 @@ export class RoomUI {
         hasAudio: isAudioEnabled
     }, 'Setting up local stream');
     
-    // Update existing local video if it exists
-    const existingContainer = document.getElementById('participant-local');
-    if (existingContainer) {
-        const video = existingContainer.querySelector('video');
+    // Update or create local video container
+    let container = document.getElementById('participant-local');
+    let video;
+    
+    if (container) {
+        // Update existing container
+        video = container.querySelector('video');
         if (video) {
-            // Keep using original stream for video display
             video.srcObject = stream;
             ParticipantVideo.updateMediaState(
-                existingContainer,
+                container,
                 isVideoEnabled,
                 isAudioEnabled
             );
-            this.vadManager.updateMuteState(existingContainer.id, !isAudioEnabled);
-            log.debug({ containerId: existingContainer.id }, 'Setting up VAD for existing local participant');
-            // Use the WebRTC stream returned from VAD setup only for transmission
-            const webrtcStream = await this.vadManager.setupVAD(
-                stream.clone(), // Clone the stream for VAD to avoid modifying original
-                existingContainer,
-                ParticipantVideo.updateSpeakingIndicators
-            );
-            if (webrtcStream) {
-                // Copy video track from original stream to WebRTC stream
-                const originalVideoTrack = stream.getVideoTracks()[0];
-                if (originalVideoTrack) {
-                    webrtcStream.addTrack(originalVideoTrack);
-                }
-                // Update the WebRTC service with the new stream
-                await this.roomManager.webrtc.updateLocalStream(webrtcStream);
-            }
+        }
+    } else {
+        // Create new container
+        this.mediaControls.updateInitialStates(isVideoEnabled, isAudioEnabled);
+        container = this.addParticipantVideo('local', `You (${sessionStorage.getItem('userName')})`, stream);
+        this.uiElements.addLocalVideoElement(container);
+        
+        video = container.querySelector('video');
+        if (!video) {
+            log.error('No video element found, container: ', container);
             return;
         }
+        
+        video.muted = true; // Ensure muted for iOS Safari
+        try {
+            video.play();
+        } catch (error) {
+            log.warn({ error }, 'Auto-play failed, will retry after user interaction');
+            // Add click handler to try playing again
+            video.addEventListener('click', () => {
+                video.play().catch(e => 
+                    log.error({ error: e }, 'Failed to play video after user interaction')
+                );
+            }, { once: true });
+        }
+
+        ParticipantVideo.updateMediaState(
+            container,
+            isVideoEnabled,
+            isAudioEnabled
+        );
     }
 
-    // If no existing video, create new one (first time setup)
-    this.mediaControls.updateInitialStates(isVideoEnabled, isAudioEnabled);
-    const container = this.addParticipantVideo('local', `You (${sessionStorage.getItem('userName')})`, stream);
-    this.uiElements.addLocalVideoElement(container);
-    
-    const video = container.querySelector('video');
-    if (!video) {
-        log.error('No video element found, container: ', container);
-        return;
-    }
-    
-    video.muted = true; // Ensure muted for iOS Safari
-    try {
-        video.play();
-    } catch (error) {
-        log.warn({ error }, 'Auto-play failed, will retry after user interaction');
-        // Add click handler to try playing again
-        video.addEventListener('click', () => {
-            video.play().catch(e => 
-                log.error({ error: e }, 'Failed to play video after user interaction')
-            );
-        }, { once: true });
-    }
-
-    ParticipantVideo.updateMediaState(
-        container,
-        isVideoEnabled,
-        isAudioEnabled
-    );
-    
+    // Single VAD setup for local participant
     if (container) {
         this.vadManager.updateMuteState(container.id, !isAudioEnabled);
         // Use the WebRTC stream returned from VAD setup only for transmission
