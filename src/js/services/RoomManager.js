@@ -71,6 +71,9 @@ export class RoomManager {
 
         /** @type {Function|null} Callback when participant leaves */
         this.onParticipantLeft = null;
+
+        /** @type {Function|null} Callback when participant joins */
+        this.onParticipantJoined = null;
     }
 
     /**
@@ -460,6 +463,7 @@ export class RoomManager {
                     break;
                 case 'userJoined':
                     this.eventHandler.handleUserJoined(data);
+                    this.onParticipantJoined?.(data);
                     break;
                 case 'userLeft':
                     this.eventHandler.handleUserLeft(data);
