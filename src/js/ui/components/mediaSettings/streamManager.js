@@ -7,6 +7,12 @@ export class StreamManager {
     this.onStreamUpdate = options.onStreamUpdate;
     this.onStateChange = options.onStateChange;
     this.stream = options.initialStream || null;
+
+    // Initialize loopback button tooltip state
+    const activeText = this.elements.toggleLoopback.querySelector('[data-active-text]');
+    const inactiveText = this.elements.toggleLoopback.querySelector('[data-inactive-text]');
+    activeText.classList.add('hidden');
+    inactiveText.classList.remove('hidden');
   }
 
   async setupInitialStream() {
