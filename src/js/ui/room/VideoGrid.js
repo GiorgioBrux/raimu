@@ -208,4 +208,25 @@ export class VideoGrid {
         log.warn({ participantId, containerId }, 'Video container not found for removal');
     }
   }
+
+  /**
+   * Updates a participant's name in their video container
+   * @param {string} participantId - The ID of the participant
+   * @param {string} newName - The new name to display
+   * @returns {boolean} Whether the update was successful
+   */
+  updateParticipantName(participantId, newName) {
+    const containerId = `participant-${participantId}`;
+    const container = document.getElementById(containerId);
+    if (container) {
+      const nameElement = container.querySelector('.participant-name');
+      if (nameElement) {
+        log.debug({ participantId, newName }, 'Updating participant name in video container');
+        nameElement.textContent = newName;
+        return true;
+      }
+    }
+    log.debug({ participantId, newName }, 'Could not find video container to update name');
+    return false;
+  }
 } 

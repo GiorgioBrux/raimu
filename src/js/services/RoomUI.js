@@ -307,4 +307,18 @@ export class RoomUI {
     const { sender, message, timestamp } = data;
     this.chatManager.addMessage(sender, message, timestamp);
   }
+
+  /**
+   * Updates a participant's name in their video container
+   * @param {string} participantId - The ID of the participant
+   * @param {string} newName - The new name to display
+   * @returns {boolean} Whether the update was successful
+   */
+  updateParticipantName(participantId, newName) {
+    if (!this.initialized || !this.videoGrid) {
+      log.warn('Attempted to update participant name before initialization');
+      return false;
+    }
+    return this.videoGrid.updateParticipantName(participantId, newName);
+  }
 } 
