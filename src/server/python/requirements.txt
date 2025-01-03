@@ -10,3 +10,5 @@ bitsandbytes==0.45.0
 coqui-tts==0.25.1
 numpy 
 python-multipart
+openai==1.58.1
+python-dotenv==1.0.1
