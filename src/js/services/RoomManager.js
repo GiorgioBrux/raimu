@@ -357,10 +357,10 @@ export class RoomManager {
     _setupWebRTCCallbacks() {
         this.webrtc.onParticipantJoined = (participantId) => {
             if (!this.participants.has(participantId)) {
-                this.participants.set(participantId, {
-                    id: participantId,
-                    name: 'Anonymous'
-                });
+                // this.participants.set(participantId, {
+                //     id: participantId,
+                //     name: 'Anonymous'
+                // });
                 this.onParticipantListUpdate?.();
             }
         };
