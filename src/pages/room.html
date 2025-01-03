@@ -96,7 +96,7 @@
                               text-sm font-medium text-white/90 drop-shadow-lg">Anonymous</p>
                     <div class="flex items-center gap-2">
                         <!-- Audio status indicator -->
-                        <div class="p-1.5 rounded-lg" data-tooltip="Audio status">
+                        <div class="p-1.5 rounded-lg data-[has-icon=true]:bg-black/50 data-[has-icon=true]:backdrop-blur-sm" data-tooltip="Audio status">
                             <svg class="w-4 h-4 text-white/90 drop-shadow-lg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path class="mic-icon hidden" 
                                       stroke-linecap="round" 
@@ -216,11 +216,6 @@
         <div class="bg-slate-900/50 backdrop-blur-sm border border-white/5 rounded-2xl p-4 transition-visibility panel-expanded flex flex-col h-full">
           <div class="flex items-center justify-between flex-shrink-0 mb-3">
             <h3 class="text-sm font-medium text-gray-400">Chat</h3>
-            <button id="toggleChat" class="p-1.5 hover:bg-white/5 rounded-lg transition-colors">
-              <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
           </div>
           <div class="flex-1 min-h-0 relative">
             <div id="chatMessages" class="absolute inset-0 overflow-y-auto space-y-2 pr-2
@@ -461,28 +456,6 @@
                   d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
           </svg>
           <p>This enables truly natural communication - everyone speaks and hears their own language while preserving the speaker's voice characteristics.</p>
-        </div>
-
-        <!-- Visual indicator info -->
-        <div class="flex items-start gap-2 text-slate-300">
-          <svg class="w-5 h-5 text-lime-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-          </svg>
-          <div>
-            <p class="mb-2">When someone has voice translation enabled, you'll see this indicator:</p>
-            <div class="flex items-center gap-2 bg-slate-900/50 p-2 rounded-lg">
-              <div class="w-8 h-8 rounded-lg bg-lime-500/10 flex items-center justify-center">
-                <svg class="w-5 h-5 text-lime-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                </svg>
-              </div>
-              <span class="text-sm text-slate-400">Voice Translation Active</span>
-            </div>
-          </div>
         </div>
 
         <!-- Note about delay -->

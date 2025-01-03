@@ -173,10 +173,12 @@ export class ParticipantVideo {
       micIcon.classList.remove('hidden');
       slashIcon.classList.remove('hidden');
       audioIndicator.classList.add('muted');
+      audioIndicator.dataset.hasIcon = 'true';
     } else {
       micIcon.classList.add('hidden');
       slashIcon.classList.add('hidden');
       audioIndicator.classList.remove('muted');
+      audioIndicator.dataset.hasIcon = 'false';
     }
     
     // Handle video state

@@ -67,7 +67,6 @@ export class UIElements {
       audio: document.getElementById('toggleAudio'),
       video: document.getElementById('toggleVideo'),
       leave: document.getElementById('leaveCall'),
-      chat: document.getElementById('toggleChat'),
       settings: document.getElementById('settings')
     };
   }
