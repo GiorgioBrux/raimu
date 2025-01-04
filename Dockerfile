@@ -1,17 +1,39 @@
-# Build stage
+# Build stage for JS
 FROM oven/bun:1 as builder
 
 WORKDIR /app
 
 # Copy package files
 COPY package.json ./
-
-# Install dependencies and build
 RUN bun install
 COPY . .
 RUN bun run build
 
-# Runtime stage
+# Python dependencies stage
+FROM nvidia/cuda:12.6.3-devel-ubuntu24.04 as python-deps
+
+WORKDIR /app
+
+# Install Python and minimal dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.12-minimal \
+    python3.12-venv \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/* \
+    && python3.12 -m venv /opt/venv
+
+# Make sure we use the virtualenv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install Python dependencies
+COPY src/server/python/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt \
+    && find /opt/venv -type d -name "__pycache__" -exec rm -r {} + \
+    && find /opt/venv -type d -name "tests" -exec rm -r {} + \
+    && find /opt/venv -type f -name "*.pyc" -delete \
+    && rm -rf /root/.cache/pip
+
+# Final stage
 FROM nvidia/cuda:12.6.3-devel-ubuntu24.04
 
 WORKDIR /app
@@ -19,37 +41,27 @@ WORKDIR /app
 # Set CUDA related environment variables
 ENV CUDA_HOME=/usr/local/cuda \
     PATH=/usr/local/cuda/bin:$PATH \
-    LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+    LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH \
+    DEBIAN_FRONTEND=noninteractive
 
-# Clean up space before installing
-RUN rm -rf /usr/share/dotnet && \
-    rm -rf /opt/ghc && \
-    rm -rf /usr/local/share/boost && \
-    rm -rf "$AGENT_TOOLSDIRECTORY" && \
-    rm -rf /usr/local/lib/android && \
-    rm -rf /usr/share/gradle* && \
-    rm -rf /usr/share/maven* && \
-    rm -rf /usr/share/swift* && \
-    rm -rf /usr/share/dotnet* && \
-    rm -rf /usr/share/rust* && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Clean up unnecessary files
+RUN rm -rf /usr/share/dotnet \
+    /usr/local/share/boost \
+    /usr/local/lib/android \
+    /usr/share/gradle* \
+    /usr/share/maven* \
+    /usr/share/swift* \
+    /usr/share/dotnet* \
+    /usr/share/rust* \
+    /opt/* \
+    /var/lib/apt/lists/*
 
-# Install Python 3.12 and other dependencies
+# Install minimal runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    software-properties-common \
-    && add-apt-repository ppa:deadsnakes/ppa \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends \
-    python3.12 \
-    python3.12-venv \
-    python3.12-dev \
-    python3-pip \
-    curl \
+    python3.12-minimal \
     ffmpeg \
     nodejs \
-    unzip \
-    git \
+    curl \
     && curl -fsSL https://bun.sh/install | bash \
     && ln -s /root/.bun/bin/bun /usr/local/bin/bun \
     && curl -o /usr/local/bin/caddy -L "https://caddyserver.com/api/download?os=linux&arch=amd64" \
@@ -59,38 +71,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /root/.cache/* \
     && rm -rf /tmp/*
 
-# Create and activate virtual environment with Python 3.12
-RUN python3.12 -m venv /opt/venv
+# Copy Python virtual environment from python-deps stage
+COPY --from=python-deps /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install pip for Python 3.12 and upgrade it
-RUN /opt/venv/bin/python -m pip install --upgrade pip
-
-# Copy Python requirements and install dependencies
-COPY src/server/python/requirements.txt ./
-RUN pip3 install --no-cache-dir -r requirements.txt \
-    && find /opt/venv -type d -name "__pycache__" -exec rm -r {} + \
-    && find /opt/venv -type d -name "tests" -exec rm -r {} + \
-    && find /opt/venv -type d -name "test" -exec rm -r {} + \
-    && find /opt/venv -type f -name "*.pyc" -delete \
-    && find /opt/venv -type f -name "*.pyo" -delete \
-    && find /opt/venv -type f -name "*.pyd" -delete \
-    && rm -rf /root/.cache/pip \
-    && rm -rf /tmp/*
-
-# Copy Caddyfile and built files from builder
-COPY Caddyfile ./Caddyfile
+# Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
-
-# Copy pages and components inside dist
-COPY --from=builder /app/src/pages ./dist/src/pages
-COPY --from=builder /app/src/components ./dist/src/components
-
-# Expose required ports
-EXPOSE 4000 19302
+COPY Caddyfile ./Caddyfile
 
 # Create startup script
 RUN echo '#!/bin/bash\n\
@@ -104,8 +94,11 @@ PYTHONHASHSEED=1 /opt/venv/bin/python src/server/python/translation_server.py & 
 node src/js/stunServer/index.js & \n\
 wait' > /app/start.sh && chmod +x /app/start.sh
 
-CMD ["/app/start.sh"] 
-
-# Add these before any model loading operations
+# Set up HuggingFace cache environment
 ENV HF_HOME=/root/.cache/huggingface \
     HUGGINGFACE_HUB_CACHE=/root/.cache/huggingface
+
+# Expose required ports
+EXPOSE 4000 19302
+
+CMD ["/app/start.sh"]
