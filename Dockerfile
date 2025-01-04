@@ -50,7 +50,7 @@ RUN /opt/venv/bin/python -m pip install --upgrade pip
 # Copy Python requirements and install dependencies
 COPY src/server/python/requirements.txt ./
 # First install everything except flash-attention
-RUN pip3 install --no-cache-dir $(grep -v "flash-attention\|git+" requirements.txt) && \
+RUN pip3 install --no-cache-dir $(grep -v "flash-attention\|git+" requirements.txt | grep -v "^#" | grep -v "^$") && \
     # Then install flash-attention with no build isolation
     pip3 install --no-cache-dir --no-build-isolation git+https://github.com/Dao-AILab/flash-attention.git@v2.7.2.post1 && \
     rm -rf /root/.cache/pip
