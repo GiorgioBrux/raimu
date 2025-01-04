@@ -49,12 +49,7 @@ RUN /opt/venv/bin/python -m pip install --upgrade pip
 
 # Copy Python requirements and install dependencies
 COPY src/server/python/requirements.txt ./
-# First install everything except flash-attention
-RUN grep -v "flash-attn" requirements.txt > requirements_base.txt && \
-    pip3 install --no-cache-dir -r requirements_base.txt && \
-    # Then install flash-attention with no build isolation
-    pip3 install --no-cache-dir --no-build-isolation git+https://github.com/Dao-AILab/flash-attention.git@v2.7.2.post1 && \
-    rm requirements_base.txt && \
+RUN pip3 install --no-cache-dir -r requirements.txt && \
     rm -rf /root/.cache/pip
 
 # Copy Caddyfile and built files from builder
