@@ -24,6 +24,13 @@ try:
     
     logger.info(f"Using device: {device}")
     
+    if device.startswith("cuda"):
+        # Enable TF32 for better performance on Ampere GPUs
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+        torch.cuda.empty_cache()
+
+    
     model_id = "CohereForAI/aya-23-35B"
     
     model = AutoModelForCausalLM.from_pretrained(
@@ -31,13 +38,17 @@ try:
         low_cpu_mem_usage=True,
         use_safetensors=True,
         device_map="auto",
-        load_in_8bit=True,
         torch_dtype=torch.float16,
         token=os.getenv('HUGGING_FACE_HUB_TOKEN')
     )
     
     tokenizer = AutoTokenizer.from_pretrained(model_id, token=os.getenv('HUGGING_FACE_HUB_TOKEN'))
     
+    # Optimize model for inference
+    model.eval()  # Set to evaluation mode
+    if device.startswith("cuda"):
+        model = model.cuda()  # Ensure model is on GPU
+        
     logger.info("Translation model initialized successfully")
 except Exception as e:
     logger.error(f"Error initializing Translation model: {e}")

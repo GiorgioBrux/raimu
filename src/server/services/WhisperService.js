@@ -35,35 +35,40 @@ export class WhisperService {
     async transcribe(audioData, language = 'en') {
         try {
             if (this.useOpenAI) {
-                // OpenAI code remains the same...
+                // Try OpenAI API first
                 const file = new File([audioData], 'audio.wav', { type: 'audio/wav' });
-                const response = await this.openai.audio.transcriptions.create({
-                    file: file,
-                    model: 'whisper-large-v3',
-                    language,
-                    response_format: 'text'
-                });
-                return response;
-            } else {
-                // Use local Python Whisper server
-                const response = await fetch('http://127.0.0.1:8002/transcribe', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        audio_data: audioData.toString('base64'),
-                        language
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Whisper server error: ${response.statusText}`);
+                try {
+                    const response = await this.openai.audio.transcriptions.create({
+                        file: file,
+                        model: 'whisper-1',  // Correct model name for OpenAI API
+                        language,
+                        response_format: 'text'
+                    });
+                    return response;
+                } catch (openaiError) {
+                    console.warn('OpenAI API failed, falling back to local server:', openaiError.message);
+                    // Fall through to local server
                 }
-
-                const result = await response.json();
-                return result.text;
             }
+
+            // Use local Python Whisper server (as fallback or primary if no OpenAI key)
+            const response = await fetch('http://127.0.0.1:8002/transcribe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    audio_data: audioData.toString('base64'),
+                    language
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Whisper server error: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            return result.text;
         } catch (error) {
             console.error({ error }, 'Transcription failed');
             throw error;

@@ -38,7 +38,7 @@ try:
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
         # Set memory efficient options
-        torch.cuda.set_per_process_memory_fraction(0.4)  # Limit to 40% of VRAM
+        torch.cuda.set_per_process_memory_fraction(0.4)  # XTTS is the largest model, give it more VRAM
         torch.cuda.empty_cache()
     
     # Initialize XTTS v2 model

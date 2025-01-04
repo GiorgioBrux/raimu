@@ -6,7 +6,6 @@ import logging
 import io
 import base64
 import os
-from openai import OpenAI
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -22,21 +21,25 @@ class TranscriptionRequest(BaseModel):
     audio_data: str  # Base64 encoded audio
     language: str = "en"
 
-# Initialize OpenAI client if API key is available
-openai_client = None
-if os.getenv("OPENAI_API_KEY"):
-    openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    logger.info("OpenAI client initialized successfully")
-else:
-    logger.warning("No OpenAI API key found in environment variables")
-
-# Initialize local Whisper model only if OpenAI client is not available
+# Global variable for the pipeline
 local_pipe = None
-if not openai_client:
-    logger.info("OpenAI client not available, initializing local Whisper model")
+
+def initialize_model():
+    global local_pipe
+    if local_pipe is not None:
+        return local_pipe
+        
+    logger.info("Initializing local Whisper model")
     try:
-        # Clear cache
+        # Clear cache and set memory optimizations
         torch.cuda.empty_cache()
+        
+        # Enable TF32 for better performance on Ampere GPUs (like A100)
+        if torch.cuda.is_available():
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.allow_tf32 = True
+            # Set memory efficient options - using 30% of VRAM since Whisper is smaller than XTTS
+            torch.cuda.set_per_process_memory_fraction(0.3)
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
         torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
@@ -61,64 +64,44 @@ if not openai_client:
             tokenizer=processor.tokenizer,
             feature_extractor=processor.feature_extractor,
             torch_dtype=torch_dtype,
-            chunk_length_s=30,
-            batch_size=6,
-            stride_length_s=5,
+            chunk_length_s=10,
+            batch_size=16,
+            stride_length_s=3,
             return_timestamps=True
         )
         
         logger.info("Local Whisper model initialized successfully")
+        return local_pipe
     except Exception as e:
         logger.error(f"Error initializing local Whisper model: {e}")
-        if not openai_client:  # Only raise if we don't have OpenAI as fallback
-            raise e
+        raise e
 
 @app.post("/transcribe")
 async def transcribe(request: TranscriptionRequest):
+    global local_pipe
+    
+    # Check if OpenAI is available
+    if os.getenv("OPENAI_API_KEY"):
+        logger.info("OpenAI API key is available but JS is requesting fallback...")
+    
     try:
+        # Initialize model if not already initialized
+        if local_pipe is None:
+            local_pipe = initialize_model()
+            
         # Decode base64 audio data
         audio_bytes = base64.b64decode(request.audio_data)
         
-        if openai_client:
-            # Use OpenAI's Whisper API
-            # Save audio bytes to a temporary file
-            temp_file = io.BytesIO(audio_bytes)
-            temp_file.name = "audio.wav"  # OpenAI needs a file name
-            
-            try:
-                response = openai_client.audio.transcriptions.create(
-                    model="whisper-1",
-                    file=temp_file,
-                    language=request.language
-                )
-                return {"text": response.text}
-            except Exception as e:
-                logger.error(f"OpenAI API error: {str(e)}")
-                if local_pipe:  # Try local model as fallback if available
-                    logger.info("Falling back to local model")
-                else:
-                    raise
-        
-        if local_pipe:
-            # Process audio with local Whisper model
-            result = local_pipe(
-                audio_bytes,
-                batch_size=6,
-                return_timestamps=True,
-                chunk_length_s=30,
-                stride_length_s=5,
-                generate_kwargs={
-                    "language": request.language,
-                    "task": "transcribe",
-                    "max_length": 448
-                }
-            )
-            return {"text": result["text"]}
-        else:
-            raise HTTPException(
-                status_code=500,
-                detail="No transcription service available"
-            )
+        # Process audio with local Whisper model
+        result = local_pipe(
+            audio_bytes,
+            generate_kwargs={
+                "language": request.language,
+                "task": "transcribe",
+                "max_length": 448
+            }
+        )
+        return {"text": result["text"]}
             
     except Exception as e:
         logger.error(f"Error in transcription: {str(e)}", exc_info=True)
