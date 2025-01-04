@@ -14,8 +14,28 @@ FROM nvidia/cuda:12.6.3-devel-ubuntu24.04 as python-deps
 
 WORKDIR /app
 
+# Clean before we start
+RUN rm -rf /usr/share/dotnet \
+    /usr/local/share/boost \
+    /usr/local/lib/android \
+    /usr/share/gradle* \
+    /usr/share/maven* \
+    /usr/share/swift* \
+    /usr/share/dotnet* \
+    /usr/share/rust* \
+    /opt/* \
+    /var/lib/apt/lists/* \
+    /usr/share/doc/* \
+    /usr/share/man/* \
+    /var/cache/apt/archives/* \
+    /var/lib/apt/lists/* \
+    /tmp/* \
+    /var/tmp/*
+
 # Install Python and minimal dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=tmpfs,target=/tmp \
+    --mount=type=tmpfs,target=/var/tmp \
+    apt-get update && apt-get install -y --no-install-recommends \
     python3.12-minimal \
     python3.12-venv \
     python3-pip \
@@ -25,13 +45,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Make sure we use the virtualenv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install Python dependencies
+# Install Python dependencies with temporary mounts and cleanup
 COPY src/server/python/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt \
+RUN --mount=type=tmpfs,target=/root/.cache/pip \
+    --mount=type=tmpfs,target=/tmp \
+    pip install --no-cache-dir -r requirements.txt \
     && find /opt/venv -type d -name "__pycache__" -exec rm -r {} + \
     && find /opt/venv -type d -name "tests" -exec rm -r {} + \
+    && find /opt/venv -type d -name "test" -exec rm -r {} + \
+    && find /opt/venv -type d -name "examples" -exec rm -r {} + \
+    && find /opt/venv -type d -name "docs" -exec rm -r {} + \
     && find /opt/venv -type f -name "*.pyc" -delete \
-    && rm -rf /root/.cache/pip
+    && find /opt/venv -type f -name "*.pyo" -delete \
+    && find /opt/venv -type f -name "*.pyd" -delete \
+    && find /opt/venv -type f -name "*.so" ! -name "*_cuda*" -delete \
+    && find /opt/venv -type f -name "*.h" -delete \
+    && find /opt/venv -type f -name "*.a" -delete \
+    && find /opt/venv -type f -name "*.c" -delete \
+    && find /opt/venv -type f -name "*.cpp" -delete \
+    && find /opt/venv -type f -name "*.txt" ! -name "requirements.txt" -delete \
+    && rm -rf /root/.cache/* \
+    && rm -rf /tmp/*
 
 # Final stage
 FROM nvidia/cuda:12.6.3-devel-ubuntu24.04
@@ -57,7 +91,9 @@ RUN rm -rf /usr/share/dotnet \
     /var/lib/apt/lists/*
 
 # Install minimal runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=tmpfs,target=/tmp \
+    --mount=type=tmpfs,target=/var/tmp \
+    apt-get update && apt-get install -y --no-install-recommends \
     python3.12-minimal \
     ffmpeg \
     nodejs \
@@ -71,7 +107,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /root/.cache/* \
-    && rm -rf /tmp/*
+    && rm -rf /tmp/* \
+    && rm -rf /var/tmp/* \
+    && rm -rf /usr/share/doc/* \
+    && rm -rf /usr/share/man/* \
+    && rm -rf /usr/share/locale/* \
+    && rm -rf /var/cache/apt/archives/*
 
 # Copy Python virtual environment from python-deps stage
 COPY --from=python-deps /opt/venv /opt/venv
