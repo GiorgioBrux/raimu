@@ -39,7 +39,7 @@ export class WhisperService {
                 const file = new File([audioData], 'audio.wav', { type: 'audio/wav' });
                 const response = await this.openai.audio.transcriptions.create({
                     file: file,
-                    model: 'whisper-1',
+                    model: 'whisper-large-v3',
                     language,
                     response_format: 'text'
                 });
