@@ -29,7 +29,6 @@ try:
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
         torch.cuda.empty_cache()
-
     
     model_id = "CohereForAI/aya-23-35B"
     
@@ -37,17 +36,15 @@ try:
         model_id,
         low_cpu_mem_usage=True,
         use_safetensors=True,
-        device_map="auto",
+        device_map="auto",  # Let accelerate handle device placement
         torch_dtype=torch.float16,
         token=os.getenv('HUGGING_FACE_HUB_TOKEN')
     )
     
     tokenizer = AutoTokenizer.from_pretrained(model_id, token=os.getenv('HUGGING_FACE_HUB_TOKEN'))
     
-    # Optimize model for inference
-    model.eval()  # Set to evaluation mode
-    if device.startswith("cuda"):
-        model = model.cuda()  # Ensure model is on GPU
+    # Just set to eval mode, no manual cuda() call needed
+    model.eval()
         
     logger.info("Translation model initialized successfully")
 except Exception as e:
