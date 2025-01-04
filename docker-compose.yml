@@ -39,6 +39,7 @@ services:
       traefik.http.routers.raimu.tls.options: securetls@file 
       traefik.http.services.raimu.loadbalancer.server.port: 4000
     ports:
+      - "0.0.0.0:4000:4000"  # Main application port
       - "19302:19302/udp"  # STUN uses UDP
     deploy:
       resources:
