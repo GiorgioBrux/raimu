@@ -47,28 +47,33 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Install Python dependencies with temporary mounts and cleanup
 COPY src/server/python/requirements.txt .
-RUN --mount=type=tmpfs,target=/root/.cache/pip \
-    --mount=type=tmpfs,target=/tmp \
-    pip install --no-cache-dir -r requirements.txt \
-    && find /opt/venv -type d -name "__pycache__" -exec rm -r {} + \
-    && find /opt/venv -type d -name "tests" -exec rm -r {} + \
-    && find /opt/venv -type d -name "test" -exec rm -r {} + \
-    && find /opt/venv -type d -name "examples" -exec rm -r {} + \
-    && find /opt/venv -type d -name "docs" -exec rm -r {} + \
-    && find /opt/venv -type f -name "*.pyc" -delete \
-    && find /opt/venv -type f -name "*.pyo" -delete \
-    && find /opt/venv -type f -name "*.pyd" -delete \
-    && find /opt/venv -type f -name "*.so" ! -name "*_cuda*" -delete \
-    && find /opt/venv -type f -name "*.h" -delete \
-    && find /opt/venv -type f -name "*.a" -delete \
-    && find /opt/venv -type f -name "*.c" -delete \
-    && find /opt/venv -type f -name "*.cpp" -delete \
-    && find /opt/venv -type f -name "*.txt" ! -name "requirements.txt" -delete \
-    && rm -rf /root/.cache/* \
-    && rm -rf /tmp/*
+RUN --mount=type=tmpfs,target=/root/.cache \
+    pip install --no-cache-dir -r requirements.txt && \
+    # Clean up Python packages
+    find /opt/venv -type d -name "__pycache__" -exec rm -r {} + 2>/dev/null || true && \
+    find /opt/venv -type d -name "tests" -exec rm -r {} + 2>/dev/null || true && \
+    find /opt/venv -type d -name "test" -exec rm -r {} + 2>/dev/null || true && \
+    find /opt/venv -type d -name "examples" -exec rm -r {} + 2>/dev/null || true && \
+    find /opt/venv -type d -name "docs" -exec rm -r {} + 2>/dev/null || true && \
+    # Remove unnecessary files
+    find /opt/venv -type f -name "*.pyc" -delete && \
+    find /opt/venv -type f -name "*.pyo" -delete && \
+    find /opt/venv -type f -name "*.pyd" -delete && \
+    find /opt/venv -type f -name "*.so" ! -name "*_cuda*" -delete && \
+    find /opt/venv -type f -name "*.h" -delete && \
+    find /opt/venv -type f -name "*.a" -delete && \
+    find /opt/venv -type f -name "*.c" -delete && \
+    find /opt/venv -type f -name "*.cpp" -delete && \
+    find /opt/venv -type f -name "*.txt" ! -name "requirements.txt" -delete && \
+    # Clean CUDA related files we don't need
+    rm -rf /opt/venv/lib/python*/site-packages/torch/test && \
+    rm -rf /opt/venv/lib/python*/site-packages/torch/include && \
+    rm -rf /opt/venv/lib/python*/site-packages/torch/lib/tmp_install && \
+    # Keep only necessary CUDA libraries
+    find /opt/venv -type f -name "*.so" ! -name "*cuda*" ! -name "*cudnn*" ! -name "*cublas*" -delete
 
 # Final stage
-FROM nvidia/cuda:12.6.3-devel-ubuntu24.04
+FROM nvidia/cuda:12.6.3-runtime-ubuntu24.04
 
 WORKDIR /app
 
@@ -88,7 +93,11 @@ RUN rm -rf /usr/share/dotnet \
     /usr/share/dotnet* \
     /usr/share/rust* \
     /opt/* \
-    /var/lib/apt/lists/*
+    /var/lib/apt/lists/* \
+    /usr/share/doc/* \
+    /usr/share/man/* \
+    /var/cache/apt/archives/* \
+    /var/tmp/*
 
 # Install minimal runtime dependencies
 RUN --mount=type=tmpfs,target=/tmp \
@@ -111,8 +120,7 @@ RUN --mount=type=tmpfs,target=/tmp \
     && rm -rf /var/tmp/* \
     && rm -rf /usr/share/doc/* \
     && rm -rf /usr/share/man/* \
-    && rm -rf /usr/share/locale/* \
-    && rm -rf /var/cache/apt/archives/*
+    && rm -rf /usr/share/locale/*
 
 # Copy Python virtual environment from python-deps stage
 COPY --from=python-deps /opt/venv /opt/venv
