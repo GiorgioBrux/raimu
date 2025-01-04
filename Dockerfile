@@ -21,6 +21,20 @@ ENV CUDA_HOME=/usr/local/cuda \
     PATH=/usr/local/cuda/bin:$PATH \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 
+# Clean up space before installing
+RUN rm -rf /usr/share/dotnet && \
+    rm -rf /opt/ghc && \
+    rm -rf /usr/local/share/boost && \
+    rm -rf "$AGENT_TOOLSDIRECTORY" && \
+    rm -rf /usr/local/lib/android && \
+    rm -rf /usr/share/gradle* && \
+    rm -rf /usr/share/maven* && \
+    rm -rf /usr/share/swift* && \
+    rm -rf /usr/share/dotnet* && \
+    rm -rf /usr/share/rust* && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Install Python 3.12 and other dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     software-properties-common \
@@ -54,8 +68,15 @@ RUN /opt/venv/bin/python -m pip install --upgrade pip
 
 # Copy Python requirements and install dependencies
 COPY src/server/python/requirements.txt ./
-RUN pip3 install --no-cache-dir -r requirements.txt && \
-    rm -rf /root/.cache/pip
+RUN pip3 install --no-cache-dir -r requirements.txt \
+    && find /opt/venv -type d -name "__pycache__" -exec rm -r {} + \
+    && find /opt/venv -type d -name "tests" -exec rm -r {} + \
+    && find /opt/venv -type d -name "test" -exec rm -r {} + \
+    && find /opt/venv -type f -name "*.pyc" -delete \
+    && find /opt/venv -type f -name "*.pyo" -delete \
+    && find /opt/venv -type f -name "*.pyd" -delete \
+    && rm -rf /root/.cache/pip \
+    && rm -rf /tmp/*
 
 # Copy Caddyfile and built files from builder
 COPY Caddyfile ./Caddyfile
