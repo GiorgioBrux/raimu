@@ -24,7 +24,7 @@ try:
     
     logger.info(f"Using device: {device}")
     
-    model_id = "CohereForAI/aya-23-8B"
+    model_id = "CohereForAI/aya-23-35B"
     
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
