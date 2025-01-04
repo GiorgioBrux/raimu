@@ -149,13 +149,7 @@ export class AudioProcessor {
                 return false;
             }
 
-            // 3. Skip if energy is too low
-            if (rmsEnergy < 0.01) {
-                log.debug({ rmsEnergy }, 'Skipping low energy audio');
-                return false;
-            }
-
-            // 4. Skip if single very loud peak dominates with high variation
+            // 3. Skip if single very loud peak dominates with high variation
             if (maxPeak > 0.9 && peaks < 10 && maxEnergyVariation > 0.5) {
                 log.debug({ maxPeak, peaks, maxEnergyVariation }, 'Skipping audio with dominant single peak');
                 return false;
