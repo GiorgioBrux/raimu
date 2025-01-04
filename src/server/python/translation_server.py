@@ -2,7 +2,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from optimum.bettertransformer import BetterTransformer
 import logging
 import os
 
@@ -19,33 +20,55 @@ class TranslationRequest(BaseModel):
 
 # Initialize Translation model
 try:
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+    device = "cuda"
+    torch_dtype = torch.bfloat16
     
     logger.info(f"Using device: {device}")
     
-    if device.startswith("cuda"):
-        # Enable TF32 for better performance on Ampere GPUs
-        torch.backends.cuda.matmul.allow_tf32 = True
-        torch.backends.cudnn.allow_tf32 = True
-        torch.cuda.empty_cache()
+    # Maximum CUDA optimizations
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
+    torch.backends.cuda.enable_flash_sdp(enabled=True)
+    torch.backends.cudnn.benchmark = True
+    torch.backends.cudnn.enabled = True
     
-    model_id = "CohereForAI/aya-23-35B"
+    model_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
     
+    # Configure model for maximum speed
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
-        low_cpu_mem_usage=True,
+        torch_dtype=torch_dtype,
+        device_map="auto",
         use_safetensors=True,
-        device_map="auto",  # Let accelerate handle device placement
-        torch_dtype=torch.float16,
+        use_flash_attention_2=True,
+        max_memory={0: "38GB"},  # Reserve most of A100's memory
         token=os.getenv('HUGGING_FACE_HUB_TOKEN')
     )
     
-    tokenizer = AutoTokenizer.from_pretrained(model_id, token=os.getenv('HUGGING_FACE_HUB_TOKEN'))
+    # Convert to BetterTransformer
+    model = BetterTransformer.transform(model)
     
-    # Just set to eval mode, no manual cuda() call needed
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_id, 
+        token=os.getenv('HUGGING_FACE_HUB_TOKEN'),
+        use_fast=True,  # Use fast tokenizer
+        model_max_length=2048,  # Set static max length
+        padding_side="left",
+        truncation_side="left"
+    )
+    
+    # Pre-compile model for static shapes
+    torch.cuda.empty_cache()
     model.eval()
-        
+    torch._C._jit_set_bailout_depth(20)  # More aggressive fusion
+    
+    # Warmup with different sequence lengths
+    logger.info("Warming up model...")
+    for length in [32, 64, 128, 256]:
+        dummy_input = tokenizer("X" * length, return_tensors="pt").to(device)
+        with torch.inference_mode(), torch.cuda.amp.autocast():
+            model.generate(**dummy_input, max_new_tokens=length)
+    
     logger.info("Translation model initialized successfully")
 except Exception as e:
     logger.error(f"Error initializing Translation model: {e}")
@@ -76,24 +99,49 @@ async def translate(request: TranslationRequest):
         
         prompt = f"Translate the following {source_lang_name} text to {target_lang_name}. Only provide the translation, no explanations:\n{request.text}"
         messages = [
-            {"role": "system", "content": "You are a helpful assistant that translates text from one language to another. Return the translation only, no explanations or other text. If the text provided to you is empty/blank, return an empty string"},
+            {"role": "system", "content": "You are a helpful assistant that translates text from one language to another. Return the translation only, no explanations or other text."},
             {"role": "user", "content": prompt}
         ]
 
-        # Convert to tensor and move to correct device
-        input_ids = tokenizer.apply_chat_template(messages, tokenize=True, add_generation_prompt=True, return_tensors="pt").to(device)
+        # Format the messages into a single string
+        input_text = ""
+        for msg in messages:
+            if msg["role"] == "system":
+                input_text += f"System: {msg['content']}\n"
+            else:
+                input_text += f"User: {msg['content']}\n"
+        input_text += "Assistant: "
 
-        # Generate using the model directly for more control
-        outputs = model.generate(
-            input_ids,
-            max_new_tokens=512,
-            temperature=0.3,
-            do_sample=False,
-            pad_token_id=tokenizer.eos_token_id
-        )
+        # Tokenize with static shapes for better performance
+        inputs = tokenizer(
+            input_text,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=2048
+        ).to(device)
         
-        # Decode only the new tokens (excluding the prompt)
-        translation = tokenizer.decode(outputs[0][input_ids.shape[1]:], skip_special_tokens=True).strip()
+        # Generate with maximum optimization
+        with torch.inference_mode(), torch.cuda.amp.autocast():
+            outputs = model.generate(
+                **inputs,
+                max_new_tokens=512,
+                temperature=0.3,
+                do_sample=False,  # Deterministic generation is faster
+                use_cache=True,
+                pad_token_id=tokenizer.pad_token_id,
+                eos_token_id=tokenizer.eos_token_id,
+                repetition_penalty=1.0,  # Disable repetition penalty for speed
+                num_beams=1,  # Disable beam search for speed
+                early_stopping=True
+            )
+        
+        # Decode only the new tokens
+        translation = tokenizer.decode(
+            outputs[0][inputs['input_ids'].shape[1]:],
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=False  # Faster
+        ).strip()
         
         return {"text": translation}
             

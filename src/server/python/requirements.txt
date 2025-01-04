@@ -12,3 +12,8 @@ numpy
 python-multipart
 openai==1.58.1
 python-dotenv==1.0.1
+huggingface-hub>=0.19.0
+transformers>=4.36.0
+torch>=2.1.0
+flash-attn>=2.3.0
+optimum>=1.16.0
