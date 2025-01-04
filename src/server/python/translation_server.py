@@ -6,6 +6,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from optimum.bettertransformer import BetterTransformer
 import logging
 import os
+import time  # Add time import
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -20,6 +21,7 @@ class TranslationRequest(BaseModel):
 
 # Initialize Translation model
 try:
+    start_time = time.time()
     device = "cuda"
     torch_dtype = torch.bfloat16
     
@@ -34,6 +36,9 @@ try:
     
     model_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
     
+    logger.info(f"Loading model: {model_id}")
+    model_load_start = time.time()
+    
     # Configure model for maximum speed
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
@@ -45,6 +50,10 @@ try:
         token=os.getenv('HUGGING_FACE_HUB_TOKEN')
     )
     
+    model_load_time = time.time() - model_load_start
+    logger.info(f"Model loaded in {model_load_time:.2f} seconds")
+    
+    tokenizer_start = time.time()
     # Convert to BetterTransformer
     model = BetterTransformer.transform(model)
     
@@ -56,20 +65,31 @@ try:
         padding_side="left",
         truncation_side="left"
     )
+    tokenizer_time = time.time() - tokenizer_start
+    logger.info(f"Tokenizer initialized in {tokenizer_time:.2f} seconds")
     
     # Pre-compile model for static shapes
     torch.cuda.empty_cache()
     model.eval()
-    torch._C._jit_set_bailout_depth(20)  # More aggressive fusion
+    torch._C._jit_set_bailout_depth(20)
     
-    # Warmup with different sequence lengths
+    # Warmup
+    warmup_start = time.time()
     logger.info("Warming up model...")
     for length in [32, 64, 128, 256]:
         dummy_input = tokenizer("X" * length, return_tensors="pt").to(device)
         with torch.inference_mode(), torch.cuda.amp.autocast():
             model.generate(**dummy_input, max_new_tokens=length)
+    warmup_time = time.time() - warmup_start
+    logger.info(f"Model warmup completed in {warmup_time:.2f} seconds")
     
-    logger.info("Translation model initialized successfully")
+    total_init_time = time.time() - start_time
+    logger.info(f"Total initialization time: {total_init_time:.2f} seconds")
+    logger.info(f"Initialization breakdown:")
+    logger.info(f"- Model loading: {model_load_time:.2f}s")
+    logger.info(f"- Tokenizer setup: {tokenizer_time:.2f}s")
+    logger.info(f"- Model warmup: {warmup_time:.2f}s")
+    
 except Exception as e:
     logger.error(f"Error initializing Translation model: {e}")
     raise e
@@ -94,6 +114,10 @@ def get_language_name(lang_code):
 @app.post("/translate")
 async def translate(request: TranslationRequest):
     try:
+        request_start = time.time()
+        
+        # Prompt preparation
+        prompt_start = time.time()
         source_lang_name = get_language_name(request.source_lang)
         target_lang_name = get_language_name(request.target_lang)
         
@@ -103,7 +127,6 @@ async def translate(request: TranslationRequest):
             {"role": "user", "content": prompt}
         ]
 
-        # Format the messages into a single string
         input_text = ""
         for msg in messages:
             if msg["role"] == "system":
@@ -111,8 +134,10 @@ async def translate(request: TranslationRequest):
             else:
                 input_text += f"User: {msg['content']}\n"
         input_text += "Assistant: "
-
-        # Tokenize with static shapes for better performance
+        prompt_time = time.time() - prompt_start
+        
+        # Tokenization
+        tokenize_start = time.time()
         inputs = tokenizer(
             input_text,
             return_tensors="pt",
@@ -120,28 +145,46 @@ async def translate(request: TranslationRequest):
             truncation=True,
             max_length=2048
         ).to(device)
+        tokenize_time = time.time() - tokenize_start
         
-        # Generate with maximum optimization
+        # Generation
+        generate_start = time.time()
         with torch.inference_mode(), torch.cuda.amp.autocast():
             outputs = model.generate(
                 **inputs,
                 max_new_tokens=512,
                 temperature=0.3,
-                do_sample=False,  # Deterministic generation is faster
+                do_sample=False,
                 use_cache=True,
                 pad_token_id=tokenizer.pad_token_id,
                 eos_token_id=tokenizer.eos_token_id,
-                repetition_penalty=1.0,  # Disable repetition penalty for speed
-                num_beams=1,  # Disable beam search for speed
+                repetition_penalty=1.0,
+                num_beams=1,
                 early_stopping=True
             )
+        generate_time = time.time() - generate_start
         
-        # Decode only the new tokens
+        # Decoding
+        decode_start = time.time()
         translation = tokenizer.decode(
             outputs[0][inputs['input_ids'].shape[1]:],
             skip_special_tokens=True,
-            clean_up_tokenization_spaces=False  # Faster
+            clean_up_tokenization_spaces=False
         ).strip()
+        decode_time = time.time() - decode_start
+        
+        total_time = time.time() - request_start
+        
+        # Log timing information
+        logger.info(f"Translation completed in {total_time:.2f} seconds")
+        logger.info(f"Latency breakdown:")
+        logger.info(f"- Prompt preparation: {prompt_time:.2f}s")
+        logger.info(f"- Tokenization: {tokenize_time:.2f}s")
+        logger.info(f"- Generation: {generate_time:.2f}s")
+        logger.info(f"- Decoding: {decode_time:.2f}s")
+        logger.info(f"Input length: {len(request.text)} chars")
+        logger.info(f"Output length: {len(translation)} chars")
+        logger.info(f"Tokens/second: {len(outputs[0]) / generate_time:.1f}")
         
         return {"text": translation}
             

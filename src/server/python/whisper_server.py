@@ -7,6 +7,7 @@ import io
 import base64
 import os
 from dotenv import load_dotenv
+import time  # Add time import
 
 # Load environment variables from .env file
 load_dotenv()
@@ -29,9 +30,11 @@ def initialize_model():
     if local_pipe is not None:
         return local_pipe
         
+    start_time = time.time()
     logger.info("Initializing local Whisper model")
     try:
         # Clear cache and set memory optimizations
+        cuda_start = time.time()
         torch.cuda.empty_cache()
         
         # Enable TF32 for better performance on Ampere GPUs (like A100)
@@ -45,9 +48,12 @@ def initialize_model():
         torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
         
         logger.info(f"Using device: {device}")
+        cuda_time = time.time() - cuda_start
         
         model_id = "openai/whisper-large-v3"
         
+        # Load model
+        model_start = time.time()
         model = AutoModelForSpeechSeq2Seq.from_pretrained(
             model_id, 
             torch_dtype=torch_dtype,
@@ -55,9 +61,17 @@ def initialize_model():
             use_safetensors=True,
             device_map="auto"
         )
+        model_time = time.time() - model_start
+        logger.info(f"Model loaded in {model_time:.2f} seconds")
         
+        # Load processor
+        processor_start = time.time()
         processor = AutoProcessor.from_pretrained(model_id)
+        processor_time = time.time() - processor_start
+        logger.info(f"Processor loaded in {processor_time:.2f} seconds")
         
+        # Create pipeline
+        pipeline_start = time.time()
         local_pipe = pipeline(
             "automatic-speech-recognition",
             model=model,
@@ -69,8 +83,16 @@ def initialize_model():
             stride_length_s=3,
             return_timestamps=True
         )
+        pipeline_time = time.time() - pipeline_start
         
-        logger.info("Local Whisper model initialized successfully")
+        total_time = time.time() - start_time
+        logger.info(f"Initialization completed in {total_time:.2f} seconds")
+        logger.info(f"Initialization breakdown:")
+        logger.info(f"- CUDA setup: {cuda_time:.2f}s")
+        logger.info(f"- Model loading: {model_time:.2f}s")
+        logger.info(f"- Processor loading: {processor_time:.2f}s")
+        logger.info(f"- Pipeline setup: {pipeline_time:.2f}s")
+        
         return local_pipe
     except Exception as e:
         logger.error(f"Error initializing local Whisper model: {e}")
@@ -80,19 +102,23 @@ def initialize_model():
 async def transcribe(request: TranscriptionRequest):
     global local_pipe
     
-    # Check if OpenAI is available
-    if os.getenv("OPENAI_API_KEY"):
-        logger.info("OpenAI API key is available but JS is requesting fallback...")
-    
     try:
+        request_start = time.time()
+        
         # Initialize model if not already initialized
         if local_pipe is None:
+            init_start = time.time()
             local_pipe = initialize_model()
+            init_time = time.time() - init_start
+            logger.info(f"Model initialization took {init_time:.2f} seconds")
             
         # Decode base64 audio data
+        decode_start = time.time()
         audio_bytes = base64.b64decode(request.audio_data)
+        decode_time = time.time() - decode_start
         
         # Process audio with local Whisper model
+        inference_start = time.time()
         result = local_pipe(
             audio_bytes,
             generate_kwargs={
@@ -101,6 +127,20 @@ async def transcribe(request: TranscriptionRequest):
                 "max_length": 448
             }
         )
+        inference_time = time.time() - inference_start
+        
+        total_time = time.time() - request_start
+        
+        # Log timing information
+        logger.info(f"Transcription completed in {total_time:.2f} seconds")
+        logger.info(f"Latency breakdown:")
+        logger.info(f"- Audio decoding: {decode_time:.2f}s")
+        logger.info(f"- Inference: {inference_time:.2f}s")
+        logger.info(f"Input audio size: {len(request.audio_data)} bytes")
+        logger.info(f"Output text length: {len(result['text'])} chars")
+        if inference_time > 0:  # Avoid division by zero
+            logger.info(f"Processing speed: {len(request.audio_data) / inference_time / 1024:.1f} KB/s")
+        
         return {"text": result["text"]}
             
     except Exception as e:
