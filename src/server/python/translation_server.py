@@ -34,10 +34,17 @@ try:
     torch.backends.cudnn.benchmark = True
     torch.backends.cudnn.enabled = True
     
-    model_id = "TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ"  # ~26GB
+    model_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
     
     logger.info(f"Loading model: {model_id}")
     model_load_start = time.time()
+    
+    # Configure 4-bit quantization
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_compute_dtype=torch.bfloat16
+    )
     
     # Configure model for maximum speed
     model = AutoModelForCausalLM.from_pretrained(
@@ -46,8 +53,8 @@ try:
         device_map="auto",
         use_safetensors=True,
         use_flash_attention_2=True,
-        trust_remote_code=True,  # Required for GPTQ models
-        max_memory={0: "38GB"},  # Reserve most of A100's memory
+        quantization_config=bnb_config,  # Enable 4-bit quantization
+        max_memory={0: "38GB"},
         token=os.getenv('HUGGING_FACE_HUB_TOKEN')
     )
     
