@@ -25,4 +25,3 @@ openai==1.58.1
 
 # Optimization packages
 optimum>=1.16.0
-flash-attn==2.7.2.post1
