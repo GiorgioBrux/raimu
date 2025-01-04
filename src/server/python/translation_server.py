@@ -38,14 +38,13 @@ try:
     
     logger.info(f"Loading model: {model_id}")
     model_load_start = time.time()
-    
-    # Configure 4-bit quantization
+
+    # Configure 4-bit quantization - simple but effective for A100
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
-        bnb_4bit_use_double_quant=True,
-        bnb_4bit_compute_dtype=torch.bfloat16
+        bnb_4bit_compute_dtype=torch.bfloat16  # Use A100's native bfloat16
     )
-    
+
     # Configure model for maximum speed
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
@@ -53,7 +52,7 @@ try:
         device_map="auto",
         use_safetensors=True,
         use_flash_attention_2=True,
-        quantization_config=bnb_config,  # Enable 4-bit quantization
+        quantization_config=bnb_config,
         max_memory={0: "38GB"},
         token=os.getenv('HUGGING_FACE_HUB_TOKEN')
     )
@@ -62,7 +61,7 @@ try:
     logger.info(f"Model loaded in {model_load_time:.2f} seconds")
     
     tokenizer_start = time.time()
-    # Convert to BetterTransformer
+    # Convert to BetterTransformer for more speed
     model = BetterTransformer.transform(model)
     
     tokenizer = AutoTokenizer.from_pretrained(
@@ -84,10 +83,17 @@ try:
     # Warmup
     warmup_start = time.time()
     logger.info("Warming up model...")
-    for length in [32, 64, 128, 256]:
-        dummy_input = tokenizer("X" * length, return_tensors="pt").to(device)
+    warmup_text = "This is a test sentence to warm up the model."
+    for length in [32, 64, 128]:
+        dummy_input = tokenizer(warmup_text, return_tensors="pt").to(device)
         with torch.inference_mode(), torch.cuda.amp.autocast():
-            model.generate(**dummy_input, max_new_tokens=length)
+            # Time the generation
+            gen_start = time.time()
+            output = model.generate(**dummy_input, max_new_tokens=length)
+            gen_time = time.time() - gen_start
+            tokens_per_sec = length / gen_time
+            logger.info(f"Warmup generation speed for {length} tokens: {tokens_per_sec:.1f} tokens/sec")
+            
     warmup_time = time.time() - warmup_start
     logger.info(f"Model warmup completed in {warmup_time:.2f} seconds")
     
@@ -153,6 +159,7 @@ async def translate(request: TranslationRequest):
             truncation=True,
             max_length=2048
         ).to(device)
+        input_token_count = inputs['input_ids'].shape[1]
         tokenize_time = time.time() - tokenize_start
         
         # Generation
@@ -171,6 +178,8 @@ async def translate(request: TranslationRequest):
                 early_stopping=True
             )
         generate_time = time.time() - generate_start
+        output_token_count = outputs.shape[1] - input_token_count
+        tokens_per_second = output_token_count / generate_time
         
         # Decoding
         decode_start = time.time()
@@ -183,16 +192,19 @@ async def translate(request: TranslationRequest):
         
         total_time = time.time() - request_start
         
-        # Log timing information
+        # Log detailed performance metrics
         logger.info(f"Translation completed in {total_time:.2f} seconds")
+        logger.info(f"Performance metrics:")
+        logger.info(f"- Input text length: {len(request.text)} chars")
+        logger.info(f"- Output text length: {len(translation)} chars")
+        logger.info(f"- Input tokens: {input_token_count}")
+        logger.info(f"- Generated tokens: {output_token_count}")
+        logger.info(f"- Generation speed: {tokens_per_second:.1f} tokens/sec")
         logger.info(f"Latency breakdown:")
-        logger.info(f"- Prompt preparation: {prompt_time:.2f}s")
-        logger.info(f"- Tokenization: {tokenize_time:.2f}s")
-        logger.info(f"- Generation: {generate_time:.2f}s")
-        logger.info(f"- Decoding: {decode_time:.2f}s")
-        logger.info(f"Input length: {len(request.text)} chars")
-        logger.info(f"Output length: {len(translation)} chars")
-        logger.info(f"Tokens/second: {len(outputs[0]) / generate_time:.1f}")
+        logger.info(f"- Prompt preparation: {prompt_time:.3f}s")
+        logger.info(f"- Tokenization: {tokenize_time:.3f}s")
+        logger.info(f"- Generation: {generate_time:.3f}s")
+        logger.info(f"- Decoding: {decode_time:.3f}s")
         
         return {"text": translation}
             

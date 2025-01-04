@@ -12,9 +12,14 @@ COPY . .
 RUN bun run build
 
 # Runtime stage
-FROM nvidia/cuda:12.6.3-runtime-ubuntu24.04
+FROM nvidia/cuda:12.6.3-devel-ubuntu24.04
 
 WORKDIR /app
+
+# Set CUDA related environment variables
+ENV CUDA_HOME=/usr/local/cuda \
+    PATH=/usr/local/cuda/bin:$PATH \
+    LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 
 # Install Python 3.12 and other dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
