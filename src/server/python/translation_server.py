@@ -34,7 +34,7 @@ try:
     torch.backends.cudnn.benchmark = True
     torch.backends.cudnn.enabled = True
     
-    model_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
+    model_id = "TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ"  # ~26GB
     
     logger.info(f"Loading model: {model_id}")
     model_load_start = time.time()
@@ -46,6 +46,7 @@ try:
         device_map="auto",
         use_safetensors=True,
         use_flash_attention_2=True,
+        trust_remote_code=True,  # Required for GPTQ models
         max_memory={0: "38GB"},  # Reserve most of A100's memory
         token=os.getenv('HUGGING_FACE_HUB_TOKEN')
     )
