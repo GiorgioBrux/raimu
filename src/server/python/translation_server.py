@@ -6,6 +6,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import logging
 import os
 import time  # Add time import
+import re
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -146,30 +147,34 @@ async def translate(request: TranslationRequest):
         source_lang_name = get_language_name(request.source_lang)
         target_lang_name = get_language_name(request.target_lang)
         
-        prompt = f"""<s>[INST] You are a translator. Translate this text from {source_lang_name} to {target_lang_name}:
+        # Create messages using the chat template format
+        messages = [
+            {
+                "role": "system",
+                "content": f"You are a translator. Translate text from {source_lang_name} to {target_lang_name}. Provide only the translation, no explanations."
+            },
+            {
+                "role": "user",
+                "content": request.text
+            }
+        ]
 
-{request.text}
-
-Provide ONLY the direct translation without any explanations or comments. [/INST]"""
-
-        prompt_time = time.time() - prompt_start
-        
-        # Tokenization
-        tokenize_start = time.time()
-        inputs = tokenizer(
-            prompt,
+        # Use the chat template
+        inputs = tokenizer.apply_chat_template(
+            messages,
             return_tensors="pt",
             padding=True,
             truncation=True
         ).to(device)
-        input_token_count = inputs['input_ids'].shape[1]
-        tokenize_time = time.time() - tokenize_start
+        
+        input_token_count = inputs.shape[1]
+        tokenize_time = time.time() - prompt_start
         
         # Generation
         generate_start = time.time()
         with torch.inference_mode(), torch.cuda.amp.autocast():
             outputs = model.generate(
-                **inputs,
+                inputs,
                 max_new_tokens=512,
                 temperature=0.3,
                 do_sample=False,
@@ -179,17 +184,24 @@ Provide ONLY the direct translation without any explanations or comments. [/INST
                 early_stopping=True
             )
         generate_time = time.time() - generate_start
-        output_token_count = outputs.shape[1] - input_token_count
-        tokens_per_second = output_token_count / generate_time
         
         # Decoding
         decode_start = time.time()
-        translation = tokenizer.decode(
-            outputs[0][inputs['input_ids'].shape[1]:],
+        translation = tokenizer.batch_decode(
+            outputs[:, inputs.shape[1]:],  # Only decode the new tokens
             skip_special_tokens=True,
             clean_up_tokenization_spaces=False
-        ).strip()
+        )[0].strip()
+        
+        # Cleanup remains the same
+        translation = re.sub(r'\s*\([^)]*\)', '', translation)
+        translation = translation.strip('"\'')
+        
         decode_time = time.time() - decode_start
+        
+        # Calculate token counts and speed
+        output_token_count = outputs.shape[1] - inputs.shape[1]
+        tokens_per_second = output_token_count / generate_time if generate_time > 0 else 0
         
         total_time = time.time() - request_start
         
@@ -202,8 +214,7 @@ Provide ONLY the direct translation without any explanations or comments. [/INST
         logger.info(f"- Generated tokens: {output_token_count}")
         logger.info(f"- Generation speed: {tokens_per_second:.1f} tokens/sec")
         logger.info(f"Latency breakdown:")
-        logger.info(f"- Prompt preparation: {prompt_time:.3f}s")
-        logger.info(f"- Tokenization: {tokenize_time:.3f}s")
+        logger.info(f"- Prompt preparation: {tokenize_time:.3f}s")  # Includes both prompt prep and tokenization now
         logger.info(f"- Generation: {generate_time:.3f}s")
         logger.info(f"- Decoding: {decode_time:.3f}s")
         
