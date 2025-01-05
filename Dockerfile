@@ -35,7 +35,7 @@ RUN rm -rf /usr/share/dotnet \
 RUN --mount=type=tmpfs,target=/tmp \
     --mount=type=tmpfs,target=/var/tmp \
     apt-get update && apt-get install -y --no-install-recommends \
-    python3.12-minimal \
+    python3.12 \
     python3.12-venv \
     python3-pip \
     && rm -rf /var/lib/apt/lists/* \
@@ -101,7 +101,7 @@ RUN rm -rf /usr/share/dotnet \
 RUN --mount=type=tmpfs,target=/tmp \
     --mount=type=tmpfs,target=/var/tmp \
     apt-get update && apt-get install -y --no-install-recommends \
-    python3.12-minimal \
+    python3.12 \
     ffmpeg \
     nodejs \
     curl \
