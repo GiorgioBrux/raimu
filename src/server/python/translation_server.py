@@ -126,6 +126,19 @@ def get_language_name(lang_code):
 @app.post("/translate")
 async def translate(request: TranslationRequest):
     try:
+        # Add input validation
+        if not request.text.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Empty text provided for translation"
+            )
+            
+        if len(request.text) > 1000:  # Adjust limit as needed
+            raise HTTPException(
+                status_code=400, 
+                detail="Text exceeds maximum length of 1000 characters"
+            )
+            
         request_start = time.time()
         
         # Prompt preparation
@@ -133,29 +146,21 @@ async def translate(request: TranslationRequest):
         source_lang_name = get_language_name(request.source_lang)
         target_lang_name = get_language_name(request.target_lang)
         
-        prompt = f"Translate the following {source_lang_name} text to {target_lang_name}. Only provide the translation, no explanations:\n{request.text}"
-        messages = [
-            {"role": "system", "content": "You are a helpful assistant that translates text from one language to another. Return the translation only, no explanations or other text."},
-            {"role": "user", "content": prompt}
-        ]
+        prompt = f"""<s>[INST] You are a translator. Translate this text from {source_lang_name} to {target_lang_name}:
 
-        input_text = ""
-        for msg in messages:
-            if msg["role"] == "system":
-                input_text += f"System: {msg['content']}\n"
-            else:
-                input_text += f"User: {msg['content']}\n"
-        input_text += "Assistant: "
+{request.text}
+
+Provide ONLY the direct translation without any explanations or comments. [/INST]"""
+
         prompt_time = time.time() - prompt_start
         
         # Tokenization
         tokenize_start = time.time()
         inputs = tokenizer(
-            input_text,
+            prompt,
             return_tensors="pt",
             padding=True,
-            truncation=True,
-            max_length=2048
+            truncation=True
         ).to(device)
         input_token_count = inputs['input_ids'].shape[1]
         tokenize_time = time.time() - tokenize_start
@@ -168,11 +173,9 @@ async def translate(request: TranslationRequest):
                 max_new_tokens=512,
                 temperature=0.3,
                 do_sample=False,
-                use_cache=True,
-                pad_token_id=tokenizer.pad_token_id,
-                eos_token_id=tokenizer.eos_token_id,
-                repetition_penalty=1.0,
-                num_beams=1,
+                num_return_sequences=1,
+                repetition_penalty=1.2,
+                no_repeat_ngram_size=3,
                 early_stopping=True
             )
         generate_time = time.time() - generate_start
