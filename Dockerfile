@@ -37,7 +37,9 @@ RUN --mount=type=tmpfs,target=/tmp \
     apt-get update && apt-get install -y --no-install-recommends \
     python3.12 \
     python3.12-venv \
+    python3.12-dev \
     python3-pip \
+    build-essential \
     && rm -rf /var/lib/apt/lists/* \
     && python3.12 -m venv /opt/venv
 
@@ -54,54 +56,28 @@ RUN --mount=type=tmpfs,target=/root/.cache \
     find /opt/venv -type d -name "test" -exec rm -r {} + 2>/dev/null || true && \
     find /opt/venv -type d -name "examples" -exec rm -r {} + 2>/dev/null || true && \
     find /opt/venv -type d -name "docs" -exec rm -r {} + 2>/dev/null || true && \
-    # Remove unnecessary files
+    # Remove unnecessary files but keep native extensions
     find /opt/venv -type f -name "*.pyc" -delete && \
     find /opt/venv -type f -name "*.pyo" -delete && \
     find /opt/venv -type f -name "*.pyd" -delete && \
-    find /opt/venv -type f -name "*.so" ! -name "*_cuda*" -delete && \
     find /opt/venv -type f -name "*.h" -delete && \
     find /opt/venv -type f -name "*.a" -delete && \
     find /opt/venv -type f -name "*.c" -delete && \
     find /opt/venv -type f -name "*.cpp" -delete && \
-    find /opt/venv -type f -name "*.txt" ! -name "requirements.txt" -delete && \
-    # Clean CUDA related files we don't need
-    rm -rf /opt/venv/lib/python*/site-packages/torch/test && \
-    rm -rf /opt/venv/lib/python*/site-packages/torch/include && \
-    rm -rf /opt/venv/lib/python*/site-packages/torch/lib/tmp_install && \
-    # Keep only necessary CUDA libraries
-    find /opt/venv -type f -name "*.so" ! -name "*cuda*" ! -name "*cudnn*" ! -name "*cublas*" -delete
+    find /opt/venv -type f -name "*.txt" ! -name "requirements.txt" -delete
 
 # Final stage
 FROM nvidia/cuda:12.6.3-runtime-ubuntu24.04
 
 WORKDIR /app
 
-# Set CUDA related environment variables
-ENV CUDA_HOME=/usr/local/cuda \
-    PATH=/usr/local/cuda/bin:$PATH \
-    LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH \
-    DEBIAN_FRONTEND=noninteractive
-
-# Clean up unnecessary files
-RUN rm -rf /usr/share/dotnet \
-    /usr/local/share/boost \
-    /usr/local/lib/android \
-    /usr/share/gradle* \
-    /usr/share/maven* \
-    /usr/share/swift* \
-    /usr/share/dotnet* \
-    /usr/share/rust* \
-    /var/lib/apt/lists/* \
-    /usr/share/doc/* \
-    /usr/share/man/* \
-    /var/cache/apt/archives/* \
-    /var/tmp/*
-
-# Install minimal runtime dependencies
+# Install runtime dependencies
 RUN --mount=type=tmpfs,target=/tmp \
     --mount=type=tmpfs,target=/var/tmp \
     apt-get update && apt-get install -y --no-install-recommends \
     python3.12 \
+    python3.12-dev \
+    build-essential \
     ffmpeg \
     nodejs \
     curl \
