@@ -3,7 +3,6 @@ from fastapi.responses import Response
 from pydantic import BaseModel
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from optimum.bettertransformer import BetterTransformer
 import logging
 import os
 import time  # Add time import
@@ -54,8 +53,8 @@ try:
     logger.info(f"Model loaded in {model_load_time:.2f} seconds")
     
     tokenizer_start = time.time()
-    # Convert to BetterTransformer for more speed
-    model = BetterTransformer.transform(model)
+    # Remove BetterTransformer transformation
+    # model = BetterTransformer.transform(model)  # Remove this line
     
     tokenizer = AutoTokenizer.from_pretrained(
         model_id, 
