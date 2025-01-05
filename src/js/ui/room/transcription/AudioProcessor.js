@@ -137,19 +137,13 @@ export class AudioProcessor {
                 peakDensity
             }, 'Audio analysis results');
 
-            // 1. Very sudden energy variations indicate non-speech sounds
-            if (maxEnergyVariation > 0.8 && avgEnergyVariation > 0.2) {
-                log.debug({ maxEnergyVariation, avgEnergyVariation }, 'Skipping audio with sudden energy variation');
-                return false;
-            }
-
-            // 2. High zero-crossing rate with high peak density indicates noise
+            // 1. High zero-crossing rate with high peak density indicates noise
             if (zeroCrossingRate > 0.3 && peakDensity > 300) {
                 log.debug({ zeroCrossingRate, peakDensity }, 'Skipping noisy audio');
                 return false;
             }
 
-            // 3. Skip if single very loud peak dominates with high variation
+            // 2. Skip if single very loud peak dominates with high variation
             if (maxPeak > 0.9 && peaks < 10 && maxEnergyVariation > 0.5) {
                 log.debug({ maxPeak, peaks, maxEnergyVariation }, 'Skipping audio with dominant single peak');
                 return false;
