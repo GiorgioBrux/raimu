@@ -25,3 +25,4 @@ openai==1.58.1
 
 # Optimization packages
 optimum>=1.16.0
+deepspeed==0.16.2

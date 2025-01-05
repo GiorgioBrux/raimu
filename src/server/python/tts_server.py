@@ -11,6 +11,9 @@ import logging
 from TTS.api import TTS
 import numpy as np
 import time
+from TTS.tts.configs.xtts_config import XttsConfig
+from TTS.tts.models.xtts import Xtts
+import torchaudio
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -37,15 +40,30 @@ try:
     logger.info(f"Using device: {device}")
     
     if device.startswith("cuda"):
-        # Enable TF32 for better performance on Ampere GPUs
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
-        # Set memory efficient options
-        torch.cuda.set_per_process_memory_fraction(0.4)  # XTTS is the largest model, give it more VRAM
+        torch.cuda.set_per_process_memory_fraction(0.4)
         torch.cuda.empty_cache()
     
-    # Initialize XTTS v2 model
-    model = TTS("tts_models/multilingual/multi-dataset/xtts_v2", progress_bar=True).to(device)
+    # Initialize with manual loading for DeepSpeed support
+    model_name = "tts_models/multilingual/multi-dataset/xtts_v2"
+    
+    # Get model path from TTS
+    model_path = TTS().download_model(model_name)
+    config_path = os.path.join(model_path, "config.json")
+    
+    logger.info(f"Loading model from {model_path}")
+    logger.info(f"Using config from {config_path}")
+    
+    config = XttsConfig()
+    config.load_json(config_path)
+    model = Xtts.init_from_config(config)
+    model.load_checkpoint(
+        config, 
+        checkpoint_dir=model_path,
+        use_deepspeed=True
+    )
+    model.cuda()
     
     init_time = time.time() - start_time
     logger.info(f"XTTS v2 Model initialized successfully in {init_time:.2f} seconds")
@@ -58,7 +76,7 @@ except Exception as e:
 async def text_to_speech(
     text: str = Form(...),
     language: str = Form("en"),
-    speaker_audio: UploadFile = File(...)  # Make speaker_audio required
+    speaker_audio: UploadFile = File(...)
 ):
     try:
         request_start_time = time.time()
@@ -69,7 +87,6 @@ async def text_to_speech(
         # Handle speaker audio
         speaker_wav = None
         try:
-            # Save uploaded file temporarily
             file_start_time = time.time()
             with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_file:
                 content = await speaker_audio.read()
@@ -78,17 +95,34 @@ async def text_to_speech(
             file_time = time.time() - file_start_time
             logger.info(f"Saved speaker audio to {speaker_wav} in {file_time:.2f} seconds")
 
-            # Generate speech with voice cloning
-            logger.info("Generating speech with voice cloning...")
+            # Get conditioning latents
+            logger.info("Computing speaker latents...")
+            gpt_cond_latent, speaker_embedding = model.get_conditioning_latents(
+                audio_path=[speaker_wav],
+                gpt_cond_len=30,  # Increased for better quality
+                gpt_cond_chunk_len=6,
+                max_ref_len=10
+            )
+
+            # Generate speech with DeepSpeed
+            logger.info("Generating speech...")
             generation_start_time = time.time()
-            audio = model.tts(
+            out = model.inference(
                 text=text,
                 language=language,
-                speaker_wav=speaker_wav
+                gpt_cond_latent=gpt_cond_latent,
+                speaker_embedding=speaker_embedding,
+                temperature=0.7,  # Controls variability (0.5-0.8 recommended)
+                length_penalty=1.0,  # Higher values -> shorter outputs
+                repetition_penalty=2.0,  # Prevents repetitive sounds
+                top_k=50,  # Helps with audio quality
+                top_p=0.85  # Helps with audio quality
             )
             generation_time = time.time() - generation_start_time
-            logger.info(f"Speech generation completed in {generation_time:.2f} seconds")
-
+            
+            # Extract wav from output dictionary
+            audio = out["wav"]  # Model returns dict with 'wav' key
+            
             # Convert to numpy array if not already
             processing_start_time = time.time()
             if not isinstance(audio, np.ndarray):
@@ -99,8 +133,8 @@ async def text_to_speech(
             if np.abs(audio).max() > 1.0:
                 audio = audio / np.abs(audio).max()
 
-            # Get sample rate from model config
-            sr = model.synthesizer.output_sample_rate
+            # Use correct sample rate from XTTS docs
+            sr = 24000  # XTTS v2 uses 24kHz sample rate
 
             # Log audio properties
             logger.info(f"Audio properties:")
