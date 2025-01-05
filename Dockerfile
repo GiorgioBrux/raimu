@@ -1,89 +1,36 @@
-# Build stage for JS
+# Build stage
 FROM oven/bun:1 as builder
 
 WORKDIR /app
 
 # Copy package files
 COPY package.json ./
+
+# Install dependencies and build
 RUN bun install
 COPY . .
 RUN bun run build
 
-# Python dependencies stage
-FROM nvidia/cuda:12.6.3-runtime-ubuntu24.04 as python-deps
-
-WORKDIR /app
-
-# Clean before we start
-RUN rm -rf /usr/share/dotnet \
-    /usr/local/share/boost \
-    /usr/local/lib/android \
-    /usr/share/gradle* \
-    /usr/share/maven* \
-    /usr/share/swift* \
-    /usr/share/dotnet* \
-    /usr/share/rust* \
-    /var/lib/apt/lists/* \
-    /usr/share/doc/* \
-    /usr/share/man/* \
-    /var/cache/apt/archives/* \
-    /var/lib/apt/lists/* \
-    /tmp/* \
-    /var/tmp/*
-
-# Install Python and minimal dependencies
-RUN --mount=type=tmpfs,target=/tmp \
-    --mount=type=tmpfs,target=/var/tmp \
-    apt-get update && apt-get install -y --no-install-recommends \
-    python3.12 \
-    python3.12-venv \
-    python3.12-dev \
-    python3-pip \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/* \
-    && python3.12 -m venv /opt/venv
-
-# Make sure we use the virtualenv
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Install Python dependencies with temporary mounts and cleanup
-COPY src/server/python/requirements.txt .
-RUN --mount=type=tmpfs,target=/root/.cache \
-    pip install --no-cache-dir -r requirements.txt && \
-    pip install setuptools && \
-    # Clean up Python packages
-    find /opt/venv -type d -name "__pycache__" -exec rm -r {} + 2>/dev/null || true && \
-    find /opt/venv -type d -name "tests" -exec rm -r {} + 2>/dev/null || true && \
-    find /opt/venv -type d -name "test" -exec rm -r {} + 2>/dev/null || true && \
-    find /opt/venv -type d -name "examples" -exec rm -r {} + 2>/dev/null || true && \
-    find /opt/venv -type d -name "docs" -exec rm -r {} + 2>/dev/null || true && \
-    # Remove unnecessary files but keep native extensions
-    find /opt/venv -type f -name "*.pyc" -delete && \
-    find /opt/venv -type f -name "*.pyo" -delete && \
-    find /opt/venv -type f -name "*.pyd" -delete && \
-    find /opt/venv -type f -name "*.h" -delete && \
-    find /opt/venv -type f -name "*.a" -delete && \
-    find /opt/venv -type f -name "*.c" -delete && \
-    find /opt/venv -type f -name "*.cpp" -delete && \
-    find /opt/venv -type f -name "*.txt" ! -name "requirements.txt" -delete
-
-# Final stage
+# Runtime stage
 FROM nvidia/cuda:12.6.3-runtime-ubuntu24.04
 
 WORKDIR /app
 
-# Install runtime dependencies
-RUN --mount=type=tmpfs,target=/tmp \
-    --mount=type=tmpfs,target=/var/tmp \
-    apt-get update && apt-get install -y --no-install-recommends \
+# Install Python 3.12 and other dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
     python3.12 \
+    python3.12-venv \
     python3.12-dev \
-    build-essential \
+    python3-pip \
+    curl \
     ffmpeg \
     nodejs \
-    curl \
-    git \
     unzip \
+    git \
     && curl -fsSL https://bun.sh/install | bash \
     && ln -s /root/.bun/bin/bun /usr/local/bin/bun \
     && curl -o /usr/local/bin/caddy -L "https://caddyserver.com/api/download?os=linux&arch=amd64" \
@@ -91,22 +38,33 @@ RUN --mount=type=tmpfs,target=/tmp \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /root/.cache/* \
-    && rm -rf /tmp/* \
-    && rm -rf /var/tmp/* \
-    && rm -rf /usr/share/doc/* \
-    && rm -rf /usr/share/man/* \
-    && rm -rf /usr/share/locale/*
+    && rm -rf /tmp/*
 
-# Copy Python virtual environment from python-deps stage
-COPY --from=python-deps /opt/venv /opt/venv
+# Create and activate virtual environment with Python 3.12
+RUN python3.12 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Copy built files from builder stage
+# Install pip for Python 3.12 and upgrade it
+RUN /opt/venv/bin/python -m pip install --upgrade pip
+
+# Copy Python requirements and install dependencies
+COPY src/server/python/requirements.txt ./
+RUN pip3 install --no-cache-dir -r requirements.txt \
+    && rm -rf /root/.cache/pip
+
+# Copy Caddyfile and built files from builder
+COPY Caddyfile ./Caddyfile
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
-COPY Caddyfile ./Caddyfile
+
+# Copy pages and components inside dist
+COPY --from=builder /app/src/pages ./dist/src/pages
+COPY --from=builder /app/src/components ./dist/src/components
+
+# Expose required ports
+EXPOSE 4000 19302
 
 # Create startup script
 RUN echo '#!/bin/bash\n\
@@ -120,12 +78,8 @@ PYTHONHASHSEED=1 /opt/venv/bin/python src/server/python/translation_server.py & 
 node src/js/stunServer/index.js & \n\
 wait' > /app/start.sh && chmod +x /app/start.sh
 
-# Set up HuggingFace cache environment
+CMD ["/app/start.sh"] 
+
+# Add these before any model loading operations
 ENV HF_HOME=/root/.cache/huggingface \
-    HUGGINGFACE_HUB_CACHE=/root/.cache/huggingface \
-    BNB_CUDA_VERSION=126
-
-# Expose required ports
-EXPOSE 4000 19302
-
-CMD ["/app/start.sh"]
+    HUGGINGFACE_HUB_CACHE=/root/.cache/huggingface
