@@ -12,7 +12,8 @@ COPY . .
 RUN bun run build
 
 # Runtime stage
-FROM nvidia/cuda:12.6.3-runtime-ubuntu24.04
+# Change to CUDA development image for compilation tools
+FROM nvidia/cuda:12.6.3-devel-ubuntu24.04
 
 WORKDIR /app
 
@@ -31,6 +32,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     nodejs \
     unzip \
     git \
+    build-essential \
+    ninja-build \
     && curl -fsSL https://bun.sh/install | bash \
     && ln -s /root/.bun/bin/bun /usr/local/bin/bun \
     && curl -o /usr/local/bin/caddy -L "https://caddyserver.com/api/download?os=linux&arch=amd64" \
@@ -50,6 +53,7 @@ RUN /opt/venv/bin/python -m pip install --upgrade pip
 # Copy Python requirements and install dependencies
 COPY src/server/python/requirements.txt ./
 RUN pip3 install --no-cache-dir -r requirements.txt \
+    && pip3 install flash-attn --no-build-isolation \
     && rm -rf /root/.cache/pip
 
 # Copy Caddyfile and built files from builder
