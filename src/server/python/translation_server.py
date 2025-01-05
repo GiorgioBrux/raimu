@@ -47,7 +47,7 @@ try:
         tensor_split=None,   # Auto split tensors across GPUs if multiple available
         seed=42,            # For reproducibility
         use_mlock=False,    # Don't lock memory
-        chat_format="mistral", # Changed from llama-2 to mistral
+        chat_format="mistral-instruct",
         use_mmap=True       # Use memory mapping for efficient loading
     )
     
