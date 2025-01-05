@@ -23,7 +23,6 @@ RUN rm -rf /usr/share/dotnet \
     /usr/share/swift* \
     /usr/share/dotnet* \
     /usr/share/rust* \
-    /opt/* \
     /var/lib/apt/lists/* \
     /usr/share/doc/* \
     /usr/share/man/* \
@@ -92,7 +91,6 @@ RUN rm -rf /usr/share/dotnet \
     /usr/share/swift* \
     /usr/share/dotnet* \
     /usr/share/rust* \
-    /opt/* \
     /var/lib/apt/lists/* \
     /usr/share/doc/* \
     /usr/share/man/* \
