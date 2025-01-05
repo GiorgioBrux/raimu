@@ -38,6 +38,7 @@ RUN --mount=type=tmpfs,target=/tmp \
     python3.12 \
     python3.12-venv \
     python3.12-dev \
+    python3.12-distutils \
     python3-pip \
     build-essential \
     && rm -rf /var/lib/apt/lists/* \
@@ -77,6 +78,7 @@ RUN --mount=type=tmpfs,target=/tmp \
     apt-get update && apt-get install -y --no-install-recommends \
     python3.12 \
     python3.12-dev \
+    python3.12-distutils \
     build-essential \
     ffmpeg \
     nodejs \
@@ -121,7 +123,8 @@ wait' > /app/start.sh && chmod +x /app/start.sh
 
 # Set up HuggingFace cache environment
 ENV HF_HOME=/root/.cache/huggingface \
-    HUGGINGFACE_HUB_CACHE=/root/.cache/huggingface
+    HUGGINGFACE_HUB_CACHE=/root/.cache/huggingface \
+    BNB_CUDA_VERSION=126
 
 # Expose required ports
 EXPOSE 4000 19302
