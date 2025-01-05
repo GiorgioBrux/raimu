@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from optimum.bettertransformer import BetterTransformer
 import logging
 import os
@@ -34,25 +34,18 @@ try:
     torch.backends.cudnn.benchmark = True
     torch.backends.cudnn.enabled = True
     
-    model_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
+    model_id = "mistralai/Mistral-7B-Instruct-v0.2"
     
     logger.info(f"Loading model: {model_id}")
     model_load_start = time.time()
 
-    # Configure 4-bit quantization - simple but effective for A100
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_compute_dtype=torch.bfloat16  # Use A100's native bfloat16
-    )
-
-    # Configure model for maximum speed
+    # Remove quantization config and load model in full precision
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
-        torch_dtype=torch_dtype,
+        torch_dtype=torch_dtype,  # This will use bfloat16 as defined earlier
         device_map="auto",
         use_safetensors=True,
         use_flash_attention_2=True,
-        quantization_config=bnb_config,
         max_memory={0: "38GB"},
         token=os.getenv('HUGGING_FACE_HUB_TOKEN')
     )
