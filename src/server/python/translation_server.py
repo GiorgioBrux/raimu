@@ -23,8 +23,8 @@ class TranslationRequest(BaseModel):
 try:
     start_time = time.time()
     
-    model_id = "TheBloke/Mixtral-8x7B-Instruct-v0.1-GGUF"
-    model_basename = "mixtral-8x7b-instruct-v0.1.Q4_K_M.gguf"
+    model_id = "mradermacher/Mixtral-8x7B-Instruct-v0.1-GGUF"
+    model_basename = "Mixtral-8x7B-Instruct-v0.1.Q4_K_S.gguf"  # 26.8GB, fast and recommended
     
     logger.info(f"Downloading model: {model_id}/{model_basename}")
     model_path = hf_hub_download(
