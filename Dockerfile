@@ -38,7 +38,6 @@ RUN --mount=type=tmpfs,target=/tmp \
     python3.12 \
     python3.12-venv \
     python3.12-dev \
-    python3.12-distutils \
     python3-pip \
     build-essential \
     && rm -rf /var/lib/apt/lists/* \
@@ -51,6 +50,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY src/server/python/requirements.txt .
 RUN --mount=type=tmpfs,target=/root/.cache \
     pip install --no-cache-dir -r requirements.txt && \
+    pip install setuptools && \
     # Clean up Python packages
     find /opt/venv -type d -name "__pycache__" -exec rm -r {} + 2>/dev/null || true && \
     find /opt/venv -type d -name "tests" -exec rm -r {} + 2>/dev/null || true && \
@@ -78,7 +78,6 @@ RUN --mount=type=tmpfs,target=/tmp \
     apt-get update && apt-get install -y --no-install-recommends \
     python3.12 \
     python3.12-dev \
-    python3.12-distutils \
     build-essential \
     ffmpeg \
     nodejs \
