@@ -10,7 +10,7 @@ COPY . .
 RUN bun run build
 
 # Python dependencies stage
-FROM nvidia/cuda:12.6.3-devel-ubuntu24.04 as python-deps
+FROM nvidia/cuda:12.6.3-runtime-ubuntu24.04 as python-deps
 
 WORKDIR /app
 
