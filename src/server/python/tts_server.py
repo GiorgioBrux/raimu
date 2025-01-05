@@ -104,10 +104,7 @@ async def text_to_speech(
             # Get conditioning latents
             logger.info("Computing speaker latents...")
             gpt_cond_latent, speaker_embedding = model.get_conditioning_latents(
-                audio_path=[speaker_wav],
-                gpt_cond_len=30,  # Increased for better quality
-                gpt_cond_chunk_len=6,
-                max_ref_len=10
+                audio_path=[speaker_wav]
             )
 
             # Generate speech with DeepSpeed
@@ -118,11 +115,14 @@ async def text_to_speech(
                 language=language,
                 gpt_cond_latent=gpt_cond_latent,
                 speaker_embedding=speaker_embedding,
-                temperature=0.7,  # Controls variability (0.5-0.8 recommended)
-                length_penalty=1.0,  # Higher values -> shorter outputs
-                repetition_penalty=2.0,  # Prevents repetitive sounds
-                top_k=50,  # Helps with audio quality
-                top_p=0.85  # Helps with audio quality
+                temperature=0.85,  # Slightly increased for more natural speech
+                length_penalty=1.0,
+                repetition_penalty=2.0,
+                top_k=50,
+                top_p=0.85,
+                # Add new parameters for better quality
+                speed=1.0,  # Default speech speed
+                enable_text_splitting=True  # Better handling of long texts
             )
             generation_time = time.time() - generation_start_time
             
