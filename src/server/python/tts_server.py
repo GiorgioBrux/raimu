@@ -14,6 +14,7 @@ import time
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
 import torchaudio
+from huggingface_hub import snapshot_download
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -48,8 +49,13 @@ try:
     # Initialize with manual loading for DeepSpeed support
     model_name = "tts_models/multilingual/multi-dataset/xtts_v2"
     
-    # Get model path from TTS
-    model_path = TTS().download_model(model_name)
+    # Get model path using huggingface_hub
+    logger.info(f"Downloading model: {model_name}")
+    model_path = snapshot_download(
+        repo_id="coqui/XTTS-v2",
+        token=os.getenv('HUGGING_FACE_HUB_TOKEN')
+    )
+    
     config_path = os.path.join(model_path, "config.json")
     
     logger.info(f"Loading model from {model_path}")
