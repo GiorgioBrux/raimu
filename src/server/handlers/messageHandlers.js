@@ -300,12 +300,16 @@ export const messageHandlers = {
                                     transcription : 
                                     await TranslationService.translate(transcription, speakerLanguage, targetLang);
                                 
-                                const ttsAudio = await TTSService.synthesizeSpeech(
+                                const ttsResponse = await TTSService.synthesizeSpeech(
                                     textForTTS,
                                     targetLang,
                                     voiceSample
                                 );
-                                return [targetLang, ttsAudio];
+                                // Return both audio and duration
+                                return [targetLang, {
+                                    audio: ttsResponse.audio,
+                                    duration: ttsResponse.duration // Duration in seconds
+                                }];
                             } catch (error) {
                                 console.error(`TTS generation failed for language ${targetLang}:`, error);
                                 return [targetLang, null];
@@ -370,11 +374,12 @@ export const messageHandlers = {
                 response.translatedLanguage = participantLang;
             }
 
-            // Add TTS audio if speaker has it enabled and it was generated successfully
+            // Add TTS audio and duration if speaker has it enabled and it was generated successfully
             if (ws.connectionInfo.ttsEnabled) {
-                const ttsAudio = ttsAudios.get(participantLang);
-                if (ttsAudio) {
-                    response.ttsAudio = ttsAudio;
+                const ttsData = ttsAudios.get(participantLang);
+                if (ttsData) {
+                    response.ttsAudio = ttsData.audio;
+                    response.ttsDuration = ttsData.duration;
                 }
             }
 

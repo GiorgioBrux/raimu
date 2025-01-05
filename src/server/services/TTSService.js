@@ -35,18 +35,17 @@ class TTSService {
                 throw new Error(`TTS service error: ${response.statusText}`);
             }
 
-            const responseBuffer = await response.arrayBuffer();
-            console.log("Audio buffer length:", responseBuffer.byteLength);
+            // Parse JSON response that includes both audio and duration
+            const result = await response.json();
+            console.log("Audio duration:", result.duration);
             
-            // Convert ArrayBuffer to Base64
-            const audioArray = new Uint8Array(responseBuffer);
-            const base64Audio = Buffer.from(audioArray).toString('base64');
-            console.log("Base64 audio length:", base64Audio.length);
-            
-            return base64Audio;
+            return {
+                audio: result.audio,  // Base64 audio
+                duration: result.duration  // Duration in seconds
+            };
         } catch (error) {
             console.error('TTS Error:', error);
-            throw error;  // Re-throw the error to handle it in the caller
+            throw error;
         }
     }
 }

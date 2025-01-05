@@ -149,6 +149,9 @@ async def text_to_speech(
             logger.info(f"- Data type: {audio.dtype}")
             logger.info(f"- Value range: [{audio.min():.3f}, {audio.max():.3f}]")
 
+            # Calculate duration in seconds
+            duration = len(audio) / sr
+
             # Convert to bytes
             buffer = io.BytesIO()
             sf.write(buffer, audio, sr, format='WAV', subtype='PCM_16')
@@ -164,11 +167,21 @@ async def text_to_speech(
             logger.info(f"- Speech generation: {generation_time:.2f}s")
             logger.info(f"- Audio processing: {processing_time:.2f}s")
 
-            # Return audio with proper content type
-            return Response(
-                content=audio_bytes,
-                media_type="audio/wav"
-            )
+            # Convert to base64
+            audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
+
+            # Return JSON response with audio, duration and all the timing info
+            return {
+                "audio": audio_base64,
+                "duration": duration,
+                "sample_rate": sr,
+                "timings": {
+                    "file_handling": file_time,
+                    "generation": generation_time,
+                    "processing": processing_time,
+                    "total": total_time
+                }
+            }
 
         finally:
             # Clean up temporary file if it exists

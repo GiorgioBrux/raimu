@@ -481,7 +481,10 @@ export class RoomManager {
                     break;
                 case 'transcription':
                     // Handle TTS audio if available
-                    if (data.ttsAudio && this.roomUI?.transcriptionManager) {
+                    const hasTTS = !!data.ttsAudio;
+                    const ttsDuration = data.ttsDuration || 0;
+
+                    if (hasTTS && this.roomUI?.transcriptionManager) {
                         this.roomUI.transcriptionManager.handleTTSAudio(data.ttsAudio, data.userId);
                     }
 
@@ -492,7 +495,9 @@ export class RoomManager {
                             data.userId,
                             data.timestamp,
                             data.translatedText,
-                            data.originalLanguage
+                            data.originalLanguage,
+                            hasTTS,
+                            ttsDuration
                         );
                     }
                     break;

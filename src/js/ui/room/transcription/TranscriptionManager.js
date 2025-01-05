@@ -136,8 +136,17 @@ export class TranscriptionManager {
     /**
      * Adds a transcription to the UI
      */
-    addTranscription(text, userId, timestamp, translatedText = null, originalLanguage = null) {
-        this.ui.addTranscription(text, userId, timestamp, translatedText, originalLanguage);
+    addTranscription(text, userId, timestamp, translatedText = null, originalLanguage = null, hasTTS = false, ttsDuration = 0) {
+        this.ui.addTranscription(
+            text, 
+            userId, 
+            timestamp, 
+            translatedText, 
+            originalLanguage,
+            null,  // translatedLanguage
+            hasTTS,  // Use the hasTTS from the packet
+            ttsDuration
+        );
     }
 
     /**
