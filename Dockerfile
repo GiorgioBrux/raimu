@@ -55,6 +55,7 @@ RUN /opt/venv/bin/python -m pip install --upgrade pip
 COPY src/server/python/requirements.txt ./
 RUN pip3 install --no-cache-dir -r requirements.txt \
     && pip3 install flash-attn --no-build-isolation \
+    && CMAKE_ARGS="-DGGML_CUDA=on" pip3 install llama-cpp-python \
     && rm -rf /root/.cache/pip
 
 # Copy Caddyfile and built files from builder
