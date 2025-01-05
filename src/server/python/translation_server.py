@@ -5,7 +5,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import logging
 import os
-import time  # Add time import
+import time
 import re
 
 # Set up logging
@@ -34,15 +34,16 @@ try:
     torch.backends.cudnn.benchmark = True
     torch.backends.cudnn.enabled = True
     
-    model_id = "mistralai/Mistral-7B-Instruct-v0.2"
+    model_id = "TheBloke/Mixtral-8x7B-Instruct-v0.1-GGUF"
+    model_basename = "mixtral-8x7b-instruct-v0.1.Q4_K_M.gguf"  # Using Q4_K_M for good balance
     
     logger.info(f"Loading model: {model_id}")
     model_load_start = time.time()
 
-    # Remove quantization config and load model in full precision
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
-        torch_dtype=torch_dtype,  # This will use bfloat16 as defined earlier
+        model_file=model_basename,  # Specify the GGUF file to use
+        torch_dtype=torch_dtype,
         device_map="auto",
         use_safetensors=True,
         use_flash_attention_2=True,
@@ -54,14 +55,13 @@ try:
     logger.info(f"Model loaded in {model_load_time:.2f} seconds")
     
     tokenizer_start = time.time()
-    # Remove BetterTransformer transformation
-    # model = BetterTransformer.transform(model)  # Remove this line
     
+    # Use the original Mixtral tokenizer for better compatibility
     tokenizer = AutoTokenizer.from_pretrained(
-        model_id, 
+        "mistralai/Mixtral-8x7B-Instruct-v0.1",
         token=os.getenv('HUGGING_FACE_HUB_TOKEN'),
-        use_fast=True,  # Use fast tokenizer
-        model_max_length=2048,  # Set static max length
+        use_fast=True,
+        model_max_length=4096,
         padding_side="left",
         truncation_side="left"
     )
@@ -86,7 +86,6 @@ try:
     for length in [32, 64, 128]:
         dummy_input = tokenizer(warmup_text, return_tensors="pt").to(device)
         with torch.inference_mode(), torch.cuda.amp.autocast():
-            # Time the generation
             gen_start = time.time()
             output = model.generate(**dummy_input, max_new_tokens=length)
             gen_time = time.time() - gen_start
@@ -127,14 +126,13 @@ def get_language_name(lang_code):
 @app.post("/translate")
 async def translate(request: TranslationRequest):
     try:
-        # Add input validation
         if not request.text.strip():
             raise HTTPException(
                 status_code=400,
                 detail="Empty text provided for translation"
             )
             
-        if len(request.text) > 1000:  # Adjust limit as needed
+        if len(request.text) > 1000:
             raise HTTPException(
                 status_code=400, 
                 detail="Text exceeds maximum length of 1000 characters"
@@ -147,7 +145,7 @@ async def translate(request: TranslationRequest):
         source_lang_name = get_language_name(request.source_lang)
         target_lang_name = get_language_name(request.target_lang)
         
-        # Create messages using the chat template format
+        # Create messages using Mixtral's chat template
         messages = [
             {
                 "role": "system",
@@ -177,7 +175,8 @@ async def translate(request: TranslationRequest):
                 inputs,
                 max_new_tokens=512,
                 temperature=0.3,
-                do_sample=False,
+                do_sample=True,
+                top_p=0.95,
                 num_return_sequences=1,
                 repetition_penalty=1.2,
                 no_repeat_ngram_size=3,
@@ -214,7 +213,7 @@ async def translate(request: TranslationRequest):
         logger.info(f"- Generated tokens: {output_token_count}")
         logger.info(f"- Generation speed: {tokens_per_second:.1f} tokens/sec")
         logger.info(f"Latency breakdown:")
-        logger.info(f"- Prompt preparation: {tokenize_time:.3f}s")  # Includes both prompt prep and tokenization now
+        logger.info(f"- Prompt preparation: {tokenize_time:.3f}s")
         logger.info(f"- Generation: {generate_time:.3f}s")
         logger.info(f"- Decoding: {decode_time:.3f}s")
         
