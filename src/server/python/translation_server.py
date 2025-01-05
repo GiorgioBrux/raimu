@@ -42,7 +42,7 @@ try:
 
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
-        model_file=model_basename,  # Specify the GGUF file to use
+        gguf_file=model_basename,  # Changed from model_file to gguf_file
         torch_dtype=torch_dtype,
         device_map="auto",
         use_safetensors=True,
