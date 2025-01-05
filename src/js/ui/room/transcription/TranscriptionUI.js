@@ -129,6 +129,10 @@ export class TranscriptionUI {
             return;
         }
 
+        // Replace empty or whitespace-only text with <noise>
+        const displayText = (!text || text.trim() === '') ? '<noise>' : text;
+        const displayTranslatedText = (!translatedText || translatedText.trim() === '') ? '<noise>' : translatedText;
+
         if (!this.hasTranscriptions) {
             const placeholder = this.transcriptionText.querySelector('.opacity-30');
             if (placeholder) {
@@ -181,7 +185,7 @@ export class TranscriptionUI {
 
         const transcriptionText = document.createElement('p');
         transcriptionText.className = 'text-sm text-slate-300';
-        transcriptionText.textContent = text;
+        transcriptionText.textContent = displayText;
         originalContainer.appendChild(transcriptionText);
 
         transcriptionElement.appendChild(headerRow);
@@ -200,7 +204,7 @@ export class TranscriptionUI {
             
             const translatedTextEl = document.createElement('p');
             translatedTextEl.className = 'text-sm text-slate-400';
-            translatedTextEl.textContent = translatedText;
+            translatedTextEl.textContent = displayTranslatedText;
             
             translationContainer.appendChild(translationLabel);
             translationContainer.appendChild(translatedTextEl);
