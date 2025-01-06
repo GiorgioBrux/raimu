@@ -69,9 +69,9 @@ export class VADManager {
         frameSamples: 512,
         positiveSpeechThreshold: 0.8,
         negativeSpeechThreshold: 0.4,
-        redemptionFrames: 8,
+        redemptionFrames: 25,
         preSpeechPadFrames: 25,
-        minSilenceFrames: 12,
+        minSilenceFrames: 25,
         maxSpeechFrames: 2000
       });
 
