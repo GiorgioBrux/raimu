@@ -41,7 +41,7 @@ try:
         model_path=model_path,
         n_ctx=2048,          # Context window
         n_batch=512,         # Batch size for prompt processing
-        n_gpu_layers=35,     # Number of layers to offload to GPU
+        n_gpu_layers=-1,     # Offload all to GPU
         n_threads=8,         # CPU threads for processing
         main_gpu=0,         # Main GPU device to use
         tensor_split=None,   # Auto split tensors across GPUs if multiple available
