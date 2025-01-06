@@ -384,7 +384,9 @@ export class TranscriptionUI {
             // If no translation, show original text
             const textEl = document.createElement('p');
             textEl.className = 'text-sm text-slate-300';
-            textEl.textContent = text;
+            // Check if text is empty or only contains newlines
+            const cleanText = text.trim();
+            textEl.textContent = cleanText === '' ? '<noise>' : text;
             transcriptionElement.appendChild(textEl);
         }
 
