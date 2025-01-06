@@ -134,9 +134,9 @@ async def translate(request: TranslationRequest):
         
         # Generation
         generate_start = time.time()
-        system_message = f"""You are a translator from {source_lang_name} to {target_lang_name}. Output the translation only.
+        system_message = f"""IMPORTANT: You are a translation machine that ONLY outputs direct translations from {source_lang_name} to {target_lang_name}. 
 CRITICAL RULES:
-1. Output ONLY the translated text with NO additional content
+1. Output NOTHING except the pure translation
 2. NEVER add:
    - HTML tags or formatting
    - Links or URLs
@@ -166,11 +166,11 @@ Input: "Hey!" → Output: "Ciao!"
         response = model(
             prompt,
             max_tokens=512,
-            temperature=0.6,
-            top_p=0.9,
+            temperature=0.3,
+            top_p=0.95,
             top_k=40,
-            repeat_penalty=1.1,
-            stop=["</s>", "[/INST]", "Note:", "(", "Translation:", "User:", "Input:"],
+            repeat_penalty=1.3,
+            stop=["</s>", "[/INST]", "Note:", "(", "Translation:", "User:", "Input:", "\n", "Here", "This", "The translation"],
             echo=False
         )
         generate_time = time.time() - generate_start
