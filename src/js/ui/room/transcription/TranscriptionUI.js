@@ -122,6 +122,50 @@ export class TranscriptionUI {
     }
 
     /**
+     * Gets the flag emoji for a language code
+     */
+    _getLanguageFlag(langCode) {
+        const flagMap = {
+            'en': '🇺🇸 🇬🇧',
+            'es': '🇪🇸',
+            'fr': '🇫🇷',
+            'de': '🇩🇪',
+            'it': '🇮🇹',
+            'pt': '🇵🇹',
+            'ru': '🇷🇺',
+            'ja': '🇯🇵',
+            'ko': '🇰🇷',
+            'zh': '🇨🇳',
+            'ar': '🇸🇦',
+            'hi': '🇮🇳',
+            'tr': '🇹🇷',
+            'nl': '🇳🇱',
+            'pl': '🇵🇱',
+            'vi': '🇻🇳',
+            'th': '🇹🇭',
+            'cs': '🇨🇿',
+            'da': '🇩🇰',
+            'fi': '🇫🇮',
+            'el': '🇬🇷',
+            'he': '🇮🇱',
+            'hu': '🇭🇺',
+            'id': '🇮🇩',
+            'sv': '🇸🇪',
+            'uk': '🇺🇦'
+        };
+        return flagMap[langCode] || '🌐';
+    }
+
+    /**
+     * Gets the display name for a language code with flag
+     */
+    _getLanguageNameWithFlag(langCode) {
+        const flag = this._getLanguageFlag(langCode);
+        const name = this._getLanguageName(langCode);
+        return `${flag} ${name}`;
+    }
+
+    /**
      * Updates TTS icons based on queue state
      */
     updateTTSIcons(queueState) {
@@ -310,9 +354,9 @@ export class TranscriptionUI {
             
             const translationLabel = document.createElement('span');
             translationLabel.className = 'text-xs text-slate-500';
-            const sourceLangName = this._getLanguageName(originalLanguage);
-            const targetLangName = this._getLanguageName(translatedLanguage || this.transcriptionLang.value);
-            translationLabel.textContent = `${sourceLangName} → ${targetLangName}`;
+            const sourceLangWithFlag = this._getLanguageNameWithFlag(originalLanguage);
+            const targetLangWithFlag = this._getLanguageNameWithFlag(translatedLanguage || this.transcriptionLang.value);
+            translationLabel.textContent = `${sourceLangWithFlag} → ${targetLangWithFlag}`;
             
             const translatedTextEl = document.createElement('p');
             translatedTextEl.className = 'text-sm text-slate-300';
