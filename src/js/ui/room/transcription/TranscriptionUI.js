@@ -215,10 +215,6 @@ export class TranscriptionUI {
             return;
         }
 
-        // Replace empty or whitespace-only text with <noise>
-        const displayText = (!text || text.trim() === '' || text == '\n') ? '<noise>' : text;
-        const displayTranslatedText = (!translatedText || translatedText.trim() === '') ? '<noise>' : translatedText;
-
         if (!this.hasTranscriptions) {
             const placeholder = this.transcriptionText.querySelector('.opacity-30');
             if (placeholder) {
@@ -305,45 +301,32 @@ export class TranscriptionUI {
         });
 
         headerRow.appendChild(timeEl);
-
-        // Create container for original text with language label
-        const originalContainer = document.createElement('div');
-        originalContainer.className = 'mb-1';
-        
-        if (originalLanguage) {
-            const originalLabel = document.createElement('span');
-            originalLabel.className = 'text-xs text-slate-500 mb-1';
-            const languageName = this._getLanguageName(originalLanguage);
-            originalLabel.textContent = `Original (${languageName})`;
-            originalContainer.appendChild(originalLabel);
-        }
-
-        const transcriptionText = document.createElement('p');
-        transcriptionText.className = 'text-sm text-slate-300';
-        transcriptionText.textContent = displayText;
-        originalContainer.appendChild(transcriptionText);
-
         transcriptionElement.appendChild(headerRow);
-        transcriptionElement.appendChild(originalContainer);
 
         // Add translated text if available
         if (translatedText) {
             const translationContainer = document.createElement('div');
-            translationContainer.className = 'mt-2 pt-2 border-t border-slate-700/50';
+            translationContainer.className = 'mt-2';
             
             const translationLabel = document.createElement('span');
             translationLabel.className = 'text-xs text-slate-500';
-            const translatedToLang = translatedLanguage || this.transcriptionLang.value;
-            const translatedLanguageName = this._getLanguageName(translatedToLang);
-            translationLabel.textContent = `Translated to ${translatedLanguageName}`;
+            const sourceLangName = this._getLanguageName(originalLanguage);
+            const targetLangName = this._getLanguageName(translatedLanguage || this.transcriptionLang.value);
+            translationLabel.textContent = `${sourceLangName} → ${targetLangName}`;
             
             const translatedTextEl = document.createElement('p');
-            translatedTextEl.className = 'text-sm text-slate-400';
-            translatedTextEl.textContent = displayTranslatedText;
+            translatedTextEl.className = 'text-sm text-slate-300';
+            translatedTextEl.textContent = translatedText;
             
             translationContainer.appendChild(translationLabel);
             translationContainer.appendChild(translatedTextEl);
             transcriptionElement.appendChild(translationContainer);
+        } else {
+            // If no translation, show original text
+            const textEl = document.createElement('p');
+            textEl.className = 'text-sm text-slate-300';
+            textEl.textContent = text;
+            transcriptionElement.appendChild(textEl);
         }
 
         this.transcriptionText.appendChild(transcriptionElement);
