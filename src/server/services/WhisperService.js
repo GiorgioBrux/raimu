@@ -43,7 +43,6 @@ export class WhisperService {
                         model: 'whisper-1',  // Correct model name for OpenAI API
                         language,
                         response_format: 'text',
-                        prompt: "The following is a natural conversation without any subtitles, captions, or metadata.",
                         temperature: 0.3,  // Lower temperature for more focused output
                     });
                     // Clean up any remaining subtitle artifacts
