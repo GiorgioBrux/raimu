@@ -50,11 +50,27 @@ export class TranscriptionManager {
             
             if (this.currentStream && this.webrtc) {
                 if (enabled) {
+                    // Store current stream tracks before creating silent stream
+                    this.originalStreamTracks = this.currentStream.getTracks().map(track => track.clone());
                     // Create silent stream for peers when TTS is enabled
                     await this.createSilentStream();
                 } else {
                     // Restore original stream when TTS is disabled
-                    await this.webrtc.updateLocalStream(this.currentStream);
+                    if (this.originalStreamTracks) {
+                        const restoredStream = new MediaStream();
+                        this.originalStreamTracks.forEach(track => {
+                            track.enabled = true; // Ensure tracks are enabled
+                            restoredStream.addTrack(track);
+                        });
+                        await this.webrtc.updateLocalStream(restoredStream);
+                        this.currentStream = restoredStream;
+                        this.originalStreamTracks = null;
+                    } else {
+                        // If no stored tracks, try to get a new stream
+                        const newStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+                        await this.webrtc.updateLocalStream(newStream);
+                        this.currentStream = newStream;
+                    }
                 }
             }
             
