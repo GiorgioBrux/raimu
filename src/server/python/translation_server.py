@@ -146,7 +146,7 @@ CRITICAL RULES:
    - Additional translations
    - Greetings or pleasantries
 3. For single words or very short phrases:
-   - Translate exactly as is
+   - Translate in a way that is natural and makes sense in the target language
    - Do not expand or add context
    - Keep it equally concise
 
