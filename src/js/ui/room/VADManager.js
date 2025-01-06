@@ -403,11 +403,15 @@ export class VADManager {
     if (isLocalParticipant && instance?.webrtcStream) {
       const audioTrack = instance.webrtcStream.getAudioTracks()[0];
       if (audioTrack) {
+        // Always disable if muted
         if (isMuted) {
           audioTrack.enabled = false;
           log.debug({ containerId }, 'WebRTC audio track disabled due to mute');
+        } else {
+          // When unmuting, ensure track starts disabled until VAD detects speech
+          audioTrack.enabled = false;
+          log.debug({ containerId }, 'WebRTC audio track disabled until VAD detects speech');
         }
-        // If unmuted, let VAD control the track state - don't enable here
       }
     }
 
