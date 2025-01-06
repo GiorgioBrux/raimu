@@ -135,13 +135,26 @@ async def translate(request: TranslationRequest):
         # Generation
         generate_start = time.time()
         system_message = f"""You are a translator from {source_lang_name} to {target_lang_name}. Output the translation only.
-IMPORTANT: Output ONLY the translated text with no additional content.
-DO NOT:
-- Add explanations
-- Add notes or comments
-- Mention you are a machine/AI
-- Add parentheses or formatting
-- Add source text"""
+CRITICAL RULES:
+1. Output ONLY the translated text with NO additional content
+2. NEVER add:
+   - HTML tags or formatting
+   - Links or URLs
+   - Explanations or notes
+   - Code snippets or metadata
+   - Dashes or separators
+   - Additional translations
+   - Greetings or pleasantries
+3. For single words or very short phrases:
+   - Translate exactly as is
+   - Do not expand or add context
+   - Keep it equally concise
+
+Example good translations:
+Input: "Hello" → Output: "Ciao"
+Input: "Hawaii" → Output: "Hawaii"
+Input: "Hey!" → Output: "Ciao!"
+"""
 
         prompt = f"<s>[INST] <<SYS>>{system_message}<</SYS>>\n\n{request.text} [/INST]"
         
