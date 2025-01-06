@@ -23,6 +23,13 @@ export class TTSManager {
         // Add to queue and process
         this.audioQueue.push({ base64Audio, userId, messageId });
         
+        log.debug({
+            messageId,
+            queueLength: this.audioQueue.length,
+            isPlaying: this.isPlaying,
+            currentlyPlaying: this.currentlyPlayingId
+        }, 'Added message to TTS queue');
+        
         // Notify about queue state change
         this._notifyQueueStateChange();
         
@@ -53,6 +60,13 @@ export class TTSManager {
                 currentlyPlaying: this.currentlyPlayingId,
                 queued: this.audioQueue.map(item => item.messageId)
             };
+            
+            log.debug({
+                currentlyPlaying: state.currentlyPlaying,
+                queuedMessages: state.queued,
+                queueLength: state.queued.length
+            }, 'TTS queue state changed');
+            
             this.onQueueStateChange(state);
         }
     }
@@ -64,6 +78,7 @@ export class TTSManager {
         if (this.audioQueue.length === 0) {
             this.isPlaying = false;
             this.currentlyPlayingId = null;
+            log.debug('TTS queue empty, stopping playback');
             this._notifyQueueStateChange();
             return;
         }
@@ -71,6 +86,13 @@ export class TTSManager {
         this.isPlaying = true;
         const { base64Audio, userId, messageId } = this.audioQueue.shift();
         this.currentlyPlayingId = messageId;
+        
+        log.debug({
+            messageId,
+            userId,
+            remainingInQueue: this.audioQueue.length
+        }, 'Starting TTS playback for message');
+        
         this._notifyQueueStateChange();
 
         try {
