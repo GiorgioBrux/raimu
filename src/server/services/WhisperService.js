@@ -42,9 +42,16 @@ export class WhisperService {
                         file: file,
                         model: 'whisper-1',  // Correct model name for OpenAI API
                         language,
-                        response_format: 'text'
+                        response_format: 'text',
+                        prompt: "The following is a natural conversation without any subtitles, captions, or metadata.",
+                        temperature: 0.3,  // Lower temperature for more focused output
                     });
-                    return response;
+                    // Clean up any remaining subtitle artifacts
+                    let text = response;
+                    text = text.replace(/\[.*?\]|\(.*?\)|{.*?}|<.*?>/g, ''); // Remove bracketed content
+                    text = text.replace(/(?:subtitle|caption)s?(?:\s+(?:provided|created|made|by|from))?.*/i, ''); // Remove subtitle mentions
+                    text = text.replace(/^\s+|\s+$/g, ''); // Trim whitespace
+                    return text;
                 } catch (openaiError) {
                     console.warn('OpenAI API failed, falling back to local server:', openaiError.message);
                     // Fall through to local server
