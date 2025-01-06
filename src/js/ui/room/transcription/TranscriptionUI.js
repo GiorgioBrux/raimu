@@ -246,7 +246,9 @@ export class TranscriptionUI {
         
         // Add TTS icon if audio is available
         if (hasTTS) {
-            const messageId = `${userId}-${timestamp}`; // Create unique message ID
+            // Convert timestamp string to Date if it's not already
+            const timestampDate = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+            const messageId = `${userId}-${timestampDate.getTime()}`; // Create unique message ID using timestamp in milliseconds
             
             log.debug({
                 messageId,
