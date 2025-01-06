@@ -279,10 +279,11 @@ export class VADManager {
 
         // For local participant, respect existing mute state
         // For remote participants, always keep enabled
-        const shouldBeEnabled = isLocalParticipant ? 
-          (existingMuteState !== undefined ? !existingMuteState : originalAudioTrack.enabled) : 
-          true;
-        webrtcAudioTrack.enabled = shouldBeEnabled;
+        const isMuted = isLocalParticipant ? 
+          (existingMuteState ?? false) : 
+          (pendingState?.audio !== undefined ? !pendingState.audio : !originalAudioTrack?.enabled);
+
+        webrtcAudioTrack.enabled = !isMuted;
         webrtcStream.addTrack(webrtcAudioTrack);
 
         log.debug({ 
@@ -293,7 +294,7 @@ export class VADManager {
           isLocalParticipant,
           originalTrackEnabled: originalAudioTrack.enabled,
           existingMuteState,
-          shouldBeEnabled
+          isMuted
         }, 'WebRTC audio track prepared');
       }
       
@@ -302,22 +303,7 @@ export class VADManager {
       // Store both streams with the instance
       this.instances.set(container.id, { vad, stream: vadStream, webrtcStream });
       
-      // Initialize mute state:
-      // For remote participants, use pending state if available
-      const isMuted = isLocalParticipant ? 
-        (existingMuteState ?? false) : 
-        (pendingState?.audio !== undefined ? !pendingState.audio : !originalAudioTrack?.enabled);
-
-      log.debug({
-        containerId: container.id,
-        isLocalParticipant,
-        originalTrackEnabled: originalAudioTrack?.enabled,
-        existingMuteState,
-        pendingState,
-        calculatedMuteState: isMuted,
-        webrtcTrackEnabled: webrtcStream.getAudioTracks()[0]?.enabled
-      }, 'Calculating initial mute state');
-
+      // Set mute state before VAD initialization completes
       this.muted.set(container.id, isMuted);
       
       // Update UI for mute state
