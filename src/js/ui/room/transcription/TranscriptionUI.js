@@ -180,15 +180,17 @@ export class TranscriptionUI {
             // Update icon state
             icon.dataset.ttsState = state;
             
-            // Update visibility and animation
+            // Update visibility and animation based on state
             if (state === 'queued') {
                 clockIcon.style.display = 'block';
                 speakerIcon.style.display = 'none';
                 clockIcon.classList.add('animate-pulse');
+                speakerIcon.classList.remove('animate-pulse');
                 icon.classList.remove('opacity-50');
             } else if (state === 'playing') {
                 clockIcon.style.display = 'none';
                 speakerIcon.style.display = 'block';
+                clockIcon.classList.remove('animate-pulse');
                 speakerIcon.classList.add('animate-pulse');
                 icon.classList.remove('opacity-50');
             } else { // completed
