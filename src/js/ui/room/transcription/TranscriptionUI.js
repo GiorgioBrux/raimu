@@ -13,6 +13,7 @@ export class TranscriptionUI {
         this.roomManager = roomManager;
         this.hasTranscriptions = false;
         this.isTranscriptionHost = false;
+        this.ttsIcons = new Map(); // Store TTS icons by message ID
 
         // Initially disable TTS switch
         this.voiceTTSEnabled.disabled = true;
@@ -121,6 +122,37 @@ export class TranscriptionUI {
     }
 
     /**
+     * Updates TTS icons based on queue state
+     */
+    updateTTSIcons(queueState) {
+        const { currentlyPlaying, queued } = queueState;
+        
+        // Update all stored icons
+        for (const [messageId, iconData] of this.ttsIcons.entries()) {
+            const { icon, clockIcon, speakerIcon } = iconData;
+            
+            // Determine the state
+            let state = 'completed';
+            if (messageId === currentlyPlaying) {
+                state = 'playing';
+            } else if (queued.includes(messageId)) {
+                state = 'queued';
+            }
+            
+            // Update icon state
+            icon.dataset.ttsState = state;
+            clockIcon.className = state === 'queued' ? 'block animate-pulse' : 'hidden';
+            speakerIcon.className = state === 'playing' ? 'block animate-pulse' : 'hidden';
+            
+            if (state === 'completed') {
+                icon.classList.add('opacity-50');
+            } else {
+                icon.classList.remove('opacity-50');
+            }
+        }
+    }
+
+    /**
      * Adds a transcription message to the UI
      */
     addTranscription(text, userId, timestamp, translatedText = null, originalLanguage = null, translatedLanguage = null, hasTTS = false, ttsDuration = 0) {
@@ -166,23 +198,31 @@ export class TranscriptionUI {
         
         // Add TTS icon if audio is available
         if (hasTTS) {
+            const messageId = `${userId}-${timestamp}`; // Create unique message ID
             const ttsIcon = document.createElement('div');
-            ttsIcon.className = 'text-slate-500 transition-opacity';
-            ttsIcon.innerHTML = `
+            ttsIcon.className = 'text-slate-500 transition-opacity relative';
+            
+            // Create the speaker icon for playing state
+            const speakerIcon = document.createElement('div');
+            speakerIcon.className = 'hidden'; // Initially hidden
+            speakerIcon.innerHTML = `
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clip-rule="evenodd" />
                 </svg>`;
-
-            // Add pulsing animation while TTS is playing
-            ttsIcon.classList.add('animate-pulse');
             
-            // Remove animation after duration
-            if (ttsDuration > 0) {
-                setTimeout(() => {
-                    ttsIcon.classList.remove('animate-pulse');
-                    ttsIcon.classList.add('opacity-50');
-                }, ttsDuration * 1000);
-            }
+            // Create the clock icon for queued state
+            const clockIcon = document.createElement('div');
+            clockIcon.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                </svg>`;
+            
+            // Add both icons to the container
+            ttsIcon.appendChild(clockIcon);
+            ttsIcon.appendChild(speakerIcon);
+            
+            // Store the icon references
+            this.ttsIcons.set(messageId, { icon: ttsIcon, clockIcon, speakerIcon });
             
             leftContainer.appendChild(ttsIcon);
         }

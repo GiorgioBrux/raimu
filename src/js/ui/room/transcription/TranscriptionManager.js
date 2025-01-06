@@ -25,6 +25,11 @@ export class TranscriptionManager {
         this.currentStream = null;
         this.webrtc = null;
 
+        // Set up TTS queue state handler
+        this.tts.onQueueStateChange = (state) => {
+            this.ui.updateTTSIcons(state);
+        };
+
         this.setupEventListeners();
         log.debug('TranscriptionManager initialized');
     }
@@ -130,7 +135,8 @@ export class TranscriptionManager {
      */
     async handleTTSAudio(base64Audio, userId) {
         log.debug('Handling TTS audio');
-        await this.tts.handleTTSAudio(base64Audio, userId);
+        const messageId = `${userId}-${Date.now()}`; // Create unique message ID
+        await this.tts.handleTTSAudio(base64Audio, userId, messageId);
     }
 
     /**
