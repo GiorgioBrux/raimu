@@ -62,14 +62,45 @@ export class TranscriptionManager {
                             track.enabled = true; // Ensure tracks are enabled
                             restoredStream.addTrack(track);
                         });
+                        
+                        // Update WebRTC stream first
                         await this.webrtc.updateLocalStream(restoredStream);
                         this.currentStream = restoredStream;
+                        
+                        // Update local video container using ParticipantVideo
+                        const localContainer = document.getElementById('participant-local');
+                        if (localContainer) {
+                            const videoTrack = restoredStream.getVideoTracks()[0];
+                            const audioTrack = restoredStream.getAudioTracks()[0];
+                            ParticipantVideo.setupStates(localContainer, restoredStream);
+                            ParticipantVideo.updateMediaState(
+                                localContainer,
+                                videoTrack?.enabled ?? false,
+                                audioTrack?.enabled ?? false
+                            );
+                        }
+                        
                         this.originalStreamTracks = null;
                     } else {
                         // If no stored tracks, try to get a new stream
                         const newStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+                        
+                        // Update WebRTC stream first
                         await this.webrtc.updateLocalStream(newStream);
                         this.currentStream = newStream;
+                        
+                        // Update local video container using ParticipantVideo
+                        const localContainer = document.getElementById('participant-local');
+                        if (localContainer) {
+                            const videoTrack = newStream.getVideoTracks()[0];
+                            const audioTrack = newStream.getAudioTracks()[0];
+                            ParticipantVideo.setupStates(localContainer, newStream);
+                            ParticipantVideo.updateMediaState(
+                                localContainer,
+                                videoTrack?.enabled ?? false,
+                                audioTrack?.enabled ?? false
+                            );
+                        }
                     }
                 }
             }
