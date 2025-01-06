@@ -134,49 +134,54 @@ async def translate(request: TranslationRequest):
         
         # Generation
         generate_start = time.time()
-        system_message = f"""IMPORTANT: You are a translation machine that ONLY outputs direct translations from {source_lang_name} to {target_lang_name}. 
-CRITICAL RULES:
-1. Output NOTHING except the pure translation
-2. NEVER add:
-   - HTML tags or formatting
-   - Links or URLs
-   - Explanations or notes
-   - Code snippets or metadata
-   - Dashes or separators
-   - Additional translations
-   - Greetings or pleasantries
-3. For single words or very short phrases:
-   - Translate in a way that is natural and makes sense in the target language
+        
+        # Use chat completion API with XML-formatted prompt
+        response = model.create_chat_completion(
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"""<instructions>
+You are a translator from {source_lang_name} to {target_lang_name}.
+
+The input tag will be read and translated to the target language.
+Output ONLY the translated text in the format below with NO additional content.
+The response format is as follows:
+<TL>
+[Text translated to target language]
+</TL>
+
+Rules for translation:
+1. For single words or short phrases:
+   - Translate naturally in the target language
    - Do not expand or add context
    - Keep it equally concise
-4. For gendered language:
-   - When gender is clear from context, use appropriate gender
-   - When gender is unclear, prefer masculine form
-   - For professions/titles where gender is unclear, use masculine form
+2. For gendered language:
+   - Use appropriate gender when clear from context
+   - Prefer masculine form when gender is unclear
+   - Use masculine form for unclear profession/titles
    - Never use split forms (e.g., "o/a" or "squisito/a")
-
-Example good translations:
-Input: "Hello" → Output: "Ciao"
-Input: "Hawaii" → Output: "Hawaii"
-Input: "Hey!" → Output: "Ciao!"
-"""
-
-        prompt = f"<s>[INST] <<SYS>>{system_message}<</SYS>>\n\n{request.text} [/INST]"
-        
-        response = model(
-            prompt,
-            max_tokens=512,
-            temperature=0.3,
+</instructions>
+<input>
+{request.text}
+</input>"""
+                }
+            ],
+            max_tokens=1024,
+            temperature=0.6,
             top_p=0.95,
             top_k=40,
             repeat_penalty=1.3,
-            stop=["</s>", "[/INST]", "Note:", "(", "Translation:", "User:", "Input:", "\n", "Here", "This", "The translation"],
-            echo=False
+            stop=["</s>", "[/INST]", "Note:", "(", "Translation:", "User:", "Input:", "Here", "This", "</instructions>", "</input>", "</TL>"]
         )
         generate_time = time.time() - generate_start
         
-        # Extract and clean translation from response
-        translation = response["choices"][0]["text"].strip().strip('"\'')
+        # Extract translation from response, removing TL tags
+        translation = response["choices"][0]["message"]["content"].strip()
+        if translation.startswith("<TL>"):
+            translation = translation[4:].strip()
+        if translation.endswith("</TL>"):
+            translation = translation[:-5].strip()
+        translation = translation.strip('"\'')
         
         total_time = time.time() - request_start
         
