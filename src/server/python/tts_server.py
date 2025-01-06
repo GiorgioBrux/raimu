@@ -87,7 +87,14 @@ async def text_to_speech(
     try:
         request_start_time = time.time()
         logger.info("Text to speech request received")
-        logger.info(f"text={text}")
+        
+        # Clean the text - remove trailing dots
+        # https://github.com/coqui-ai/TTS/issues/3204
+        # Dots make a breathing/noise sound in the audio
+        cleaned_text = text.rstrip('.')
+        
+        logger.info(f"Original text: {text}")
+        logger.info(f"Cleaned text: {cleaned_text}")
         logger.info(f"language={language}")
 
         # Handle speaker audio
@@ -111,7 +118,7 @@ async def text_to_speech(
             logger.info("Generating speech...")
             generation_start_time = time.time()
             out = model.inference(
-                text=text,
+                text=cleaned_text,
                 language=language,
                 gpt_cond_latent=gpt_cond_latent,
                 speaker_embedding=speaker_embedding,
