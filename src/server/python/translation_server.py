@@ -149,6 +149,11 @@ CRITICAL RULES:
    - Translate in a way that is natural and makes sense in the target language
    - Do not expand or add context
    - Keep it equally concise
+4. For gendered language:
+   - When gender is clear from context, use appropriate gender
+   - When gender is unclear, prefer masculine form
+   - For professions/titles where gender is unclear, use masculine form
+   - Never use split forms (e.g., "o/a" or "squisito/a")
 
 Example good translations:
 Input: "Hello" → Output: "Ciao"
@@ -165,13 +170,13 @@ Input: "Hey!" → Output: "Ciao!"
             top_p=0.9,
             top_k=40,
             repeat_penalty=1.1,
-            stop=["</s>", "[/INST]", "Note:", "(", "Translation:"],
+            stop=["</s>", "[/INST]", "Note:", "(", "Translation:", "User:"],
             echo=False
         )
         generate_time = time.time() - generate_start
         
-        # Extract translation from response
-        translation = response["choices"][0]["text"].strip()
+        # Extract and clean translation from response
+        translation = response["choices"][0]["text"].strip().strip('"\'')
         
         total_time = time.time() - request_start
         
