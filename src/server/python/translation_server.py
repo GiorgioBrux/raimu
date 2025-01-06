@@ -166,11 +166,11 @@ Input: "Hey!" → Output: "Ciao!"
         response = model(
             prompt,
             max_tokens=512,
-            temperature=0.7,
+            temperature=0.6,
             top_p=0.9,
             top_k=40,
             repeat_penalty=1.1,
-            stop=["</s>", "[/INST]", "Note:", "(", "Translation:", "User:"],
+            stop=["</s>", "[/INST]", "Note:", "(", "Translation:", "User:", "Input:"],
             echo=False
         )
         generate_time = time.time() - generate_start
