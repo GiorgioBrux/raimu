@@ -134,25 +134,25 @@ async def translate(request: TranslationRequest):
         
         # Generation
         generate_start = time.time()
-        system_message = f"""You are a precise translator. Your only task is to translate the given text from {source_lang_name} to {target_lang_name}.
-Rules:
-- Provide ONLY the translation
-- Do not add any explanations or comments
-- Do not engage in conversation
-- Do not add pleasantries or greetings
-- Keep the same tone and formality as the original text
-- No quotes or other formatting"""
+        system_message = f"""You are a translator from {source_lang_name} to {target_lang_name}. Output the translation only.
+IMPORTANT: Output ONLY the translated text with no additional content.
+DO NOT:
+- Add explanations
+- Add notes or comments
+- Mention you are a machine/AI
+- Add parentheses or formatting
+- Add source text"""
 
-        prompt = f"<s>[INST] {system_message} Translate: {request.text} [/INST]"
+        prompt = f"<s>[INST] <<SYS>>{system_message}<</SYS>>\n\n{request.text} [/INST]"
         
         response = model(
             prompt,
             max_tokens=512,
-            temperature=0.7,    # Higher temperature for more creative freedom
-            top_p=0.9,         # Higher top_p to consider more token options
-            top_k=40,          # Higher top_k for more vocabulary variety
+            temperature=0.7,
+            top_p=0.9,
+            top_k=40,
             repeat_penalty=1.1,
-            stop=["</s>"],
+            stop=["</s>", "[/INST]", "Note:", "(", "Translation:"],
             echo=False
         )
         generate_time = time.time() - generate_start
