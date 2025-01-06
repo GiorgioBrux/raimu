@@ -485,7 +485,7 @@ export class RoomManager {
                     const ttsDuration = data.ttsDuration || 0;
 
                     if (hasTTS && this.roomUI?.transcriptionManager) {
-                        this.roomUI.transcriptionManager.handleTTSAudio(data.ttsAudio, data.userId);
+                        this.roomUI.transcriptionManager.handleTTSAudio(data.ttsAudio, data.userId, data.timestamp);
                     }
 
                     // Display transcription with translation if available

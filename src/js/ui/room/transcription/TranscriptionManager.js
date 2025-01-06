@@ -133,9 +133,11 @@ export class TranscriptionManager {
     /**
      * Handles incoming TTS audio
      */
-    async handleTTSAudio(base64Audio, userId) {
+    async handleTTSAudio(base64Audio, userId, timestamp) {
         log.debug('Handling TTS audio');
-        const messageId = `${userId}-${new Date().getTime()}`; // Use getTime() for consistency with TranscriptionUI
+        // Use the original message timestamp to ensure ID consistency
+        const timestampDate = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+        const messageId = `${userId}-${timestampDate.getTime()}`; // Use original message timestamp
         await this.tts.handleTTSAudio(base64Audio, userId, messageId);
     }
 
