@@ -232,8 +232,7 @@ export const messageHandlers = {
         const timings = {
             start: performance.now(),
             transcription: { start: 0, end: 0 },
-            translation: { start: 0, end: 0 },
-            tts: { start: 0, end: 0 }
+            end: 0
         };
 
         const room = roomService.getRoomById(ws.connectionInfo.roomId);
@@ -263,94 +262,89 @@ export const messageHandlers = {
         // Get speaker's voice sample for TTS
         const voiceSample = room.getParticipantVoiceSample(ws.connectionInfo.userId);
 
-        // Start transcription
+        // Do transcription once
         timings.transcription.start = performance.now();
-        const transcriptionPromise = WhisperService.transcribe(audioBuffer, speakerLanguage)
-            .then(result => {
-                timings.transcription.end = performance.now();
-                return result;
-            });
+        const transcription = await WhisperService.transcribe(audioBuffer, speakerLanguage);
+        timings.transcription.end = performance.now();
 
-        // Prepare translation promises for each required language
-        const translationPromises = [];
-        timings.translation.start = performance.now();
+        // Create a pipeline for each target language
+        const languagePipelines = [];
+        
+        // Process each target language in parallel
         for (const [targetLang] of participantLanguageMap) {
-            // Skip translation if it's the same as speaker's language
-            if (targetLang !== speakerLanguage) {
-                translationPromises.push(
-                    transcriptionPromise
-                        .then(transcription => 
-                            TranslationService.translate(transcription, speakerLanguage, targetLang)
-                                .then(translation => [targetLang, translation])
-                        )
-                );
-            }
+            const pipeline = async () => {
+                const pipelineTimings = {
+                    translation: { start: 0, end: 0 },
+                    tts: { start: 0, end: 0 }
+                };
+
+                let textForTTS = transcription;
+                
+                // Step 1: Translation (if needed)
+                if (targetLang !== speakerLanguage) {
+                    pipelineTimings.translation.start = performance.now();
+                    textForTTS = await TranslationService.translate(transcription, speakerLanguage, targetLang);
+                    pipelineTimings.translation.end = performance.now();
+                }
+
+                // Step 2: TTS (if enabled)
+                let ttsResult = null;
+                if (ws.connectionInfo.ttsEnabled && voiceSample) {
+                    pipelineTimings.tts.start = performance.now();
+                    try {
+                        ttsResult = await TTSService.synthesizeSpeech(
+                            textForTTS,
+                            targetLang,
+                            voiceSample
+                        );
+                    } catch (error) {
+                        console.error(`TTS generation failed for language ${targetLang}:`, error);
+                    }
+                    pipelineTimings.tts.end = performance.now();
+                }
+
+                return {
+                    targetLang,
+                    transcription,
+                    translation: targetLang !== speakerLanguage ? textForTTS : null,
+                    tts: ttsResult,
+                    timings: {
+                        translation: pipelineTimings.translation.end - pipelineTimings.translation.start,
+                        tts: pipelineTimings.tts.end - pipelineTimings.tts.start
+                    }
+                };
+            };
+
+            languagePipelines.push(pipeline());
         }
 
-        // Prepare TTS promises
-        const ttsPromises = [];
-        timings.tts.start = performance.now();
-        if (ws.connectionInfo.ttsEnabled && voiceSample) {
-            for (const [targetLang] of participantLanguageMap) {
-                ttsPromises.push(
-                    transcriptionPromise
-                        .then(async transcription => {
-                            try {
-                                const textForTTS = targetLang === speakerLanguage ? 
-                                    transcription : 
-                                    await TranslationService.translate(transcription, speakerLanguage, targetLang);
-                                
-                                const ttsResponse = await TTSService.synthesizeSpeech(
-                                    textForTTS,
-                                    targetLang,
-                                    voiceSample
-                                );
-                                // Return both audio and duration
-                                return [targetLang, {
-                                    audio: ttsResponse.audio,
-                                    duration: ttsResponse.duration // Duration in seconds
-                                }];
-                            } catch (error) {
-                                console.error(`TTS generation failed for language ${targetLang}:`, error);
-                                return [targetLang, null];
-                            }
-                        })
-                );
-            }
-        }
-
-        // Wait for all operations to complete
-        const [transcription, translationResults, ttsResults] = await Promise.all([
-            transcriptionPromise,
-            Promise.all(translationPromises).then(results => {
-                timings.translation.end = performance.now();
-                return results;
-            }),
-            Promise.all(ttsPromises).then(results => {
-                timings.tts.end = performance.now();
-                return results;
-            })
-        ]);
-
+        // Wait for all language pipelines to complete
+        const results = await Promise.all(languagePipelines);
         timings.end = performance.now();
 
-        // Convert arrays to Maps for easier lookup
-        const translations = new Map(translationResults);
-        const ttsAudios = new Map(ttsResults);
-
-        // Calculate durations
-        const durations = {
+        // Calculate average timings across all pipelines
+        const avgTimings = {
             transcription: timings.transcription.end - timings.transcription.start,
-            translation: timings.translation.end - timings.translation.start,
-            tts: timings.tts.end - timings.tts.start,
+            translation: 0,
+            tts: 0,
             total: timings.end - timings.start
         };
 
+        // Calculate averages for translation and TTS
+        results.forEach(result => {
+            avgTimings.translation += result.timings.translation;
+            avgTimings.tts += result.timings.tts;
+        });
+
+        const pipelineCount = Math.max(1, results.length);  // Avoid division by zero
+        avgTimings.translation /= pipelineCount;
+        avgTimings.tts /= pipelineCount;
+
         console.log('Processing times (ms):', {
-            transcription: durations.transcription.toFixed(2),
-            translation: durations.translation.toFixed(2),
-            tts: durations.tts.toFixed(2),
-            total: durations.total.toFixed(2)
+            transcription: avgTimings.transcription.toFixed(2),
+            translation: avgTimings.translation.toFixed(2),
+            tts: avgTimings.tts.toFixed(2),
+            total: avgTimings.total.toFixed(2)
         });
 
         // Send personalized messages to each participant
@@ -359,41 +353,42 @@ export const messageHandlers = {
             if (participantId === ws.connectionInfo.userId) continue;
 
             const participantLang = participant.ws.connectionInfo?.language || 'en';
+            const result = results.find(r => r.targetLang === participantLang);
+            
+            if (!result) continue;
+
             const response = {
                 type: 'transcription',
-                text: transcription,
+                text: transcription,  // Always use original transcription
                 timestamp: data.timestamp,
                 originalLanguage: speakerLanguage,
                 userId: ws.connectionInfo.userId,
-                processingTimes: durations
+                processingTimes: avgTimings
             };
 
-            // If participant's language is different from speaker's, add translation
-            if (participantLang !== speakerLanguage) {
-                response.translatedText = translations.get(participantLang);
+            // Add translation if available
+            if (result.translation) {
+                response.translatedText = result.translation;
                 response.translatedLanguage = participantLang;
             }
 
-            // Add TTS audio and duration if speaker has it enabled and it was generated successfully
-            if (ws.connectionInfo.ttsEnabled) {
-                const ttsData = ttsAudios.get(participantLang);
-                if (ttsData) {
-                    response.ttsAudio = ttsData.audio;
-                    response.ttsDuration = ttsData.duration;
-                }
+            // Add TTS if available
+            if (result.tts) {
+                response.ttsAudio = result.tts.audio;
+                response.ttsDuration = result.tts.duration;
             }
 
             participant.ws.send(JSON.stringify(response));
         }
 
-        // Send original message back to speaker (without TTS)
+        // Send original message back to speaker
         ws.send(JSON.stringify({
             type: 'transcription',
             text: transcription,
             timestamp: data.timestamp,
             originalLanguage: speakerLanguage,
             userId: ws.connectionInfo.userId,
-            processingTimes: durations
+            processingTimes: avgTimings
         }));
 
     } catch (error) {
