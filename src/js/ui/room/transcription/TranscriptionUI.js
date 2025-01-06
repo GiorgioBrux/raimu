@@ -133,8 +133,23 @@ export class TranscriptionUI {
             totalTrackedIcons: this.ttsIcons.size
         }, 'Updating TTS icons');
         
-        // Update all stored icons
+        // Only update icons that are either currently playing, queued, or were just completed
+        const relevantIds = new Set([
+            currentlyPlaying,
+            ...queued,
+            this.lastPlayingId // Track the last playing message to update it when it completes
+        ].filter(Boolean)); // Remove null/undefined values
+        
+        // Store current playing ID for next update
+        this.lastPlayingId = currentlyPlaying;
+        
+        // Update only relevant icons
         for (const [messageId, iconData] of this.ttsIcons.entries()) {
+            // Skip icons that don't need updating
+            if (!relevantIds.has(messageId) && !this.lastUpdatedIds?.has(messageId)) {
+                continue;
+            }
+            
             const { icon, clockIcon, speakerIcon } = iconData;
             
             // Determine the state
@@ -166,10 +181,13 @@ export class TranscriptionUI {
                 icon.classList.remove('opacity-50');
             } else { // completed
                 clockIcon.className = 'absolute inset-0 hidden';
-                speakerIcon.className = 'absolute inset-0 block opacity-50';
+                speakerIcon.className = 'absolute inset-0 block';
                 icon.classList.add('opacity-50');
             }
         }
+        
+        // Store current set of updated IDs for next update
+        this.lastUpdatedIds = relevantIds;
     }
 
     /**
@@ -210,11 +228,7 @@ export class TranscriptionUI {
         
         // Create left side container for name and TTS icon
         const leftContainer = document.createElement('div');
-        leftContainer.className = 'flex items-center gap-2';
-        
-        const nameEl = document.createElement('span');
-        nameEl.className = 'text-xs text-slate-500';
-        nameEl.textContent = username;
+        leftContainer.className = 'flex items-center gap-3';
         
         // Add TTS icon if audio is available
         if (hasTTS) {
@@ -228,7 +242,7 @@ export class TranscriptionUI {
             }, 'Creating TTS icon for message');
             
             const ttsIcon = document.createElement('div');
-            ttsIcon.className = 'text-slate-500 transition-opacity relative flex items-center justify-center';
+            ttsIcon.className = 'text-slate-500 transition-opacity relative w-3 h-3';
             
             // Create the speaker icon for playing state
             const speakerIcon = document.createElement('div');
@@ -256,6 +270,9 @@ export class TranscriptionUI {
             leftContainer.appendChild(ttsIcon);
         }
         
+        const nameEl = document.createElement('span');
+        nameEl.className = 'text-xs text-slate-500';
+        nameEl.textContent = username;
         leftContainer.appendChild(nameEl);
         headerRow.appendChild(leftContainer);
 
