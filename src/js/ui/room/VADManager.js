@@ -262,6 +262,11 @@ export class VADManager {
       const vadStream = new MediaStream();
       const webrtcStream = new MediaStream();
       
+      // Calculate mute state before stream setup
+      const isMuted = isLocalParticipant ? 
+        (existingMuteState ?? false) : 
+        (pendingState?.audio !== undefined ? !pendingState.audio : !originalAudioTrack?.enabled);
+      
       if (originalAudioTrack) {
         // Clone the audio tracks
         const vadAudioTrack = originalAudioTrack.clone();
@@ -279,10 +284,6 @@ export class VADManager {
 
         // For local participant, respect existing mute state
         // For remote participants, always keep enabled
-        const isMuted = isLocalParticipant ? 
-          (existingMuteState ?? false) : 
-          (pendingState?.audio !== undefined ? !pendingState.audio : !originalAudioTrack?.enabled);
-
         webrtcAudioTrack.enabled = !isMuted;
         webrtcStream.addTrack(webrtcAudioTrack);
 
