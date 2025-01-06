@@ -162,7 +162,16 @@ export class TranscriptionUI {
     _getLanguageNameWithFlag(langCode) {
         const flag = this._getLanguageFlag(langCode);
         const name = this._getLanguageName(langCode);
-        return `${flag} ${name}`;
+        const flagSpan = document.createElement('span');
+        flagSpan.className = 'language-flag';
+        flagSpan.setAttribute('role', 'img');
+        flagSpan.setAttribute('aria-label', `${name} flag`);
+        flagSpan.innerHTML = flag;
+        
+        const container = document.createElement('span');
+        container.appendChild(flagSpan);
+        container.appendChild(document.createTextNode(` ${name}`));
+        return container;
     }
 
     /**
@@ -353,10 +362,16 @@ export class TranscriptionUI {
             translationContainer.className = 'mt-2';
             
             const translationLabel = document.createElement('span');
-            translationLabel.className = 'text-xs text-slate-500';
+            translationLabel.className = 'text-xs text-slate-500 flex items-center gap-2';
+            
             const sourceLangWithFlag = this._getLanguageNameWithFlag(originalLanguage);
+            const arrow = document.createElement('span');
+            arrow.textContent = '→';
             const targetLangWithFlag = this._getLanguageNameWithFlag(translatedLanguage || this.transcriptionLang.value);
-            translationLabel.textContent = `${sourceLangWithFlag} → ${targetLangWithFlag}`;
+            
+            translationLabel.appendChild(sourceLangWithFlag);
+            translationLabel.appendChild(arrow);
+            translationLabel.appendChild(targetLangWithFlag);
             
             const translatedTextEl = document.createElement('p');
             translatedTextEl.className = 'text-sm text-slate-300';
