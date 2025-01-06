@@ -135,13 +135,24 @@ async def translate(request: TranslationRequest):
         # Generation
         generate_start = time.time()
         
+        # Adjust parameters based on input length
+        input_length = len(request.text.strip())
+        if input_length < 5:  # For very short inputs like "Ah", "Hi", etc.
+            temperature = 0.1
+            top_p = 0.1
+            top_k = 1
+        else:  # For normal inputs, keep existing creative parameters
+            temperature = 0.6
+            top_p = 0.95
+            top_k = 40
+        
         # Use chat completion API with XML-formatted prompt
         response = model.create_chat_completion(
             messages=[
                 {
                     "role": "user",
                     "content": f"""<instructions>
-You are a translator from {source_lang_name} to {target_lang_name}.
+You are an expert translator from {source_lang_name} to {target_lang_name}, with deep understanding of idioms and natural expressions in both languages.
 
 The input tag will be read and translated to the target language.
 Output ONLY the translated text in the format below with NO additional content.
@@ -151,15 +162,22 @@ The response format is as follows:
 </TL>
 
 Rules for translation:
-1. For single words or short phrases:
-   - Translate naturally in the target language
-   - Do not expand or add context
-   - Keep it equally concise
-2. For gendered language:
+1. Always prioritize natural expressions over literal translations:
+   - Use idioms and common phrases that natives would use
+   - Avoid word-by-word translations that sound unnatural
+   - Maintain the same level of formality as the original
+2. Keep the translation concise and clear:
+   - Don't add explanations or context
+   - Preserve the original meaning without expanding
+3. For gendered language:
    - Use appropriate gender when clear from context
    - Prefer masculine form when gender is unclear
    - Use masculine form for unclear profession/titles
    - Never use split forms (e.g., "o/a" or "squisito/a")
+
+Examples of natural translations:
+- "having a great time" → "divertirsi molto" (not "avere un grande tempo")
+- "looking forward to" → "non vedo l'ora di" (not "guardando avanti a")
 </instructions>
 <input>
 {request.text}
@@ -167,9 +185,9 @@ Rules for translation:
                 }
             ],
             max_tokens=1024,
-            temperature=0.6,
-            top_p=0.95,
-            top_k=40,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
             repeat_penalty=1.3,
             stop=["</s>", "[/INST]", "Note:", "(", "Translation:", "User:", "Input:", "Here", "This", "</instructions>", "</input>", "</TL>"]
         )
