@@ -136,32 +136,29 @@ async def translate(request: TranslationRequest):
         generate_start = time.time()
         system_message = f"""You are a precise translator. Your only task is to translate the given text from {source_lang_name} to {target_lang_name}.
 Rules:
-- Provide ONLY the direct translation
+- Provide ONLY the translation
 - Do not add any explanations or comments
 - Do not engage in conversation
 - Do not add pleasantries or greetings
-- Keep the same tone and formality as the original text"""
+- Keep the same tone and formality as the original text
+- No quotes or other formatting"""
 
-        prompt = f"[INST] <<SYS>>{system_message}<</SYS>>Translate: {request.text} [/INST]"
+        prompt = f"<s>[INST] {system_message} Translate: {request.text} [/INST]"
         
-        response = model.create_chat_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
+        response = model(
+            prompt,
             max_tokens=512,
-            temperature=0.1,
-            top_p=0.95,
-            top_k=40,
-            repeat_penalty=1.2,
-            stop=["</s>", "[/INST]"],
+            temperature=0.7,    # Higher temperature for more creative freedom
+            top_p=0.9,         # Higher top_p to consider more token options
+            top_k=40,          # Higher top_k for more vocabulary variety
+            repeat_penalty=1.1,
+            stop=["</s>"],
+            echo=False
         )
         generate_time = time.time() - generate_start
         
-        # Extract translation from chat completion response
-        translation = response["choices"][0]["message"]["content"].strip()
+        # Extract translation from response
+        translation = response["choices"][0]["text"].strip()
         
         total_time = time.time() - request_start
         
