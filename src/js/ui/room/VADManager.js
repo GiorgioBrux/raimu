@@ -51,10 +51,11 @@ export class VADManager {
           // Reset speaking state and WebRTC track on misfire
           this.handleSpeakingChange(container, false);
           
-          // Only control WebRTC track for local participant
+          // Only control WebRTC track for local participant if not muted
           const instance = this.instances.get(container.id);
           const isLocalParticipant = container.id === 'participant-local';
-          if (isLocalParticipant && instance && instance.webrtcStream) {
+          const isMuted = this.muted.get(container.id);
+          if (isLocalParticipant && instance && instance.webrtcStream && !isMuted) {
             const audioTrack = instance.webrtcStream.getAudioTracks()[0];
             if (audioTrack) {
               audioTrack.enabled = false;
@@ -104,22 +105,25 @@ export class VADManager {
    * @private
    */
   _handleSpeechStart(container, onSpeakingChange) {
-    if (!this.muted.get(container.id)) {
-      log.debug({ containerId: container.id }, 'Speech started');
-      this.handleSpeakingChange(container, true);
-      
-      // Only control WebRTC track for local participant
-      const instance = this.instances.get(container.id);
-      const isLocalParticipant = container.id === 'participant-local';
-      if (isLocalParticipant && instance && instance.webrtcStream) {
-        const audioTrack = instance.webrtcStream.getAudioTracks()[0];
-        if (audioTrack) {
-          audioTrack.enabled = true;
-          log.debug({ containerId: container.id }, 'WebRTC audio track enabled due to speech');
-        }
+    // Check mute state first and return immediately if muted
+    const isMuted = this.muted.get(container.id);
+    if (isMuted) {
+      log.debug({ containerId: container.id }, 'Speech started but muted, ignoring');
+      return;
+    }
+
+    log.debug({ containerId: container.id }, 'Speech started');
+    this.handleSpeakingChange(container, true);
+    
+    // Only control WebRTC track for local participant
+    const instance = this.instances.get(container.id);
+    const isLocalParticipant = container.id === 'participant-local';
+    if (isLocalParticipant && instance && instance.webrtcStream) {
+      const audioTrack = instance.webrtcStream.getAudioTracks()[0];
+      if (audioTrack && !isMuted) {  // Double check mute state
+        audioTrack.enabled = true;
+        log.debug({ containerId: container.id }, 'WebRTC audio track enabled due to speech');
       }
-    } else {
-      log.debug({ containerId: container.id }, 'Speech started but muted');
     }
   }
 
@@ -128,6 +132,13 @@ export class VADManager {
    * @private
    */
   async _handleSpeechEnd(container, audioData, onSpeakingChange) {
+    // Check mute state first
+    const isMuted = this.muted.get(container.id);
+    if (isMuted) {
+      log.debug({ containerId: container.id }, 'Speech ended but muted, ignoring');
+      return;
+    }
+
     log.debug({ containerId: container.id }, 'Speech ended');
     this.handleSpeakingChange(container, false);
     
@@ -136,14 +147,13 @@ export class VADManager {
     const isLocalParticipant = container.id === 'participant-local';
     if (isLocalParticipant && instance && instance.webrtcStream) {
       const audioTrack = instance.webrtcStream.getAudioTracks()[0];
-      if (audioTrack) {
+      if (audioTrack && !isMuted) {  // Double check mute state
         audioTrack.enabled = false;
         log.debug({ containerId: container.id }, 'WebRTC audio track disabled due to speech end');
       }
     }
     
-    if (!this.muted.get(container.id) && 
-        this.transcriptionManager) {
+    if (!isMuted && this.transcriptionManager) {
       await this._processAudioForTranscription(container.id, audioData);
     }
   }
